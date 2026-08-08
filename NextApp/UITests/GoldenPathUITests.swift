@@ -225,12 +225,19 @@ final class GoldenPathUITests: XCTestCase {
 
         let row = app.buttons["task-row"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.isHittable, "the row must be tappable, not just present")
         row.tap()
 
-        XCTAssertTrue(
-            app.buttons["detail-save-button"].waitForExistence(timeout: 5),
-            "tapping a task should open its detail"
-        )
+        if !app.buttons["detail-save-button"].waitForExistence(timeout: 8) {
+            XCTFail(
+                """
+                Tapping a task did not open its detail.
+                TREE:
+                \(app.debugDescription)
+                """
+            )
+            return
+        }
         XCTAssertTrue(app.textFields["detail-title-field"].exists)
         XCTAssertTrue(app.buttons["detail-delete-button"].exists)
     }
