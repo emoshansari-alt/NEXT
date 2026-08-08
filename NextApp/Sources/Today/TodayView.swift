@@ -58,6 +58,23 @@ struct TodayView: View {
             }
         }
         .task { await model.load() }
+        .onOpenURL { url in
+            // Unrecognised links are ignored rather than guessed at — opening the wrong task
+            // because a URL nearly matched would be worse than doing nothing.
+            guard let link = DeepLink(url: url) else { return }
+            Task { await model.open(link) }
+        }
+        .sheet(
+            item: Binding(
+                get: { model.linkedTask },
+                set: { if $0 == nil { model.closeLinkedTask() } }
+            ),
+            onDismiss: { Task { await model.load() } }
+        ) { task in
+            NavigationStack {
+                TaskDetailView(model: makeDetailModel(task))
+            }
+        }
         // Every sheet reloads on dismiss. Any of them can change the store, and Today showing a
         // recommendation for a task that was just deleted or completed elsewhere would be worse
         // than a moment's delay.

@@ -27,6 +27,9 @@ final class TodayViewModel {
     /// paths need a task's substeps, which are separate tasks linked by `parentID`.
     private(set) var tasks: [TaskItem] = []
 
+    /// A task opened from a widget tap or a notification.
+    private(set) var linkedTask: TaskItem?
+
     /// Set when the store could not be read or written.
     ///
     /// Surfaced rather than swallowed. A silent failure here would show the user an empty
@@ -44,15 +47,20 @@ final class TodayViewModel {
     /// morning, which is the clearest possible sign an app is not paying attention.
     private let onStoreChanged: () async -> Void
 
+    /// Writes what the widget shows. `nil` in tests that do not care about it.
+    private let snapshotPublisher: SnapshotPublisher?
+
     init(
         repository: any TaskRepository,
         engine: RankingEngine = RankingEngine(),
         timeSource: any TimeSource = SystemTimeSource(),
+        snapshotPublisher: SnapshotPublisher? = nil,
         onStoreChanged: @escaping () async -> Void = {}
     ) {
         self.repository = repository
         self.engine = engine
         self.timeSource = timeSource
+        self.snapshotPublisher = snapshotPublisher
         self.onStoreChanged = onStoreChanged
     }
 
@@ -72,10 +80,19 @@ final class TodayViewModel {
             tasks = stored
             outcome = engine.recommend(from: stored, context: context())
             storeFailure = nil
+            publishSnapshot()
         } catch {
             storeFailure = "NEXT could not open your tasks."
             outcome = .nothingToDo
         }
+    }
+
+    /// Keeps the widget showing what Today shows.
+    ///
+    /// Not published on a store failure: the widget should keep its last good answer rather than
+    /// be blanked because a read failed once. It goes stale on its own after a day.
+    private func publishSnapshot() {
+        snapshotPublisher?.publish(outcome, at: timeSource.now)
     }
 
     // MARK: Intents
@@ -91,6 +108,26 @@ final class TodayViewModel {
 
     func stopFocus() {
         focused = nil
+    }
+
+    /// Handles a widget tap or a notification tap.
+    ///
+    /// A link to a task that has since been deleted resolves to nothing and simply leaves the
+    /// user on Today. That is reachable in normal use — a widget can be several minutes stale,
+    /// and a reminder can outlive the thing it was about — so it must not be an error.
+    func open(_ link: DeepLink) async {
+        switch link {
+        case .today:
+            linkedTask = nil
+            await load()
+
+        case .task(let id):
+            linkedTask = try? await repository.fetch(id: id)
+        }
+    }
+
+    func closeLinkedTask() {
+        linkedTask = nil
     }
 
     /// DONE. Completion always flows straight back into the loop (PRODUCT_SPEC.md §4.10).
@@ -122,6 +159,7 @@ final class TodayViewModel {
             tasks = stored
             outcome = engine.recommend(from: stored, context: context())
             storeFailure = nil
+            publishSnapshot()
             await onStoreChanged()
         } catch {
             storeFailure = "NEXT could not save that change."

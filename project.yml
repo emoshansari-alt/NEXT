@@ -38,9 +38,19 @@ targets:
     platform: iOS
     sources:
       - path: NextApp/Sources
+      # Compiled into both the app and the widget. Forty lines with no state — an embedded
+      # framework would cost launch time in an extension expected to render in milliseconds.
+      - path: NextApp/Shared
     dependencies:
       - package: NextKit
         product: NextKit
+      - target: NextWidgetExtension
+        embed: true
+    entitlements:
+      path: NextApp/NextApp.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nextapp.next
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next
@@ -59,11 +69,48 @@ targets:
       properties:
         CFBundleDisplayName: NEXT
         UILaunchScreen: {}
+        # Lets the widget and notification reminders open a specific task. Parsed by
+        # NextKit's DeepLink so every entry point agrees on the format.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.nextapp.next
+            CFBundleURLSchemes: [next]
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIRequiresFullScreen: false
         ITSAppUsesNonExemptEncryption: false
 
+  # The widget reads a snapshot the app writes. It never opens the task store: widget
+  # extensions run under a hard memory limit and are woken at unpredictable moments, so
+  # standing up SwiftData to render two lines of text would be slow and fragile.
+  NextWidgetExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: NextWidget/Sources
+      - path: NextApp/Shared
+    dependencies:
+      - package: NextKit
+        product: NextKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next.widget
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: NextWidget/Info.plist
+        SKIP_INSTALL: YES
+    info:
+      path: NextWidget/Info.plist
+      properties:
+        CFBundleDisplayName: NEXT
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: NextWidget/NextWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nextapp.next
+
+  # No NextApp/Shared here: `@testable import NextApp` already exposes those types, and
+  # compiling them into the test target as well would duplicate the symbols.
   NextAppTests:
     type: bundle.unit-test
     platform: iOS

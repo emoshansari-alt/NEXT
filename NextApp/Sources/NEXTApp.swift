@@ -52,6 +52,7 @@ struct NEXTApp: App {
         TodayView(
             model: TodayViewModel(
                 repository: repository,
+                snapshotPublisher: SnapshotPublisher(),
                 // Reminders are planned from the whole list, so a completion has to cancel its
                 // own reminder. Without this NEXT would notify someone about work they finished
                 // this morning.
