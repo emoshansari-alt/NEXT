@@ -28,17 +28,29 @@ final class TaskDetailViewModel {
     var estimatedMinutes: Int?
     var importance: Importance
 
+    /// True while a decomposition is in flight.
+    private(set) var isBreakingDown = false
+
+    /// How many steps the last decomposition produced, for the confirmation line.
+    private(set) var stepsAdded: Int?
+
     private let repository: any TaskRepository
     private let timeSource: any TimeSource
+    private let intelligence: any IntelligenceProvider
+    private let idProvider: any IDProvider
 
     init(
         task: TaskItem,
         repository: any TaskRepository,
-        timeSource: any TimeSource = SystemTimeSource()
+        timeSource: any TimeSource = SystemTimeSource(),
+        intelligence: any IntelligenceProvider = TemplateFallbackProvider(),
+        idProvider: any IDProvider = UUIDProvider()
     ) {
         self.task = task
         self.repository = repository
         self.timeSource = timeSource
+        self.intelligence = intelligence
+        self.idProvider = idProvider
 
         title = task.title
         notes = task.notes
@@ -94,6 +106,45 @@ final class TaskDetailViewModel {
 
     func archive() async {
         await apply { try self.task.archived(at: self.timeSource.now) }
+    }
+
+    /// Break it down — turn the task into its steps.
+    ///
+    /// The steps become real child tasks and the parent starts waiting on them, so the engine
+    /// recommends a step rather than the mountain. Written as **one batch** with the parent
+    /// included: half a decomposition — steps stored but the parent not yet blocked — would put
+    /// the mountain back in competition with its own pieces.
+    func breakItDown() async {
+        guard task.status == .active, !isBreakingDown else { return }
+
+        isBreakingDown = true
+        defer { isBreakingDown = false }
+
+        do {
+            let decomposition = try await intelligence.decompose(DecompositionRequest(task: task))
+            let children = decomposition.childTasks(
+                of: task,
+                idProvider: idProvider,
+                createdAt: timeSource.now
+            )
+
+            guard !children.isEmpty else {
+                failure = "NEXT could not find smaller steps in this one."
+                return
+            }
+
+            var parent = task.awaiting(children)
+            parent.updatedAt = timeSource.now
+
+            try await repository.upsert(children + [parent])
+            task = parent
+            stepsAdded = children.count
+            failure = nil
+        } catch {
+            // Offline, or nothing useful to say about this task. Not a dead end: the user can
+            // still write their own first step in the field above.
+            failure = "NEXT could not break this one down. You can write the first step yourself."
+        }
     }
 
     /// Real deletion. There is no server copy and no tombstone (PRIVACY.md).

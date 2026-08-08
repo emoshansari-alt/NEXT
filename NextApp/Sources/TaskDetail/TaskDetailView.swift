@@ -41,6 +41,27 @@ struct TaskDetailView: View {
                     TextField("What is the first thing to do?", text: $model.nextAction, axis: .vertical)
                         .accessibilityIdentifier("detail-next-action-field")
                         .accessibilityLabel("First step")
+
+                    if model.task.status == .active {
+                        Button {
+                            Task { await model.breakItDown() }
+                        } label: {
+                            if model.isBreakingDown {
+                                ProgressView()
+                            } else {
+                                Text("Break it down")
+                            }
+                        }
+                        .disabled(model.isBreakingDown)
+                        .accessibilityIdentifier("detail-break-down-button")
+                    }
+
+                    if let added = model.stepsAdded {
+                        Text("Added \(added) step\(added == 1 ? "" : "s"). They are in Everything.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("detail-steps-added")
+                    }
                 }
 
                 Section("When") {

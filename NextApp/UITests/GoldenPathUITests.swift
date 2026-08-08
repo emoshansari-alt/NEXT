@@ -6,9 +6,11 @@ import XCTest
 /// fresh install → empty state → capture → extraction → confirmation → recommendation → START →
 /// Focus → Done → next recommendation.
 ///
-/// Still missing from it, and deliberately named here so the gap stays visible: onboarding, and
-/// relaunch-persistence (the UI target gets a fresh in-memory store per launch, so a relaunch
-/// test would need a different arrangement).
+/// Onboarding is included: it is reset on every UI-test launch, so each run passes through the
+/// honest first run rather than bypassing it.
+///
+/// Still missing, and named here so the gap stays visible: relaunch-persistence. The UI target
+/// gets a fresh in-memory store per launch, so that needs a different arrangement.
 final class GoldenPathUITests: XCTestCase {
 
     override func setUp() {
@@ -25,6 +27,30 @@ final class GoldenPathUITests: XCTestCase {
         app.launchArguments = ["-ui-testing"]
         app.launch()
         return app
+    }
+
+    /// Launches and steps through onboarding, leaving the app on Today.
+    ///
+    /// Onboarding is reset on every UI-test launch, so it is genuinely on screen each time —
+    /// which is the honest first run, and worth passing through rather than bypassing.
+    private func launchPastOnboarding() -> XCUIApplication {
+        let app = launch()
+
+        let skip = app.buttons["onboarding-skip-button"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 10), "a first run should show onboarding")
+        skip.tap()
+
+        return app
+    }
+
+    /// Chooses "Just start" on the Focus timer screen, so the session is running.
+    private func startFocusWithoutTimer(_ app: XCUIApplication) {
+        let justStart = app.buttons["focus-start-button"]
+        XCTAssertTrue(
+            justStart.waitForExistence(timeout: 5),
+            "Focus should ask how long before starting a countdown"
+        )
+        justStart.tap()
     }
 
     /// Captures one task by the manual route and returns with Today showing a recommendation.
@@ -73,10 +99,30 @@ final class GoldenPathUITests: XCTestCase {
         return app
     }
 
+    func testOnboardingIsThreeScreensAndAsksForNothing() {
+        // PRODUCT_SPEC.md §4.1: no account, no email, no profile, no survey, no quiz. The check
+        // is that there is nothing to fill in — a text field appearing here would be the defect.
+        let app = launch()
+
+        let next = app.buttons["onboarding-continue-button"]
+        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields.count, 0, "onboarding must not ask for anything")
+        XCTAssertEqual(app.secureTextFields.count, 0)
+
+        next.tap()
+        next.tap()
+        next.tap()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)["empty-state"].waitForExistence(timeout: 10),
+            "three taps should reach the app itself"
+        )
+    }
+
     func testFirstRunIsEmptyAndOffersAWayOut() {
         // NEXT must not invent tasks the student never wrote. An empty first run is correct —
         // an empty first run with no way forward is a dead end.
-        let app = launch()
+        let app = launchPastOnboarding()
 
         XCTAssertTrue(app.descendants(matching: .any)["empty-state"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["empty-add-button"].exists)
@@ -84,7 +130,7 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testManualCaptureProducesSomethingToStart() {
-        let app = launch()
+        let app = launchPastOnboarding()
 
         captureOneTask(app, text: "Email Professor Adeyemi")
 
@@ -95,7 +141,7 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testBrainDumpGoesThroughConfirmationBeforeAnythingIsSaved() {
-        let app = launch()
+        let app = launchPastOnboarding()
 
         app.buttons["empty-add-button"].tap()
 
@@ -125,11 +171,12 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testStartOpensFocusAndDoneReturnsWithANewRecommendation() {
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
         app.buttons["start-button"].tap()
+        startFocusWithoutTimer(app)
 
         // Wait on the Done button rather than the action text. The action is a combined
         // accessibility element, and which XCUIElementType a combined element surfaces as is
@@ -151,8 +198,34 @@ final class GoldenPathUITests: XCTestCase {
         )
     }
 
+    func testFocusOffersATimerButDoesNotImposeOne() {
+        // NEXT is not a Pomodoro app. The length is chosen before the clock starts, so nobody
+        // is put on a countdown they did not ask for.
+        let app = launchPastOnboarding()
+        captureOneTask(app, text: "Read chapter four")
+
+        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
+        app.buttons["start-button"].tap()
+
+        XCTAssertTrue(app.buttons["focus-start-button"].waitForExistence(timeout: 5))
+        for preset in [5, 15, 25, 45] {
+            XCTAssertTrue(
+                app.buttons["focus-timer-\(preset)"].exists,
+                "the \(preset) minute preset should be offered"
+            )
+        }
+
+        app.buttons["focus-timer-25"].tap()
+
+        XCTAssertTrue(
+            app.buttons["focus-pause-button"].waitForExistence(timeout: 5),
+            "choosing a length should start a pausable session"
+        )
+        XCTAssertTrue(app.buttons["focus-done-button"].exists)
+    }
+
     func testStoppingFocusReturnsWithoutCompleting() {
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
@@ -170,7 +243,7 @@ final class GoldenPathUITests: XCTestCase {
 
     func testWhyThisAlwaysHasAnAnswer() {
         // The recommendation is never an unknowable oracle — PRODUCT_SPEC.md §4.4.
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         let why = app.buttons["why-this-button"]
@@ -184,7 +257,7 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testEverySecondaryActionIsReachable() {
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
@@ -200,7 +273,7 @@ final class GoldenPathUITests: XCTestCase {
 
     func testEverythingShowsWhatWasCaptured() {
         // Capture used to be a one-way door: a mistyped task was unreachable.
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         XCTAssertTrue(app.buttons["everything-button"].waitForExistence(timeout: 10))
@@ -217,7 +290,7 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testATaskCanBeOpenedAndEdited() {
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         app.buttons["everything-button"].tap()
@@ -253,7 +326,7 @@ final class GoldenPathUITests: XCTestCase {
 
     func testImStuckOffersTheFourPathsAndAnswersOne() {
         // Rescue is a first-class feature, and never an open chatbot: four named paths only.
-        let app = launch()
+        let app = launchPastOnboarding()
         captureOneTask(app, text: "Finish the history essay")
 
         XCTAssertTrue(app.buttons["im-stuck-button"].waitForExistence(timeout: 10))
