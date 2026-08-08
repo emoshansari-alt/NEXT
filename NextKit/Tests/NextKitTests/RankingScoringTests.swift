@@ -50,7 +50,7 @@ struct DeadlineUrgencyTests {
     func distantDeadlineContributesNoUrgency() {
         let distant = makeTask(id: "distant", deadline: .daysFromReference(60))
 
-        let score = RankingEngine().score(distant, context: context)
+        let score = engine.score(distant, among: [distant], context: context)
 
         #expect(score.factors[.deadlineUrgency] == 0)
     }
@@ -60,7 +60,7 @@ struct DeadlineUrgencyTests {
         let dueNow = makeTask(id: "now", deadline: .testReference)
         let weights = ScoringWeights.default
 
-        let score = RankingEngine().score(dueNow, context: context)
+        let score = engine.score(dueNow, among: [dueNow], context: context)
 
         #expect(score.factors[.deadlineUrgency] == weights.deadlineUrgency)
     }
@@ -142,7 +142,7 @@ struct RankingDeterminismTests {
         // explanation. Absent must be spelled zero, never omitted.
         let task = makeTask(id: "t", deadline: .daysFromReference(1))
 
-        let score = engine.score(task, context: context)
+        let score = engine.score(task, among: [task], context: context)
 
         for factor in RankingFactor.allCases {
             #expect(score.factors[factor] != nil, "factor \(factor) missing from breakdown")
@@ -153,7 +153,7 @@ struct RankingDeterminismTests {
     func totalIsSumOfFactors() {
         let task = makeTask(id: "t", deadline: .daysFromReference(1), importance: .important)
 
-        let score = engine.score(task, context: context)
+        let score = engine.score(task, among: [task], context: context)
 
         let sum = score.factors.values.reduce(0, +)
         #expect(abs(score.total - sum) < 0.000_001)

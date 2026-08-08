@@ -29,4 +29,12 @@ public enum UnavailabilityReason: Hashable, Sendable {
 
     /// Every task is completed or archived.
     case noActiveTasks
+
+    /// The user stated a time budget and nothing fits inside it. Carries the shortest
+    /// outstanding task so the UI can say something useful — "the shortest thing you have
+    /// is 45 minutes" — rather than showing an unexplained blank.
+    case nothingFitsAvailableTime(shortestMinutes: Int)
+
+    /// Every outstanding task is waiting on a prerequisite that is not finished.
+    case everythingBlocked
 }

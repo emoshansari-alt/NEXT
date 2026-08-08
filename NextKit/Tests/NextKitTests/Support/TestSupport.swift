@@ -36,7 +36,7 @@ extension Date {
     }
 }
 
-// MARK: - Task builder
+// MARK: - Builders
 
 /// Builds a `TaskItem` with sensible defaults so each test only states what it cares about.
 func makeTask(
@@ -45,6 +45,11 @@ func makeTask(
     status: TaskStatus = .active,
     deadline: Date? = nil,
     importance: Importance = .normal,
+    estimatedMinutes: Int? = nil,
+    nextAction: String? = nil,
+    prerequisiteIDs: [TaskID] = [],
+    parentID: TaskID? = nil,
+    rejections: [Rejection] = [],
     createdAt: Date = .testReference
 ) -> TaskItem {
     TaskItem(
@@ -53,6 +58,16 @@ func makeTask(
         createdAt: createdAt,
         status: status,
         deadline: deadline,
-        importance: importance
+        importance: importance,
+        estimatedMinutes: estimatedMinutes,
+        nextAction: nextAction,
+        prerequisiteIDs: prerequisiteIDs,
+        parentID: parentID,
+        rejections: rejections
     )
+}
+
+/// A rejection that happened a given number of hours before `Date.testReference`.
+func rejection(_ reason: RejectionReason = .cantRightNow, hoursAgo: Double) -> Rejection {
+    Rejection(reason: reason, at: .hoursFromReference(-hoursAgo))
 }

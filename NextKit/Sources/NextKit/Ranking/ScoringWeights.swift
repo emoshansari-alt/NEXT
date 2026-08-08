@@ -56,6 +56,15 @@ public struct ScoringWeights: Hashable, Sendable {
     /// How long a "Not this" rejection keeps suppressing a task.
     public var rejectionCooldown: TimeInterval
 
+    /// How many dependent tasks count as "fully unlocking". Beyond this the factor saturates,
+    /// so a hub task with twenty dependents does not permanently dominate the ranking.
+    public var unlockSaturationCount: Int
+
+    /// How much slack a deadline needs before it stops being `tight`. At 3, a 30-minute task
+    /// is comfortable only when at least 90 minutes remain — the margin exists because
+    /// estimates are optimistic and students rarely get an uninterrupted run at anything.
+    public var tightDeadlineMultiplier: Double
+
     public init(
         deadlineUrgency: Double,
         overdueRelevance: Double,
@@ -66,7 +75,9 @@ public struct ScoringWeights: Hashable, Sendable {
         friction: Double,
         rejectionPenalty: Double,
         urgencyHorizon: TimeInterval,
-        rejectionCooldown: TimeInterval
+        rejectionCooldown: TimeInterval,
+        unlockSaturationCount: Int,
+        tightDeadlineMultiplier: Double
     ) {
         self.deadlineUrgency = deadlineUrgency
         self.overdueRelevance = overdueRelevance
@@ -78,6 +89,8 @@ public struct ScoringWeights: Hashable, Sendable {
         self.rejectionPenalty = rejectionPenalty
         self.urgencyHorizon = urgencyHorizon
         self.rejectionCooldown = rejectionCooldown
+        self.unlockSaturationCount = unlockSaturationCount
+        self.tightDeadlineMultiplier = tightDeadlineMultiplier
     }
 
     /// The shipping defaults.
@@ -95,7 +108,9 @@ public struct ScoringWeights: Hashable, Sendable {
         friction: 8,
         rejectionPenalty: 60,
         urgencyHorizon: 7 * 24 * 3600,
-        rejectionCooldown: 4 * 3600
+        rejectionCooldown: 4 * 3600,
+        unlockSaturationCount: 3,
+        tightDeadlineMultiplier: 3
     )
 
     /// The weight applied to a given factor.
