@@ -323,6 +323,37 @@ struct RescueNotEnoughTimeTests {
         #expect(response.hasMoreSteps)
     }
 
+    @Test("the step number names the rung actually offered, not always the first")
+    func stepNumberNamesTheRungOnScreen() throws {
+        // When the earlier rungs are too big, the one shown is further down the ladder.
+        // Reporting it as step 1 tells the user they are at the start when they are two rungs
+        // in, and contradicts hasMoreSteps, which is computed from the real index.
+        let essay = makeTask(
+            id: "essay", title: "History essay", deadline: .hoursFromReference(2)
+        )
+        let tooBig = makeTask(
+            id: "c1", title: "Read the full source pack", estimatedMinutes: 90,
+            parentID: TaskID("essay")
+        )
+        let alsoTooBig = makeTask(
+            id: "c2", title: "Draft the introduction", estimatedMinutes: 45,
+            parentID: TaskID("essay")
+        )
+        let fits = makeTask(
+            id: "c3", title: "Print the brief", estimatedMinutes: 10,
+            parentID: TaskID("essay")
+        )
+
+        let outcome = rescue.notEnoughTime(
+            .fifteen, from: [essay, tooBig, alsoTooBig, fits], now: .testReference
+        )
+        let response = try #require(outcome.response)
+
+        #expect(response.step.text == "Print the brief.")
+        #expect(response.stepNumber == 3)
+        #expect(response.hasMoreSteps == false)
+    }
+
     @Test("a single-rung task that fits is not made to look like it has more")
     func aSingleRungTaskAdmitsNothingFurther() throws {
         let worksheet = makeTask(

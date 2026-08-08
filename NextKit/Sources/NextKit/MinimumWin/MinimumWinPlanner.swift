@@ -119,13 +119,18 @@ public struct MinimumWinPlanner: Sendable {
                     : .hereIsWhatFits(minutesRemaining: minutesRemaining),
                 best: best,
                 smallerRungs: Array(rungs.dropFirst()),
-                // A time-boxed rung runs to the deadline, so there is no later moment at which
-                // anything is still open to decide. Offering none is the honest answer; the
-                // alternative — an arbitrary point inside the window — would interrupt the one
-                // stretch of work the plan just told the user to spend it on.
-                reassessAt: best.isTimeBoxed
-                    ? nil
-                    : now.addingTimeInterval(Double(best.minutes) * 60)
+                // A reassess point only means something if there is time left after the rung to
+                // act on it. The test is therefore whether the rung actually leaves any — not
+                // whether it is time-boxed.
+                //
+                // Those are not the same condition. A time-boxed rung always fills the window,
+                // but so does a whole outcome that happens to cost exactly the minutes remaining
+                // (a 600-minute paper due in 90 minutes makes the first stage 90). Gating on
+                // `isTimeBoxed` let that case through and handed the user a "reassess" sitting
+                // precisely on the deadline, which is not a reassessment — the work is due.
+                reassessAt: best.minutes < minutesRemaining
+                    ? now.addingTimeInterval(Double(best.minutes) * 60)
+                    : nil
             )
         )
     }

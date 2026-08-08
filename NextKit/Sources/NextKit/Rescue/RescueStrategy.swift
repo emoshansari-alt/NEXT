@@ -180,7 +180,12 @@ public struct RescueStrategy: Sendable {
                         ? .theWholeThingFits(minutes: budget.minutes)
                         : .oneStepInTheWindow(minutes: budget.minutes),
                     step: step,
-                    stepNumber: 1,
+                    // The rung actually on screen, not always the first. When the earlier rungs
+                    // are too big for the window the one offered is further down the ladder, and
+                    // `hasMoreSteps` is already computed from that real index — reporting step 1
+                    // here would make the two fields describe different rungs. The generic
+                    // fallback belongs to no ladder, so it is step 1 of one thing.
+                    stepNumber: fitting.map { $0 + 1 } ?? 1,
                     hasMoreSteps: hasMoreSteps,
                     commitmentMinutes: budget.minutes
                 )

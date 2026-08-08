@@ -553,6 +553,39 @@ struct TaskTransitionPurityTests {
         #expect(roundTripped.rejectionsSupersededAt == .hoursFromReference(1))
     }
 
+    @Test("reopening keeps everything else about the task intact")
+    func reopeningPreservesContent() throws {
+        // completed() and archived() both had a preservation test; reopened() did not, and the
+        // round-trip fixture above was too thinly seeded to stand in for one — dropping
+        // estimatedMinutes, prerequisiteIDs and parentID in reopened() left the whole suite
+        // green. Every field a user can lose is named here.
+        let chem = makeTask(
+            id: "chem",
+            title: "Chemistry worksheet",
+            deadline: .daysFromReference(1),
+            importance: .important,
+            estimatedMinutes: 25,
+            nextAction: "Do questions 1 to 5.",
+            prerequisiteIDs: [TaskID("reading")],
+            parentID: TaskID("coursework"),
+            rejections: [rejection(.cantRightNow, hoursAgo: 4)]
+        )
+
+        let reopened = try chem
+            .completed(at: .testReference)
+            .reopened(at: .hoursFromReference(1))
+
+        #expect(reopened.title == chem.title)
+        #expect(reopened.deadline == chem.deadline)
+        #expect(reopened.importance == chem.importance)
+        #expect(reopened.estimatedMinutes == chem.estimatedMinutes)
+        #expect(reopened.nextAction == chem.nextAction)
+        #expect(reopened.prerequisiteIDs == chem.prerequisiteIDs)
+        #expect(reopened.parentID == chem.parentID)
+        #expect(reopened.rejections == chem.rejections)
+        #expect(reopened.createdAt == chem.createdAt)
+    }
+
     @Test("every transition records the instant it was handed")
     func everyTransitionRecordsTheInstant() throws {
         // Five of these used to take `now` and throw it away, so `completed(at: now)` read like
@@ -679,9 +712,21 @@ struct TaskTransitionRefusalTests {
         ]
 
         for error in Self.everyRefusal {
-            let text = error.debugDescription.lowercased()
-            for word in banned {
-                #expect(!text.contains(word), "\(error) contains banned language: \(word)")
+            // Both strings, not just the one this type currently vends. `debugDescription` is
+            // what a developer prints; `localizedDescription` is what reaches an alert or a log,
+            // and it is the likelier leak path of the two. Sweeping only the first left a real
+            // hole: adding a `LocalizedError` conformance whose `errorDescription` read
+            // "You failed again..." kept the entire suite green.
+            let surfaces = [error.debugDescription, (error as any Error).localizedDescription]
+
+            for surface in surfaces {
+                let text = surface.lowercased()
+                for word in banned {
+                    #expect(
+                        !text.contains(word),
+                        "\(error) exposes banned language '\(word)' via: \(surface)"
+                    )
+                }
             }
         }
     }

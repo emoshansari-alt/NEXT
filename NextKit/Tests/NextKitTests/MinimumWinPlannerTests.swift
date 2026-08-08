@@ -231,26 +231,56 @@ struct MinimumWinLadderTests {
         #expect(plan.reassessAt == nil)
     }
 
+    @Test("a whole-outcome rung that exactly fills the window offers no reassess either")
+    func aRungThatFillsTheWindowOffersNoReassess() {
+        // The case `isTimeBoxed` misses. A 600-minute paper due in 90 minutes makes the first
+        // stage 15% of 600 = 90 — a genuine whole outcome, not a time box, that happens to
+        // consume every remaining minute. Gating the reassess on `isTimeBoxed` alone let this
+        // through and handed the user a "reassess" sitting exactly on the deadline.
+        let task = makeTask(
+            id: "paper",
+            title: "History paper",
+            deadline: .hoursFromReference(1.5),
+            estimatedMinutes: 600
+        )
+
+        guard let plan = planner.plan(for: task, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+
+        #expect(plan.best.minutes == plan.minutesRemaining, "precondition: the rung fills the window")
+        #expect(plan.best.isTimeBoxed == false, "precondition: it is a whole outcome, not a time box")
+        #expect(plan.reassessAt == nil)
+    }
+
     @Test("wherever there is a reassess point, it falls strictly before the deadline")
     func anyReassessPointLeavesTimeToAct() {
-        // The property behind both cases above, swept across the whole range of windows: a
-        // reassess point is only offered when acting on it is still possible.
-        for hours in [0.25, 0.5, 1, 2, 3, 4, 5] as [Double] {
-            let outcome = planner.plan(for: paper(dueInHours: hours), now: .testReference)
-            guard let plan = outcome.plan else {
-                Issue.record("expected a ladder \(hours)h out, got \(outcome)")
-                continue
+        // The property behind the cases above. Swept as a grid rather than a handful of windows
+        // against one estimate: the defect this guards against only appears when a stage length
+        // happens to land exactly on the window, which a sparse sweep walks straight past.
+        for estimate in [45, 90, 120, 240, 360, 600, 900] {
+            for windowMinutes in stride(from: 5, through: 600, by: 5) {
+                let task = makeTask(
+                    id: "paper",
+                    title: "History paper",
+                    deadline: .hoursFromReference(Double(windowMinutes) / 60),
+                    estimatedMinutes: estimate
+                )
+                let deadline = Date.hoursFromReference(Double(windowMinutes) / 60)
+
+                // A window the task still fits in is legitimately refused — Minimum Win is not
+                // needed when the original goal is still reachable. Only the ladders matter here.
+                guard let plan = planner.plan(for: task, now: .testReference).plan,
+                      let reassessAt = plan.reassessAt
+                else { continue }
+
+                #expect(reassessAt > Date.testReference)
+                #expect(
+                    reassessAt < deadline,
+                    "estimate \(estimate), window \(windowMinutes): reassess \(reassessAt) is not before \(deadline)"
+                )
             }
-            guard let reassessAt = plan.reassessAt else {
-                #expect(plan.best.isTimeBoxed, "a whole-outcome rung should offer a reassess")
-                continue
-            }
-            #expect(!plan.best.isTimeBoxed)
-            #expect(reassessAt > Date.testReference)
-            #expect(
-                reassessAt < Date.hoursFromReference(hours),
-                "reassess at \(reassessAt) with the deadline at \(hours)h"
-            )
         }
     }
 }

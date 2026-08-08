@@ -199,6 +199,31 @@ dependency cost before there is any evidence it is needed.
 
 ---
 
+## D-013 — The time seam is `TimeSource`, not `Clock` (supersedes the naming in D-007)
+
+**Date:** 2026-08-08 · **Status:** Accepted
+
+**Context.** D-007 named the injected seams `Clock` and `IDProvider`. `Clock` collides with the
+Swift standard library's own `Clock` protocol — the one behind `ContinuousClock` and
+`Task.sleep(until:)`.
+
+**Evidence, observed rather than predicted.** While the seam was still called `Clock`, its own
+test file could not conform to it without writing `NextKit.Clock`, and had to spell the
+existential `any NextKit.Clock`. Which uses resolve silently and which the compiler rejects
+depends on what else is in scope. That uncertainty lands hardest in `NextApp`, which cannot be
+compiled from the Windows development machine — so the cost would have been paid a CI cycle
+at a time, after every call site was already written against the bad name.
+
+**Decision.** Rename the protocol to `TimeSource`, with `SystemTimeSource` in `NextApp` and
+`FixedTimeSource` in tests. `IDProvider` is unchanged — it collides with nothing.
+
+**What D-007 still says.** Everything else in D-007 stands unaltered: `NextKit` may not call
+`Date()` or `UUID()`, both are injected, and `scripts/lint-nextkit.sh` enforces it. Only the
+name of the time protocol changes. D-007's text is left as written because this file is
+append-only; this entry is the correction.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

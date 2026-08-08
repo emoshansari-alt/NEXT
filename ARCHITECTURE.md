@@ -74,12 +74,16 @@ Non-determinism is injected, never reached for directly. This is what makes the 
 **Rule:** no call to `Date()`, `UUID()`, or `Task.sleep` anywhere in `NextKit`. A lint check
 enforces this. Ranking must be a pure function of `(tasks, context, weights, now)`.
 
-The time seam is **not** called `Clock`. The standard library already vends that name, and a
-second one shadows it: in any file importing `NextKit`, `Swift.Clock` would stop being nameable
-unqualified and `ContinuousClock` would stop appearing to conform to plain `Clock`. Where both
-modules are visible on equal footing the unqualified name is an outright ambiguity the caller
-has to resolve by hand at every use. `TimeSource` collides with nothing and needs no
-qualification anywhere. `SupportSeamTests` pins this by naming `Swift.Clock` unqualified.
+The time seam is **not** called `Clock`. The standard library already vends that name — the
+protocol behind `ContinuousClock` and `Task.sleep(until:)` — and a second one competes with it
+in any file importing both.
+
+The cost was observed rather than assumed: while the seam was still called `Clock`, its own
+test file could not conform to it without writing `NextKit.Clock`, and had to spell the
+existential `any NextKit.Clock`. Which uses resolve silently and which the compiler rejects
+depends on what else is in scope, and having to work that out per call site is the problem.
+`TimeSource` collides with nothing and needs no qualification anywhere. `SupportSeamTests`
+pins this by naming `Swift.Clock` unqualified.
 
 Both storage and time are pinned by shared, reusable checks rather than by assertions that only
 exist in one place: `verifyRepositoryContract(_:)` runs the whole `TaskRepository` contract

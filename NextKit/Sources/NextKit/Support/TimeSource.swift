@@ -21,13 +21,16 @@ import Foundation
 ///
 /// The standard library already declares a protocol called `Clock` — the one behind
 /// `ContinuousClock`, `Task.sleep(until:)` and `InstantProtocol`. A second `Clock` vended by
-/// this module shadows it: in any file that imports `NextKit`, the standard library's protocol
-/// stops being nameable without writing `Swift.Clock`, and `ContinuousClock` stops appearing to
-/// conform to plain `Clock`. Where both modules are visible on equal footing the unqualified
-/// name is worse still — an ambiguity the caller has to resolve by hand at every use.
+/// this module competes with it in any file importing both.
 ///
-/// A seam that forces every call site to disambiguate is a badly named seam. `TimeSource` says
-/// the same thing, collides with nothing, and needs no qualification anywhere.
+/// What that costs in practice was observed, not assumed: while the seam was still called
+/// `Clock`, its own test file could not conform to it without writing `NextKit.Clock`, and had
+/// to spell the existential `any NextKit.Clock`. Precisely which uses resolve silently and
+/// which the compiler rejects depends on what else is in scope — and having to work that out
+/// per call site is itself the problem.
+///
+/// A seam whose name makes callers stop and disambiguate is a badly named seam. `TimeSource`
+/// says the same thing, collides with nothing, and needs no qualification anywhere.
 public protocol TimeSource: Sendable {
 
     /// The instant to treat as "now".

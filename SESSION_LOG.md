@@ -5,6 +5,98 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 2: engine completed, Tier 2 live, four modules built and reviewed
+
+**Objective.** Finish the deterministic engine, turn on Tier 2 verification, and build the
+remaining `NextKit` modules.
+
+### Headline
+
+- **Tier 1: 410 tests in 75 suites, green** (was 16). Windows *and* `macos-latest`.
+- **Tier 2 is live and passing.** The iOS app compiles under Swift 6 strict concurrency and its
+  Simulator tests run: 10 unit + 5 UI, `** TEST SUCCEEDED **`, run
+  [31255945755](https://github.com/emoshansari-alt/NEXT/actions/runs/31255945755).
+- **`RELEASE_GATED.md` Gate A is closed.** Only paid-membership work remains gated.
+
+### What was built
+
+Engine completed: rejection with a decaying, finite penalty; available-time filtering;
+prerequisites, blocking and unlock value; startability; the "Why this?" explanation;
+`DeadlineFeasibility`. Every edge case in `PRODUCT_SPEC.md` §5 is covered.
+
+`NextApp` first vertical slice: Today renders the recommendation, START opens Focus, Done
+completes and recalculates, Not this records a rejection the engine respects, Why this? shows
+the deterministic explanation. `project.yml` (XcodeGen) plus a three-job CI workflow.
+
+Four modules via sequential subagents, each TDD'd: Support seams + Persistence + transitions ·
+Rescue (8 types, all four paths) · Minimum Win · Intelligence (17 files — provider protocol,
+DTOs, `ResponseValidator`, mock with all 8 failure modes, offline `TemplateFallbackProvider`).
+
+### The adversarial review is the part worth remembering
+
+Reviewers ran probes against shipped code rather than reasoning about it, and found 20 real
+defects. The most important:
+
+- **The academic-integrity guard was fake.** `stepsAreNeverImprovised` built its "approved copy"
+  table by calling the same function the planner calls. A reviewer inserted *"Ask a friend on
+  your course to send you their outline for this."* and all 43 Minimum Win tests passed.
+- **Numbered substeps were silently deleted** — the dedup key stripped digits, so
+  "Answer question 1/2/3" collapsed to one rung, discarding the user's own recorded work.
+- **"It's too much" returned the mountain** — unestimated rungs scored as `Int.max`, so a
+  45-minute chunk beat a smaller unestimated first step.
+- **Capture manufactured junk tasks** — `"practice mon and wed"` → `["Practice", "Wed"]`;
+  `"Chem test monday. Email professor."` → one task titled `"Chem test Email professor."`
+- **The tone screen rejected legitimate coursework** — the bare stem `"diagnos"` killed
+  "Read the diagnostic criteria section.", and validation fails wholesale.
+- **`Clock` shadowed the standard library's `Clock`** — renamed to `TimeSource` (D-013).
+- **`started()` deleted rejection *history*** to suppress a penalty that already decays,
+  destroying what §14 calls the most valuable tuning signal. Now a `rejectionsSupersededAt`
+  watermark instead.
+
+**Lesson worth keeping: a test written after its implementation proves nothing until it has
+been seen to fail.** Four such tests were found to be incapable of failing. Mutation testing is
+now standard practice here and is documented in `TESTING.md`.
+
+### Closed by hand after the fix round
+
+`reassessAt` still landed exactly on the deadline for any whole-outcome rung that filled the
+window (gating on `isTimeBoxed` missed it — the real condition is whether time remains after
+the rung). The P5 sweep covered only `debugDescription`, so a shaming `errorDescription` via
+`LocalizedError` passed — now both surfaces are swept, verified by probe. `reopened()` had no
+content-preservation test; verified by mutation. Rescue's `stepNumber` was hardcoded to 1 while
+`hasMoreSteps` used the real ladder index. Docs: D-013 added, an overclaimed collision mechanism
+in `ARCHITECTURE.md` §3 corrected to what was actually observed, test counts refreshed.
+
+### Known limitations
+
+- The `friction` ranking factor still contributes an explicit zero.
+- Onboarding, Everything, Task Detail, Settings, capture and capture confirmation do not exist.
+- No persistence in the app yet — `TodayViewModel` holds tasks in memory and seeds from
+  `SampleTasks`. SwiftData is Phase 2's remaining half.
+- No Focus timer, notifications, widget or StoreKit.
+- Open questions carried from subagents, none blocking: no batch write on `TaskRepository`
+  (a brain dump would do N awaits with no atomicity); no change-notification on the repository;
+  `TaskStatus` has no `inProgress`, so Focus cannot survive termination; `WorkKind` keyword sets
+  are English-only.
+
+### Blockers
+
+**None.** The only remaining external requirement is paid Apple membership, and it blocks
+nothing that can be built now.
+
+### Exact next action
+
+Phase 2's remaining half: the SwiftData-backed `TaskRepository` in `NextApp`, plus
+`SystemTimeSource` and `UUIDProvider` (the concrete seams that belong in the app because they
+may read the clock). Point `verifyRepositoryContract(_:)` — already written and shared — at the
+SwiftData store from the Tier 2 test target, which turns the storage contract from a promise
+into an enforced one. Then wire `TodayViewModel` to the repository and delete `SampleTasks`.
+
+After that: capture and capture confirmation (Phase 5), which is what makes the app usable by
+a real person for the first time.
+
+---
+
 ## 2026-08-08 — Session 1: Phase 0 and Phase 1 foundation
 
 **Objective.** Establish the environment, settle the platform constraint, create the repository

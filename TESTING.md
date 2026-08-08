@@ -47,19 +47,20 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-08 · **Result:** 16 tests, 16 passed, 0 failed · Swift 6.3.3,
-`x86_64-unknown-windows-msvc`
+**Last run:** 2026-08-08 · **Result:** 410 tests in 75 suites, 410 passed, 0 failed ·
+Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
-| Suite | Tests | Status |
-|---|---|---|
-| `RankingEngine — outcome states` | 5 | passing |
-| `RankingEngine — deadline urgency` | 5 | passing |
-| `RankingEngine — importance` | 2 | passing |
-| `RankingEngine — determinism` | 4 | passing |
+| Area | Covers |
+|---|---|
+| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility |
+| Model | task state transitions and their refusals |
+| Persistence | the `TaskRepository` contract, run against the in-memory implementation |
+| Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
+| Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
+| Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting |
 
-Also verified in CI on `macos-latest` (Apple Swift 6.3.3): 16 of 16 passing —
-run [31253999769](https://github.com/emoshansari-alt/NEXT/actions/runs/31253999769).
-The same suite therefore passes on two toolchains and two operating systems.
+The suite also runs on `macos-latest` in CI under Apple Swift 6.3.3, so it passes on two
+toolchains and two operating systems.
 
 ### Guardrails
 
@@ -70,36 +71,50 @@ It has been verified against a deliberate violation probe — a file importing S
 calling both `Date()` and `UUID()`. The lint caught all three, exited non-zero, and returned to
 passing once the probe was removed. A guardrail only ever observed to pass has not been tested.
 
-### Current state — Tier 2
+### Mutation testing
 
-**Never run against real code.** The Tier 2 job exists and executes, but `NextApp` and
-`NextWidget` do not exist yet, so the job reports that and does nothing. It is deliberately
-loud about this: a job passing because there was nothing to do must never be mistaken for one
-passing because the app compiled.
+Several behaviours here were pinned by tests written *after* the code, which means passing
+proves nothing on its own. Those were validated by deliberately breaking the implementation and
+confirming the test went red, then restoring it. Done so far for: prerequisite blocking, the
+repository's ordering guarantee, rejection clearing on start, next-action trimming, transition
+refusals, rejection preservation across `reopened()`, and the P5 language sweep.
+
+This is not ceremony. An adversarial review round found four tests that could never fail,
+including the academic-integrity guard, which built its "approved copy" table by calling the
+same function it was checking. Inserting an invitation to submit another student's work left
+all 43 Minimum Win tests green. Any test written after its implementation must be shown to fail.
+
+## Current state — Tier 2
+
+**Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
+run [31255945755](https://github.com/emoshansari-alt/NEXT/actions/runs/31255945755)
+
+| Target | Result |
+|---|---|
+| `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
+| `NextAppTests` (swift-testing) | 10 tests in 2 suites, passed |
+| `NextAppUITests` (XCTest, real Simulator) | 5 tests, passed |
+
+This proves the app compiles, `NextKit` links into an iOS target, and the golden-path UI
+interactions work. It proves nothing about a physical device — see `RELEASE_GATED.md` Gate B.
 
 ### Not yet written
 
-The following are required by the product spec and are **not** yet covered. Their absence is
-tracked here honestly rather than implied away:
+Required by the product spec and **not** yet covered. Tracked honestly rather than implied away:
 
-- unlock/prerequisite value · startability · contextual fit · friction · rejection penalty
-  (these five factors currently contribute an explicit zero)
-- every remaining ranking edge case in `PRODUCT_SPEC.md` §5 — impossible deadline, task longer
-  than available time, blocked task, completed parent with pending child, missing duration,
-  all tasks unavailable
-- the "Why this?" explanation string
-- task state transitions
-- rescue strategies (all four paths)
-- time-budget selection
-- Minimum Win planning
-- AI response validation and every malformed-response case
-- fallback provider extraction
-- repository semantics
+- the `friction` ranking factor still contributes an explicit zero
+- onboarding, Everything, Task Detail, Settings, capture and capture confirmation — the screens
+  do not exist yet, so neither do their tests
+- the Focus timer
+- persistence across relaunch (needs SwiftData, which needs the app-layer store)
+- notification scheduling logic
+- StoreKit entitlement logic
+- the automated accessibility audit
+- integration tests spanning capture → confirmation → persistence
 
 ### Never compiled
 
-`NextApp` and `NextWidget` do not exist yet. When they do, they remain **UNVERIFIED** until
-Tier 2 runs. No claim about them is permitted before then.
+`NextWidget` does not exist. It remains **UNVERIFIED** until Tier 2 builds it.
 
 ---
 
