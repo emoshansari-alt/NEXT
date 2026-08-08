@@ -5,6 +5,70 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 5: Everything, Task Detail, Rescue wired up
+
+**Objective.** Close the repair hole — capture was a one-way door — and give the finished
+Rescue module a way in.
+
+### Result
+
+**Tier 1: 426 tests / 77 suites. Tier 2: 46 unit + 10 UI tests.** All green —
+run [31278176415](https://github.com/emoshansari-alt/NEXT/actions/runs/31278176415).
+
+### What was built
+
+- **`TaskSections`** in `NextKit` — the Everything screen's date bucketing, 16 Tier 1 tests.
+  In the domain layer rather than the view because a calendar boundary is easy to get subtly
+  wrong and impossible to check from a screenshot. A deadline earlier today is **Overdue**, not
+  Today: filing it under Today would hide something already late.
+- **Everything** — sections, swipe to complete/reopen/delete, push to detail. Deliberately not
+  a second place to decide what to do; Today owns that, and duplicating it would put the user
+  back in front of the whole list.
+- **Task Detail** — edits held locally and written on save, so backing out of a half-typed
+  title is not what gets stored. Blank titles refused. Deletion real, and says so.
+- **Rescue UI** — the module was fully built and Tier 1 tested with no way to reach it. Now
+  behind "I'm stuck", on its own line above the other secondary actions.
+- **`TaskItem.notes`**, which `PRODUCT_SPEC.md` §4.8 required and the model lacked.
+- **Archived is its own section** rather than hidden. A state with no way back is a trap.
+
+### Four CI rounds, all mine, all Tier 2-only failures
+
+The app layer cannot compile here, so these are only findable in CI:
+
+1. **A sheet cannot be presented while another is dismissing.** Opening a task dismissed
+   Everything and set the detail sheet in the same tick; the second was swallowed. Detail is
+   now *pushed* onto Everything's own stack — the more natural shape anyway, since you come
+   back to the list you were in.
+2. A pushed detail must not carry its own `NavigationStack` or Close button.
+3. **A `Form` renders rows lazily**, so the delete button below the fold genuinely did not
+   exist. Scrolled to it.
+4. Dumping `app.debugDescription` again narrowed round 3 in a single run.
+
+### Known limitations
+
+- **No onboarding.** The three screens from §4.1 do not exist; the app opens straight onto Today.
+- **"Break it down" is not wired.** `IntelligenceProvider.decompose` exists and is tested, but
+  nothing calls it — Task Detail has no button for it yet.
+- Rescue's "Do that" opens Focus on the parent task rather than on the shrunken step. The step
+  is what the user was just shown, so this is not wrong, but Focus should display it.
+- No Focus timer, notifications, widget, StoreKit, or Settings.
+- `friction` is still an explicit zero.
+- Still no relaunch-persistence UI test — the UI target gets a fresh in-memory store per launch.
+
+### Exact next action
+
+1. **Onboarding** — three screens, no account, then straight into an empty Today. Persist
+   completion in `UserDefaults`; it is the last surface standing between this and a coherent
+   first run.
+2. **"Break it down"** in Task Detail, calling `decompose` and writing the steps as child tasks
+   via `parentID` — which is what `StepShrinker` and `MinimumWinPlanner` already read.
+3. **Focus timer** (Phase 6) — presets 5/15/25/45/none, with timer state announced accessibly.
+4. **Settings** — notification controls, and the cloud-AI consent switch `PRIVACY.md` promises.
+
+Phase 12 visual assets follow **D-014**: Claude design tooling first, Higgsfield as fallback.
+
+---
+
 ## 2026-08-08 — Session 4: capture — NEXT becomes usable by a real person
 
 **Objective.** Phase 5. Until this, every task on screen was one the app had planted.

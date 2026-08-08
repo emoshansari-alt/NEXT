@@ -87,13 +87,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31275317887](https://github.com/emoshansari-alt/NEXT/actions/runs/31275317887)
+run [31278176415](https://github.com/emoshansari-alt/NEXT/actions/runs/31278176415)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 34 tests in 7 suites, passed |
-| `NextAppUITests` (XCTest, real Simulator) | 7 tests, passed |
+| `NextAppTests` (swift-testing) | 46 tests in 9 suites, passed |
+| `NextAppUITests` (XCTest, real Simulator) | 10 tests, passed |
 
 This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
 the storage contract, and the golden path works end to end on a Simulator. It proves nothing
@@ -111,8 +111,16 @@ tapping a covered control fails silently and surfaces as an unrelated assertion 
 UI helpers now assert `isEnabled` *and* `isHittable`, and check that a text field really holds
 what was typed before acting on it.
 
+**A sheet cannot be presented while another is dismissing.** Setting one sheet false and another
+true in the same tick silently swallows the second. A list should push to its own detail rather
+than bouncing the presentation back through a parent screen.
+
+**A `Form` or `List` renders its rows lazily**, so a control below the fold genuinely does not
+exist yet. Scroll to it — that is part of checking it is reachable, not a workaround.
+
 When a UI failure is not obvious, dump `app.debugDescription` rather than guessing across
-ten-minute CI round-trips. That is what identified the identifier collision in one run.
+ten-minute CI round-trips. That is what identified the identifier collision in one run, and it
+narrowed the detail-navigation failure to its real cause in one more.
 
 ### The storage contract is shared, not restated
 
