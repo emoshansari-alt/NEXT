@@ -53,7 +53,21 @@ final class GoldenPathUITests: XCTestCase {
         saveSingle.tap()
 
         let done = app.buttons["capture-done-button"]
-        XCTAssertTrue(done.waitForExistence(timeout: 5), "saving should confirm it happened")
+        if !done.waitForExistence(timeout: 8) {
+            // Dump what is actually on screen. Guessing at an invisible failure across CI
+            // round-trips is slower than asking the app once.
+            XCTFail(
+                """
+                Saving did not reach the confirmation screen.
+                store-warning present: \(app.descendants(matching: .any)["store-warning"].exists)
+                capture-failure present: \(app.descendants(matching: .any)["capture-failure"].exists)
+                capture-failure label: \(app.descendants(matching: .any)["capture-failure"].label)
+                TREE:
+                \(app.debugDescription)
+                """
+            )
+            return app
+        }
         done.tap()
 
         return app
