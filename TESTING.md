@@ -87,17 +87,32 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31266799111](https://github.com/emoshansari-alt/NEXT/actions/runs/31266799111)
+run [31275317887](https://github.com/emoshansari-alt/NEXT/actions/runs/31275317887)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 20 tests in 4 suites, passed |
-| `NextAppUITests` (XCTest, real Simulator) | 5 tests, passed |
+| `NextAppTests` (swift-testing) | 34 tests in 7 suites, passed |
+| `NextAppUITests` (XCTest, real Simulator) | 7 tests, passed |
 
 This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
-the storage contract, and the golden-path UI interactions work. It proves nothing about a
-physical device — see `RELEASE_GATED.md` Gate B.
+the storage contract, and the golden path works end to end on a Simulator. It proves nothing
+about a physical device — see `RELEASE_GATED.md` Gate B.
+
+### Two lessons the UI suite taught the hard way
+
+**A container's accessibility identifier overwrites its children's.** A `VStack` marked
+`capture-saved` silently renamed the Done button inside it, and the suite failed for several CI
+runs as though saving was broken. Saving had always worked. Identifiers belong on leaf views,
+and tests should wait on a leaf control rather than a container.
+
+**Existing is not the same as being tappable.** The capture buttons sat behind the keyboard;
+tapping a covered control fails silently and surfaces as an unrelated assertion further down.
+UI helpers now assert `isEnabled` *and* `isHittable`, and check that a text field really holds
+what was typed before acting on it.
+
+When a UI failure is not obvious, dump `app.debugDescription` rather than guessing across
+ten-minute CI round-trips. That is what identified the identifier collision in one run.
 
 ### The storage contract is shared, not restated
 

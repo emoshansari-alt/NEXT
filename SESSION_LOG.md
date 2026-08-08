@@ -5,6 +5,83 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 4: capture — NEXT becomes usable by a real person
+
+**Objective.** Phase 5. Until this, every task on screen was one the app had planted.
+
+### Result
+
+**Tier 1: 410 tests / 75 suites. Tier 2: 34 unit + 7 UI tests.** All green —
+run [31275317887](https://github.com/emoshansari-alt/NEXT/actions/runs/31275317887).
+
+### What was built
+
+Manual entry, brain dump, and Capture Confirmation. `upsert(_ tasks:)` added to the repository
+seam and to the shared contract. `SampleTasks` deleted along with the `emptyStoreIsSeeded`
+tripwire that was guarding it — it did its job.
+
+Decisions worth knowing:
+
+- **Batch capture is atomic, and that is a product decision.** A brain dump is one thought,
+  typed once. A partial save leaves four of seven obligations stored and three gone with nothing
+  saying which — the student would have to remember what they wrote to notice. All-or-nothing
+  keeps the failure recoverable: nothing saved, text still in the field.
+- **`upsert(_ tasks:)` is a protocol requirement, not a defaulted loop.** A default would be
+  silently non-atomic and every store would inherit the exact behaviour the method prevents.
+- **Manual entry shares none of the extraction machinery.** No model, no network, no
+  interpretation: the title is the text. It sits in plain sight, not behind a menu.
+- **Extraction writes nothing.** `CaptureProposal` is an editing shape so an uncertain inference
+  can sit on screen as a question. Note the deliberate inversion: `Validated.taskItems` *drops*
+  an unconfirmed deadline so it can never reach storage; `CaptureProposal` *keeps and marks* it,
+  because this screen exists to ask. Same rule from opposite ends.
+- **A first run shows the empty state, and that state carries the button out of itself.**
+  An app that plants tasks a student never wrote is lying to them.
+
+### Five CI rounds, and what they were actually about
+
+The app layer cannot be compiled on this machine, so Tier 2 is the only thing that can find
+these. Every failure was mine:
+
+1. `Package.swift` had no `platforms:`, so SwiftPM assumed macOS 10.13 and structured
+   concurrency did not exist. Green on Windows, red on macOS.
+2. A `TextEditor` silently swallowed typed text under automation, leaving the save button
+   disabled so the tap did nothing. Replaced with a vertical-axis `TextField`.
+3. The capture buttons sat behind the keyboard. Moved into a `safeAreaInset` — better product
+   behaviour anyway, since capture is a screen the user types on the whole time.
+4. **A container's accessibility identifier overwrites its children's.** The `VStack` marked
+   `capture-saved` renamed the Done button inside it. Saving had worked the entire time; the
+   suite had been failing over a name. Found by dumping `app.debugDescription` — one run of
+   diagnostics beat several more of guessing.
+5. A test of mine compared against `proposals.count` read *after* `confirm()` cleared it.
+
+### Known limitations
+
+- Nothing proves batch atomicity: neither store can be made to fail on demand through the
+  protocol. Asserted by construction (staged swap in memory, single `save()` with rollback in
+  SwiftData) and recorded in `TESTING.md` rather than implied away.
+- No relaunch-persistence UI test. The UI target gets a fresh in-memory store per launch, so
+  that needs a different arrangement.
+- Dictation is not wired up, though `PRODUCT_SPEC.md` §4.5 asks for it.
+- `friction` is still an explicit zero. Onboarding, Everything, Task Detail, Settings, the Focus
+  timer, notifications, widget and StoreKit do not exist.
+
+### Exact next action
+
+**Phase 4's remainder plus Phase 7, in this order:**
+
+1. **Everything screen** — Today / Upcoming / No deadline / Overdue / Completed, built on
+   `fetch(status:)`. It is the only way to see or fix anything already captured, and right now a
+   mistyped task is unreachable.
+2. **Task Detail** — edit, complete, delete, break down. `TaskTransitions` already backs all of it.
+3. **Rescue UI** — the whole `Rescue` module is built and tested at Tier 1 with no way to reach
+   it. Four paths, wired to "I'm stuck" on Today.
+4. **Onboarding** — three screens, no account.
+
+Phase 12 note: visual assets follow **D-014** — Claude's design tooling first, Higgsfield only
+for what it cannot do.
+
+---
+
 ## 2026-08-08 — Session 3: SwiftData persistence, and the storage contract made real
 
 **Objective.** Finish Phase 2 — put a real store behind the app.
