@@ -138,11 +138,16 @@ struct CaptureConfirmationTests {
         await capture.extract()
 
         let first = try #require(capture.proposals.first)
+        // Counted before confirming: a successful confirm clears the proposals, so reading the
+        // count afterwards compares against zero.
+        let proposedCount = capture.proposals.count
+        #expect(proposedCount > 1, "this test needs more than one proposal to be meaningful")
+
         capture.setIncluded(false, forProposal: first.id)
         await capture.confirm()
 
         let stored = try await repository.fetchAll()
-        #expect(stored.count == capture.proposals.count - 1)
+        #expect(stored.count == proposedCount - 1)
         #expect(stored.contains { $0.title == first.title } == false)
     }
 
