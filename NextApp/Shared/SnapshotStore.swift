@@ -36,7 +36,7 @@ struct SnapshotStore {
     var containerIsAvailable: Bool { directory != nil }
 
     private var fileURL: URL? {
-        directory?.appendingPathComponent(filename)
+        directory?.appendingPathComponent(Self.filename)
     }
 
     /// Writes the snapshot. Silently does nothing if there is no shared container.
