@@ -127,14 +127,42 @@ right answer. Needs a deliberate decision and a test — do not implement silent
 - No CI workflow yet, so Tier 2 has never run.
 - The lint checks promised in D-002 and D-007 are specified but not implemented.
 
+### Third cycle — CI, guardrails, and the macOS unlock
+
+Escalated one question to the owner: how NEXT should get macOS compilation. They chose a
+**public GitHub repository**, which makes GitHub Actions standard runners — including macOS —
+free with no minute cap.
+
+Created and pushed **https://github.com/emoshansari-alt/NEXT** (public).
+
+Added `.github/workflows/ci.yml` with three jobs: `guardrails` (ubuntu), `tier1` (macOS,
+`swift test`), `tier2` (macOS, XcodeGen + `xcodebuild` on the Simulator).
+
+Added `scripts/lint-nextkit.sh` enforcing D-002 and D-007. Verified it by writing a deliberate
+violation probe — a file importing SwiftUI and calling `Date()` and `UUID()` — confirming all
+three were caught and the exit code was 1, then deleting the probe and confirming it passed
+again.
+
+Added `.gitattributes`. This was not cosmetic: the working copy on Windows would otherwise have
+pushed a CRLF shebang in the shell script, which fails on the Ubuntu runner with
+"bad interpreter".
+
+**CI run [31253999769](https://github.com/emoshansari-alt/NEXT/actions/runs/31253999769) —
+all three jobs green.** Tier 1 passed 16 of 16 on `macos-latest` with Apple Swift 6.3.3, so the
+suite now passes on two toolchains and two operating systems. The Tier 2 job ran and correctly
+announced that `project.yml` does not exist yet.
+
+### Gate A is closed
+
+`RELEASE_GATED.md` Gate A (a macOS build environment) is **resolved**. Compiling the app,
+Simulator tests, local StoreKit and the accessibility audit are now ordinary unfinished work,
+not gated work, and have been removed from that file per its own rule. Only Gate B — paid
+Apple Developer Program membership, for device testing and distribution — remains.
+
 ### Blockers
 
-None blocking ordinary development.
-
-**One open question for the owner** (does not block current work — see next action):
-whether a GitHub repository can be created, which is what turns on Tier 2 verification. It
-needs no Apple account and no payment. Until then the SwiftUI layer can be authored but never
-compiled, and must stay marked UNVERIFIED.
+**None.** No blocker of any kind is currently outstanding. The only remaining external
+requirement is paid Apple membership, and it blocks nothing that can be built now.
 
 ### Exact next action
 

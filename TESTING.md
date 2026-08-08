@@ -57,6 +57,26 @@ Forbidden phrasings, and what to say instead:
 | `RankingEngine — importance` | 2 | passing |
 | `RankingEngine — determinism` | 4 | passing |
 
+Also verified in CI on `macos-latest` (Apple Swift 6.3.3): 16 of 16 passing —
+run [31253999769](https://github.com/emoshansari-alt/NEXT/actions/runs/31253999769).
+The same suite therefore passes on two toolchains and two operating systems.
+
+### Guardrails
+
+`scripts/lint-nextkit.sh` enforces D-002 (no Apple UI, persistence or notification framework in
+`NextKit`) and D-007 (no `Date()` or `UUID()` in `NextKit`). It runs in CI on every push.
+
+It has been verified against a deliberate violation probe — a file importing SwiftUI and
+calling both `Date()` and `UUID()`. The lint caught all three, exited non-zero, and returned to
+passing once the probe was removed. A guardrail only ever observed to pass has not been tested.
+
+### Current state — Tier 2
+
+**Never run against real code.** The Tier 2 job exists and executes, but `NextApp` and
+`NextWidget` do not exist yet, so the job reports that and does nothing. It is deliberately
+loud about this: a job passing because there was nothing to do must never be mistaken for one
+passing because the app compiled.
+
 ### Not yet written
 
 The following are required by the product spec and are **not** yet covered. Their absence is

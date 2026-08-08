@@ -10,27 +10,30 @@ Mac hardware, or an Apple service. Nothing here is blocked by ordinary engineeri
 
 ---
 
-## Gate A — Mac hardware or a macOS CI runner
+## Gate A — a macOS build environment — **RESOLVED 2026-08-08**
 
-Blocks *compilation* of the app layer. This gate sits **before** the membership gate and is
-independent of it.
+This gate blocked *compilation* of the app layer and sat before the membership gate. It is now
+closed and **nothing in it is gated any more.**
 
-| # | Item | Unblocked by | Status |
-|---|------|--------------|--------|
-| A1 | Compile `NextApp` (SwiftUI) | any macOS environment | **Not yet run** |
-| A2 | Compile `NextWidget` (WidgetKit) | any macOS environment | **Not yet run** |
-| A3 | Run iOS Simulator unit tests | any macOS environment | **Not yet run** |
-| A4 | Run iOS Simulator UI tests (golden path) | any macOS environment | **Not yet run** |
-| A5 | Local StoreKit `.storekit` entitlement testing | any macOS environment | **Not yet run** |
-| A6 | Automated accessibility audit in Simulator | any macOS environment | **Not yet run** |
-| A7 | Generate `.xcodeproj` from `project.yml` | any macOS environment + XcodeGen | **Not yet run** |
+**Resolution.** The repository is public at `emoshansari-alt/NEXT`, and
+`.github/workflows/ci.yml` runs on GitHub Actions `macos-latest`, where standard runners are
+free for public repositories. No Apple Developer Program membership was needed — Simulator
+builds are unsigned.
 
-**This gate does not require paid membership.** Unsigned Simulator builds need no signing
-certificate. It is satisfied by *either* a Mac *or* a GitHub Actions `macos-latest` runner,
-which is free for public repositories and metered for private ones.
+**Evidence.** CI run
+[31253999769](https://github.com/emoshansari-alt/NEXT/actions/runs/31253999769), 2026-08-08:
+all three jobs green. Tier 1 ran on the macOS runner with Apple Swift 6.3.3 and passed 16 of
+16 tests. The Tier 2 job executed and correctly reported that `project.yml` does not exist yet.
 
-**Planned resolution:** GitHub Actions (Tier 2, `DECISIONS.md` D-001). Requires only a GitHub
-repository — no Apple account, no payment.
+**What this means for the items formerly listed here.** Compiling `NextApp` and `NextWidget`,
+Simulator unit and UI tests, local StoreKit testing, the accessibility audit, and generating
+the `.xcodeproj` are now **ordinary unfinished work, not gated work.** They are tracked in
+[`SESSION_LOG.md`](SESSION_LOG.md) and [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md), and have
+been removed from this file per its own rule: only genuinely externally-blocked items belong
+here.
+
+`NextApp` and `NextWidget` remain **UNVERIFIED** — but because they do not exist yet, not
+because they cannot be built.
 
 ---
 
