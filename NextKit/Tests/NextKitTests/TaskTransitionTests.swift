@@ -21,16 +21,58 @@ struct TaskStartTransitionTests {
         #expect(started.status == .active)
     }
 
-    @Test("starting a task the user previously turned down clears the penalty")
-    func startingClearsRejections() throws {
+    @Test("starting a task the user previously turned down supersedes the penalty")
+    func startingSupersedesRejections() throws {
         // The user just overrode their own "Not this" by choosing this task. Carrying the
         // penalty forward would suppress the very thing they are working on.
         let chem = makeTask(id: "chem", rejections: [rejection(.needSomethingShorter, hoursAgo: 0.5)])
 
         let started = try chem.started(at: .testReference)
 
-        #expect(started.rejections.isEmpty)
-        #expect(started.latestRejection == nil)
+        #expect(started.rejectionsSupersededAt == .testReference)
+        #expect(started.activeRejections.isEmpty)
+        #expect(started.latestActiveRejection == nil)
+    }
+
+    @Test("starting keeps the rejection record itself — the history is product data")
+    func startingKeepsRejectionHistory() throws {
+        // The penalty is suppressed by a watermark, never by deleting evidence. Rejection rate
+        // is the most valuable signal there is for tuning the engine (PRODUCT_SPEC.md §14), and
+        // it can only be measured from records that still exist.
+        let chem = makeTask(
+            id: "chem",
+            rejections: [rejection(.cantRightNow, hoursAgo: 3), rejection(.needLessEffort, hoursAgo: 0.5)]
+        )
+
+        let started = try chem.started(at: .testReference)
+
+        #expect(started.rejections == chem.rejections)
+        #expect(started.latestRejection?.reason == .needLessEffort)
+    }
+
+    @Test("a rejection recorded after the start still counts")
+    func rejectionAfterStartingStillCounts() throws {
+        // The watermark supersedes the past, not the future. A user who starts something, stops,
+        // and then turns it down an hour later has said something new.
+        let chem = makeTask(id: "chem", rejections: [rejection(hoursAgo: 3)])
+
+        let restarted = try chem
+            .started(at: .testReference)
+            .rejected(.needSomethingShorter, at: .hoursFromReference(1))
+
+        #expect(restarted.rejections.count == 2)
+        #expect(restarted.activeRejections.count == 1)
+        #expect(restarted.latestActiveRejection?.reason == .needSomethingShorter)
+    }
+
+    @Test("starting records when it happened")
+    func startingRecordsTheInstant() throws {
+        let chem = makeTask(id: "chem", createdAt: .daysFromReference(-2))
+
+        let started = try chem.started(at: .testReference)
+
+        #expect(started.updatedAt == .testReference)
+        #expect(started.completedAt == nil)
     }
 
     @Test("a started task is no longer penalised by the ranking engine")
@@ -90,7 +132,10 @@ struct TaskCompleteTransitionTests {
             deadline: .daysFromReference(1),
             importance: .important,
             estimatedMinutes: 25,
-            nextAction: "Do questions 1 to 5."
+            nextAction: "Do questions 1 to 5.",
+            prerequisiteIDs: [TaskID("reading")],
+            parentID: TaskID("coursework"),
+            rejections: [rejection(.cantRightNow, hoursAgo: 4), rejection(.needLessEffort, hoursAgo: 1)]
         )
 
         let done = try chem.completed(at: .testReference)
@@ -100,6 +145,30 @@ struct TaskCompleteTransitionTests {
         #expect(done.importance == chem.importance)
         #expect(done.estimatedMinutes == chem.estimatedMinutes)
         #expect(done.nextAction == chem.nextAction)
+        #expect(done.prerequisiteIDs == chem.prerequisiteIDs)
+        #expect(done.parentID == chem.parentID)
+        #expect(done.rejections == chem.rejections)
+    }
+
+    @Test("completing records when it happened")
+    func completingRecordsTheInstant() throws {
+        // `completed(at:)` reads at every call site as if it records a completion instant.
+        // It has to actually do that: the Completed section orders by it and daily replanning
+        // needs to know which day the work landed on.
+        let chem = makeTask(id: "chem", createdAt: .daysFromReference(-1))
+
+        let done = try chem.completed(at: .hoursFromReference(2))
+
+        #expect(done.completedAt == .hoursFromReference(2))
+        #expect(done.updatedAt == .hoursFromReference(2))
+    }
+
+    @Test("an untouched task was last changed when it was created")
+    func untouchedTaskUpdatedAtMatchesCreation() {
+        let chem = makeTask(id: "chem", createdAt: .daysFromReference(-4))
+
+        #expect(chem.updatedAt == chem.createdAt)
+        #expect(chem.completedAt == nil)
     }
 
     @Test("completing an already-completed task is refused")
@@ -168,13 +237,37 @@ struct TaskReopenTransitionTests {
         #expect(try filed.reopened(at: .testReference).status == .active)
     }
 
-    @Test("reopening clears stale rejections so the task gets a fair hearing")
-    func reopeningClearsRejections() throws {
+    @Test("reopening supersedes stale rejections so the task gets a fair hearing")
+    func reopeningSupersedesRejections() throws {
         let done = makeTask(
             id: "done", status: .completed, rejections: [rejection(hoursAgo: 0.25)]
         )
 
-        #expect(try done.reopened(at: .testReference).rejections.isEmpty)
+        let reopened = try done.reopened(at: .testReference)
+
+        #expect(reopened.activeRejections.isEmpty)
+        #expect(reopened.rejectionsSupersededAt == .testReference)
+    }
+
+    @Test("reopening keeps the rejection record itself")
+    func reopeningKeepsRejectionHistory() throws {
+        let done = makeTask(
+            id: "done", status: .completed, rejections: [rejection(hoursAgo: 0.25)]
+        )
+
+        #expect(try done.reopened(at: .testReference).rejections == done.rejections)
+    }
+
+    @Test("reopening clears the completion instant, because the work is not finished")
+    func reopeningClearsCompletion() throws {
+        let chem = makeTask(id: "chem")
+
+        let reopened = try chem
+            .completed(at: .testReference)
+            .reopened(at: .hoursFromReference(1))
+
+        #expect(reopened.completedAt == nil)
+        #expect(reopened.updatedAt == .hoursFromReference(1))
     }
 
     @Test("reopening a task that is already active is refused")
@@ -202,6 +295,44 @@ struct TaskArchiveTransitionTests {
         let done = makeTask(id: "done", status: .completed)
 
         #expect(try done.archived(at: .testReference).status == .archived)
+    }
+
+    @Test("archiving keeps everything else about the task intact")
+    func archivingPreservesContent() throws {
+        let chem = makeTask(
+            id: "chem",
+            title: "Chemistry worksheet",
+            deadline: .daysFromReference(1),
+            importance: .important,
+            estimatedMinutes: 25,
+            nextAction: "Do questions 1 to 5.",
+            prerequisiteIDs: [TaskID("reading")],
+            parentID: TaskID("coursework"),
+            rejections: [rejection(.cantRightNow, hoursAgo: 4), rejection(.needLessEffort, hoursAgo: 1)]
+        )
+
+        let filed = try chem.archived(at: .testReference)
+
+        #expect(filed.title == chem.title)
+        #expect(filed.deadline == chem.deadline)
+        #expect(filed.importance == chem.importance)
+        #expect(filed.estimatedMinutes == chem.estimatedMinutes)
+        #expect(filed.nextAction == chem.nextAction)
+        #expect(filed.prerequisiteIDs == chem.prerequisiteIDs)
+        #expect(filed.parentID == chem.parentID)
+        #expect(filed.rejections == chem.rejections)
+    }
+
+    @Test("filing finished work away does not un-finish it")
+    func archivingKeepsTheCompletionInstant() throws {
+        let chem = makeTask(id: "chem")
+
+        let filed = try chem
+            .completed(at: .testReference)
+            .archived(at: .hoursFromReference(5))
+
+        #expect(filed.completedAt == .testReference)
+        #expect(filed.updatedAt == .hoursFromReference(5))
     }
 
     @Test("archiving something already archived is refused")
@@ -392,18 +523,115 @@ struct TaskTransitionPurityTests {
 
     @Test("complete then reopen returns the task to where it started")
     func completeThenReopenRoundTrips() throws {
-        let chem = makeTask(id: "chem", title: "Chemistry worksheet", nextAction: "Question 1.")
+        let chem = makeTask(
+            id: "chem",
+            title: "Chemistry worksheet",
+            nextAction: "Question 1.",
+            rejections: [rejection(.cantRightNow, hoursAgo: 6)]
+        )
 
         let roundTripped = try chem
             .completed(at: .testReference)
             .reopened(at: .hoursFromReference(1))
 
-        #expect(roundTripped == chem)
+        // Everything the user can see is back where it was.
+        #expect(roundTripped.status == chem.status)
+        #expect(roundTripped.title == chem.title)
+        #expect(roundTripped.nextAction == chem.nextAction)
+        #expect(roundTripped.deadline == chem.deadline)
+        #expect(roundTripped.importance == chem.importance)
+        #expect(roundTripped.completedAt == nil)
+
+        // The rejection record survives the whole round trip — it is history, and history is
+        // not undone by a completion. Only its power to penalise is.
+        #expect(roundTripped.rejections == chem.rejections)
+        #expect(roundTripped.activeRejections.isEmpty)
+
+        // The audit trail is the one thing that legitimately differs: the task really was
+        // touched twice, and pretending otherwise would make `updatedAt` useless.
+        #expect(roundTripped.updatedAt == .hoursFromReference(1))
+        #expect(roundTripped.rejectionsSupersededAt == .hoursFromReference(1))
+    }
+
+    @Test("every transition records the instant it was handed")
+    func everyTransitionRecordsTheInstant() throws {
+        // Five of these used to take `now` and throw it away, so `completed(at: now)` read like
+        // a promise the type could not keep.
+        let chem = makeTask(id: "chem", createdAt: .daysFromReference(-3))
+        let filed = makeTask(id: "filed", status: .archived, createdAt: .daysFromReference(-3))
+        let at = Date.hoursFromReference(7)
+
+        let touched = [
+            try chem.started(at: at),
+            try chem.completed(at: at),
+            try chem.archived(at: at),
+            try chem.rejected(.other, at: at),
+            try chem.withNextAction("Open the brief.", at: at),
+            try filed.reopened(at: at)
+        ]
+
+        #expect(touched.allSatisfy { $0.updatedAt == at })
+    }
+}
+
+/// Runs `body` and returns the refusal it produced, or `nil` if it did not refuse.
+private func refusal(from body: () throws -> TaskItem) -> TaskTransitionError? {
+    do {
+        _ = try body()
+        return nil
+    } catch let error as TaskTransitionError {
+        return error
+    } catch {
+        return nil
     }
 }
 
 @Suite("TaskItem transitions — refusals")
 struct TaskTransitionRefusalTests {
+
+    /// Every refusal the transitions can produce.
+    ///
+    /// Built here rather than published from the error type as `CaseIterable`. `notActive`
+    /// carries a payload, so the only mechanical version maps over `TaskStatus.allCases` and
+    /// yields `.notActive(.active)` — a refusal `requireActive()` cannot throw, since an active
+    /// task is exactly what it lets through. That belongs in neither the public API nor a sweep
+    /// list, so the list lives with the tests that use it and `refusalsAreAllReachable` proves
+    /// it is the real set rather than one someone has to remember to update.
+    static let everyRefusal: [TaskTransitionError] =
+        TaskStatus.allCases
+            .filter { $0 != .active }
+            .map { TaskTransitionError.notActive($0) }
+        + [.alreadyActive, .alreadyArchived, .emptyNextAction]
+
+    @Test("every refusal in the sweep list is one a transition genuinely throws")
+    func refusalsAreAllReachable() {
+        let done = makeTask(id: "done", status: .completed)
+        let filed = makeTask(id: "filed", status: .archived)
+        let chem = makeTask(id: "chem", status: .active)
+
+        let thrown = [
+            refusal { try done.started(at: .testReference) },
+            refusal { try filed.started(at: .testReference) },
+            refusal { try chem.reopened(at: .testReference) },
+            refusal { try filed.archived(at: .testReference) },
+            refusal { try chem.withNextAction("   \n ", at: .testReference) }
+        ].compactMap { $0 }
+
+        #expect(Set(thrown) == Set(Self.everyRefusal))
+    }
+
+    @Test("an outstanding task is never refused for its state")
+    func activeTaskIsNeverRefusedForItsState() {
+        // This is why `.notActive(.active)` must not be published: it is not merely absent from
+        // the sweep list, it is a value the guard cannot construct.
+        let chem = makeTask(id: "chem", status: .active)
+
+        #expect(refusal { try chem.started(at: .testReference) } == nil)
+        #expect(refusal { try chem.completed(at: .testReference) } == nil)
+        #expect(refusal { try chem.rejected(.other, at: .testReference) } == nil)
+        #expect(refusal { try chem.archived(at: .testReference) } == nil)
+        #expect(refusal { try chem.withNextAction("Open the brief.", at: .testReference) } == nil)
+    }
 
     @Test("a refusal names the state that caused it, so the caller can react precisely")
     func refusalCarriesTheState() {
@@ -427,7 +655,22 @@ struct TaskTransitionRefusalTests {
         #expect((try? done.completed(at: .testReference)) == nil)
     }
 
-    @Test("refusal descriptions stay factual and never address the user")
+    @Test("every refusal carries a diagnostic somebody actually wrote")
+    func refusalsHaveAuthoredDiagnostics() {
+        // The sweep below is only worth running against real text. Before these existed the
+        // only string a refusal produced was the compiler's rendering of the case name, so the
+        // sweep was inspecting Swift identifiers and could not detect a shaming diagnostic
+        // arriving by any other route. Distinctness is what stops the diagnostics being
+        // hollowed out to a shared constant while the sweep stays green.
+        let texts = Self.everyRefusal.map(\.debugDescription)
+
+        #expect(Set(texts).count == texts.count)
+        #expect(texts.allSatisfy { !$0.contains("TaskTransitionError") })
+        #expect(TaskTransitionError.notActive(.completed).debugDescription.contains("completed"))
+        #expect(TaskTransitionError.notActive(.archived).debugDescription.contains("archived"))
+    }
+
+    @Test("refusal diagnostics stay factual and never address the user")
     func refusalsAreNotUserFacing() {
         // These are developer diagnostics. P5 forbids productivity morality anywhere it could
         // reach a screen, so nothing here may read as a judgement.
@@ -435,8 +678,8 @@ struct TaskTransitionRefusalTests {
             "you", "your", "fail", "behind", "again", "still", "lazy", "streak", "should"
         ]
 
-        for error in TaskTransitionError.allCases {
-            let text = String(describing: error).lowercased()
+        for error in Self.everyRefusal {
+            let text = error.debugDescription.lowercased()
             for word in banned {
                 #expect(!text.contains(word), "\(error) contains banned language: \(word)")
             }

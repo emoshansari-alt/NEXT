@@ -12,8 +12,16 @@ import Foundation
 /// These are **developer diagnostics**, not user-facing copy. Nothing on screen is derived from
 /// them: a refusal means a caller asked for something the data does not permit, which is a
 /// programming or staleness problem, never something to tell the user about themselves.
-/// `TaskTransitionRefusalTests` asserts they stay free of any language that could read as a
+/// `TaskTransitionRefusalTests` sweeps `debugDescription` for any language that could read as a
 /// judgement, in case one ever leaks into a log or a debug surface (PRODUCT_SPEC.md P5).
+///
+/// ## Deliberately not `CaseIterable`
+///
+/// A payload case cannot be enumerated mechanically. The obvious hand-written version —
+/// `TaskStatus.allCases.map(Self.notActive)` — publishes `.notActive(.active)`, which
+/// `requireActive()` cannot throw, because an active task is precisely what it lets through.
+/// Advertising an impossible refusal in public API invites callers to write branches that can
+/// never run. The tests build their own sweep list and prove every entry is genuinely thrown.
 public enum TaskTransitionError: Error, Hashable, Sendable {
 
     /// The transition needs an outstanding task, and this one is finished or filed away.
@@ -32,15 +40,28 @@ public enum TaskTransitionError: Error, Hashable, Sendable {
     case emptyNextAction
 }
 
-extension TaskTransitionError: CaseIterable {
+extension TaskTransitionError: CustomDebugStringConvertible {
 
-    /// Every refusal the transitions can produce.
+    /// What a developer reading a log needs to know: which transition refused, and what about
+    /// the data made it refuse.
     ///
-    /// Hand-written because `notActive` carries a payload. It exists so tests can sweep the
-    /// complete set rather than a list someone has to remember to update.
-    public static var allCases: [TaskTransitionError] {
-        TaskStatus.allCases.map { .notActive($0) }
-            + [.alreadyActive, .alreadyArchived, .emptyNextAction]
+    /// Without this, the only text a refusal produces is the compiler's rendering of the case
+    /// name — `notActive(NextKit.TaskStatus.completed)` — which is not a diagnostic anyone
+    /// authored, and which leaves the P5 language sweep with nothing real to inspect.
+    ///
+    /// Each string states a fact about the *task*. None of them addresses the user, because a
+    /// refusal is never about the user: it means a caller acted on data that had moved on.
+    public var debugDescription: String {
+        switch self {
+        case .notActive(let status):
+            "transition requires an outstanding task; this one is \(status.rawValue)"
+        case .alreadyActive:
+            "reopen requires a task that is not outstanding; this one is outstanding"
+        case .alreadyArchived:
+            "archive requires a task that is not filed away; this one is filed away"
+        case .emptyNextAction:
+            "next action was blank once trimmed, so nothing was stored"
+        }
     }
 }
 
@@ -50,10 +71,13 @@ extension TaskItem {
 
     /// The user has begun this task — they tapped START and Focus opened.
     ///
-    /// Any recorded "Not this" is discarded. The rejection penalty exists to stop NEXT
-    /// re-offering something the user just turned down; once they have chosen the task
-    /// themselves that penalty is stale, and leaving it in place would suppress the very thing
-    /// they are working on from being recommended again after a pause.
+    /// Any recorded "Not this" is *superseded*, not deleted: `rejectionsSupersededAt` moves to
+    /// `now`, so earlier rejections stop counting against the task at ranking time while the
+    /// records themselves survive. The penalty exists to stop NEXT re-offering something the
+    /// user just turned down; once they have chosen the task themselves it is stale, and
+    /// leaving it armed would suppress the very thing they are working on. Erasing the history
+    /// to achieve that would throw away rejection rate, which PRODUCT_SPEC.md §14 calls the
+    /// most valuable signal there is for tuning the engine.
     ///
     /// The status does not change. Starting is not a stored state — a task being worked on
     /// right now is still outstanding, and inventing an `inProgress` state would create a
@@ -62,29 +86,37 @@ extension TaskItem {
         try requireActive()
 
         var updated = self
-        updated.rejections = []
+        updated.rejectionsSupersededAt = now
+        updated.updatedAt = now
         return updated
     }
 
-    /// The user finished it.
+    /// The user finished it. Records the instant, which is what the Completed section orders
+    /// by and what daily replanning reads to know which day the work landed on.
     public func completed(at now: Date) throws -> TaskItem {
         try requireActive()
 
         var updated = self
         updated.status = .completed
+        updated.completedAt = now
+        updated.updatedAt = now
         return updated
     }
 
     /// Back into the outstanding pile, from either finished or filed away.
     ///
-    /// Rejections are discarded here too: they described a moment that is now behind a
-    /// completion, and a task returning to the pile deserves to be judged on its merits.
+    /// The completion instant is cleared, because a task in the pile has not been completed.
+    /// Rejections are superseded here for the same reason as in `started(at:)` — they described
+    /// a moment now behind a completion, and a task returning to the pile deserves to be judged
+    /// on its merits — but again the records are kept, not erased.
     public func reopened(at now: Date) throws -> TaskItem {
         guard status != .active else { throw TaskTransitionError.alreadyActive }
 
         var updated = self
         updated.status = .active
-        updated.rejections = []
+        updated.completedAt = nil
+        updated.rejectionsSupersededAt = now
+        updated.updatedAt = now
         return updated
     }
 
@@ -93,11 +125,15 @@ extension TaskItem {
     /// Allowed from outstanding *and* from finished, because archiving is a filing action on
     /// the record rather than a judgement about the work. Only archiving something already
     /// archived is refused, since it would be a change that changes nothing.
+    ///
+    /// A completion instant already recorded is left alone: filing finished work away does not
+    /// un-finish it.
     public func archived(at now: Date) throws -> TaskItem {
         guard status != .archived else { throw TaskTransitionError.alreadyArchived }
 
         var updated = self
         updated.status = .archived
+        updated.updatedAt = now
         return updated
     }
 
@@ -116,6 +152,7 @@ extension TaskItem {
 
         var updated = self
         updated.rejections.append(Rejection(reason: reason, at: now))
+        updated.updatedAt = now
         return updated
     }
 
@@ -138,6 +175,7 @@ extension TaskItem {
 
         var updated = self
         updated.nextAction = trimmed
+        updated.updatedAt = now
         return updated
     }
 

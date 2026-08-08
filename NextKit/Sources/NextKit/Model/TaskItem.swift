@@ -20,9 +20,27 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     /// the clock itself (DECISIONS.md D-007).
     public let createdAt: Date
 
+    /// When the task last changed. One of the fields PRODUCT_SPEC.md §7 says a task carries.
+    ///
+    /// Every transition writes the instant it was handed, which is the point: `completed(at:)`
+    /// and its neighbours read at the call site as though they record something, and now they
+    /// do. Without it the storage layer would have to invent a timestamp of its own, which
+    /// would put a hidden clock read back underneath the domain (DECISIONS.md D-007).
+    ///
+    /// Equal to `createdAt` for a task nothing has happened to yet.
+    public var updatedAt: Date
+
     // MARK: State
 
     public var status: TaskStatus
+
+    /// When the user finished it, or `nil` if they have not.
+    ///
+    /// Kept alongside `status` rather than derived from it because the instant itself is the
+    /// product data: the Everything screen's Completed section (PRODUCT_SPEC.md §4.7) orders by
+    /// it, and daily replanning (§4.13) needs to know *which day* work was finished, not merely
+    /// that it was. Reopening clears it, because a task back in the pile has no completion.
+    public var completedAt: Date?
 
     // MARK: Ranking inputs
 
@@ -49,26 +67,49 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     /// The larger task this one is a step of, if any.
     public var parentID: TaskID?
 
-    /// Every time the user said "Not this", oldest first.
+    /// Every time the user said "Not this", oldest first. This is a permanent record.
+    ///
+    /// Nothing removes entries from it. Rejection *rate* is the single most valuable signal for
+    /// tuning the ranking engine (PRODUCT_SPEC.md §14), so deleting the evidence to suppress a
+    /// penalty would trade product data for something `rejectionsSupersededAt` handles without
+    /// losing anything.
     public var rejections: [Rejection]
+
+    /// The instant after which earlier rejections no longer count *against* the task.
+    ///
+    /// Set when the user starts the task or reopens it: at that moment they have chosen the
+    /// work themselves, so an earlier "Not this" has plainly been overtaken and must stop
+    /// suppressing the very thing they are doing. `nil` means nothing has superseded anything.
+    ///
+    /// A watermark rather than a deletion. The rejection still happened and is still counted
+    /// wherever rate matters; it simply stops being held against the task at ranking time.
+    public var rejectionsSupersededAt: Date?
 
     public init(
         id: TaskID,
         title: String,
         createdAt: Date,
+        updatedAt: Date? = nil,
         status: TaskStatus = .active,
+        completedAt: Date? = nil,
         deadline: Date? = nil,
         importance: Importance = .normal,
         estimatedMinutes: Int? = nil,
         nextAction: String? = nil,
         prerequisiteIDs: [TaskID] = [],
         parentID: TaskID? = nil,
-        rejections: [Rejection] = []
+        rejections: [Rejection] = [],
+        rejectionsSupersededAt: Date? = nil
     ) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
+        // A task nothing has happened to yet was last changed when it was created. Defaulting
+        // to `createdAt` rather than to some sentinel keeps `updatedAt` non-optional, so no
+        // caller has to decide what a missing edit time means.
+        self.updatedAt = updatedAt ?? createdAt
         self.status = status
+        self.completedAt = completedAt
         self.deadline = deadline
         self.importance = importance
         self.estimatedMinutes = estimatedMinutes
@@ -76,6 +117,7 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
         self.prerequisiteIDs = prerequisiteIDs
         self.parentID = parentID
         self.rejections = rejections
+        self.rejectionsSupersededAt = rejectionsSupersededAt
     }
 
     // MARK: Derived
@@ -88,8 +130,28 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     }
 
     /// The most recent rejection, if the user has ever turned this task down.
+    ///
+    /// The whole history, watermark or not — this is the record, and it is what a rejection-rate
+    /// measurement reads. Ranking uses `activeRejections` instead.
     public var latestRejection: Rejection? {
         rejections.max { $0.at < $1.at }
+    }
+
+    /// The rejections that still count against this task, oldest first.
+    ///
+    /// Anything from before `rejectionsSupersededAt` is excluded: the user has since started or
+    /// reopened the task, which overrides their earlier "Not this" far more directly than a
+    /// decay curve does. Everything at or after the watermark is a fresh opinion and still
+    /// counts. Nothing is removed from `rejections` to achieve this.
+    public var activeRejections: [Rejection] {
+        guard let watermark = rejectionsSupersededAt else { return rejections }
+        return rejections.filter { $0.at >= watermark }
+    }
+
+    /// The most recent rejection that has not been superseded, which is the one the ranking
+    /// penalty decays from.
+    public var latestActiveRejection: Rejection? {
+        activeRejections.max { $0.at < $1.at }
     }
 
     /// Whether a real first step is recorded. Whitespace does not count — an empty next

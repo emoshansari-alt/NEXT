@@ -205,12 +205,17 @@ public struct RankingEngine: Sendable {
     /// How much a recent "Not this" still counts against a task, from 1 (just now) to
     /// 0 (the cooldown has elapsed, or it was never rejected).
     ///
-    /// Driven by the *most recent* rejection, so rejecting a task again re-arms the full
-    /// penalty. The decay is linear and finite by design: a rejected task must be able to
-    /// come back, because recommending nothing is worse than recommending something the user
-    /// passed on an hour ago.
+    /// Driven by the most recent rejection the user has not already overridden, so rejecting a
+    /// task again re-arms the full penalty. Anything from before `rejectionsSupersededAt` is
+    /// ignored: the user started or reopened the task after saying "Not this", which settles
+    /// the question more decisively than waiting out a cooldown. The records stay on the task —
+    /// they are read by rejection rate, which is a tuning signal, not a punishment.
+    ///
+    /// The decay is linear and finite by design: a rejected task must be able to come back,
+    /// because recommending nothing is worse than recommending something the user passed on an
+    /// hour ago.
     func rejectionDecay(for task: TaskItem, now: Date) -> Double {
-        guard let latest = task.latestRejection else { return 0 }
+        guard let latest = task.latestActiveRejection else { return 0 }
 
         let cooldown = weights.rejectionCooldown
         guard cooldown > 0 else { return 0 }

@@ -3,7 +3,7 @@ import Foundation
 /// Mints identities for newly captured tasks.
 ///
 /// This is the identity seam from ARCHITECTURE.md §3, and it exists for the same reason as
-/// `Clock`: a hidden source of randomness makes results unreproducible. With identifiers
+/// `TimeSource`: a hidden source of randomness makes results unreproducible. With identifiers
 /// injected, a brain dump of five tasks produces the same five identifiers every run, so tie
 /// breaks, ordering and persistence round-trips can all be asserted exactly.
 ///

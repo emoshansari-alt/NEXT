@@ -42,7 +42,7 @@ This yields three benefits at once:
 │                     DTOs, ResponseValidator, MockProvider,   │
 │                     TemplateFallbackProvider                 │
 │   Persistence/      TaskRepository protocol (+ in-memory)    │
-│   Support/          Clock, IDProvider, Logging seam          │
+│   Support/          TimeSource, IDProvider, Logging seam     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -63,13 +63,25 @@ Non-determinism is injected, never reached for directly. This is what makes the 
 
 | Seam | Protocol | Production | Test |
 |------|----------|------------|------|
-| Current time | `Clock` | `SystemClock` | `FixedClock(at:)` |
+| Current time | `TimeSource` | `SystemTimeSource` | `FixedTimeSource(instant:)` |
 | Identifiers | `IDProvider` | `UUIDProvider` | `SequentialIDProvider` |
 | Intelligence | `IntelligenceProvider` | on-device / cloud | `MockIntelligenceProvider` |
 | Storage | `TaskRepository` | SwiftData-backed | `InMemoryTaskRepository` |
 
 **Rule:** no call to `Date()`, `UUID()`, or `Task.sleep` anywhere in `NextKit`. A lint check
 enforces this. Ranking must be a pure function of `(tasks, context, weights, now)`.
+
+The time seam is **not** called `Clock`. The standard library already vends that name, and a
+second one shadows it: in any file importing `NextKit`, `Swift.Clock` would stop being nameable
+unqualified and `ContinuousClock` would stop appearing to conform to plain `Clock`. Where both
+modules are visible on equal footing the unqualified name is an outright ambiguity the caller
+has to resolve by hand at every use. `TimeSource` collides with nothing and needs no
+qualification anywhere. `SupportSeamTests` pins this by naming `Swift.Clock` unqualified.
+
+Both storage and time are pinned by shared, reusable checks rather than by assertions that only
+exist in one place: `verifyRepositoryContract(_:)` runs the whole `TaskRepository` contract
+against any implementation, so `NextApp`'s Tier 2 target can point it at the SwiftData store and
+get the identical promises verified.
 
 ---
 

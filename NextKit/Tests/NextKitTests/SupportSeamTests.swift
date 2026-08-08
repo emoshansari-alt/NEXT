@@ -4,14 +4,17 @@ import Testing
 @testable import NextKit
 
 // The determinism seams from ARCHITECTURE.md §3. NextKit ships the protocols and nothing else:
-// a concrete clock would have to call Date() and a concrete provider would have to call UUID(),
-// both banned by D-007. These tests therefore supply their own conformances, which is exactly
-// how NextApp and the test suite are meant to use them.
+// a concrete time source would have to call Date() and a concrete provider would have to call
+// UUID(), both banned by D-007. These tests therefore supply their own conformances, which is
+// exactly how NextApp and the test suite are meant to use them.
 
 // MARK: - Test conformances
 
-/// A clock pinned to one instant. The production `SystemClock` lives in `NextApp`.
-private struct FixedClock: NextKit.Clock {
+/// A time source pinned to one instant. The production `SystemTimeSource` lives in `NextApp`.
+///
+/// Note the unqualified `TimeSource`: the seam is nameable without a module prefix from any
+/// file that imports NextKit, which is the whole point of not calling it `Clock`.
+private struct FixedTimeSource: TimeSource {
     let instant: Date
     var now: Date { instant }
 }
@@ -42,30 +45,47 @@ private final class SequentialIDProvider: IDProvider, @unchecked Sendable {
 /// both arrive as arguments.
 private func capture(
     _ title: String,
-    clock: any NextKit.Clock,
+    time: any TimeSource,
     ids: any IDProvider
 ) -> TaskItem {
-    TaskItem(id: ids.makeTaskID(), title: title, createdAt: clock.now)
+    TaskItem(id: ids.makeTaskID(), title: title, createdAt: time.now)
+}
+
+/// Names the *standard library's* `Clock` unqualified, from a file that imports NextKit.
+///
+/// This is the guard for the seam's name. While the seam was itself called `Clock` it shadowed
+/// this declaration, so `C.Instant` did not resolve and `ContinuousClock` did not appear to
+/// conform. Renaming the seam to `TimeSource` is what lets both protocols coexist unqualified.
+private func instantType<C: Clock>(of _: C.Type) -> ObjectIdentifier {
+    ObjectIdentifier(C.Instant.self)
 }
 
 // MARK: - Tests
 
-@Suite("Support seams — Clock")
-struct ClockSeamTests {
+@Suite("Support seams — TimeSource")
+struct TimeSourceSeamTests {
 
-    @Test("a clock reports the instant it was given, and keeps reporting it")
-    func clockIsStable() {
-        let clock = FixedClock(instant: .testReference)
+    @Test("a time source reports the instant it was given, and keeps reporting it")
+    func timeSourceIsStable() {
+        let time = FixedTimeSource(instant: .testReference)
 
-        #expect(clock.now == .testReference)
-        #expect(clock.now == clock.now)
+        #expect(time.now == .testReference)
+        #expect(time.now == time.now)
     }
 
-    @Test("a clock is usable as an existential, which is how it is injected")
-    func clockWorksAsExistential() {
-        let clock: any NextKit.Clock = FixedClock(instant: .hoursFromReference(3))
+    @Test("a time source is usable as an existential, which is how it is injected")
+    func timeSourceWorksAsExistential() {
+        let time: any TimeSource = FixedTimeSource(instant: .hoursFromReference(3))
 
-        #expect(clock.now == .hoursFromReference(3))
+        #expect(time.now == .hoursFromReference(3))
+    }
+
+    @Test("the time seam does not shadow the standard library's Clock")
+    func timeSourceDoesNotShadowStandardLibraryClock() {
+        // Purely a name-resolution assertion — no instant is read, so nothing here is
+        // time-dependent. If the seam were called `Clock` again this would not compile.
+        #expect(instantType(of: ContinuousClock.self) == ObjectIdentifier(ContinuousClock.Instant.self))
+        #expect(instantType(of: SuspendingClock.self) == ObjectIdentifier(SuspendingClock.Instant.self))
     }
 }
 
@@ -111,11 +131,11 @@ struct SupportSeamInjectionTests {
 
     @Test("a task can be built entirely from injected time and identity")
     func captureUsesOnlyInjectedSeams() {
-        let clock = FixedClock(instant: .testReference)
+        let time = FixedTimeSource(instant: .testReference)
         let ids = SequentialIDProvider(prefix: "dump")
 
-        let first = capture("Chemistry worksheet", clock: clock, ids: ids)
-        let second = capture("Email professor", clock: clock, ids: ids)
+        let first = capture("Chemistry worksheet", time: time, ids: ids)
+        let second = capture("Email professor", time: time, ids: ids)
 
         #expect(first.id == TaskID("dump-1"))
         #expect(second.id == TaskID("dump-2"))
@@ -123,12 +143,12 @@ struct SupportSeamInjectionTests {
         #expect(second.createdAt == .testReference)
     }
 
-    @Test("moving the clock moves creation time, and nothing else has to change")
-    func creationTimeFollowsTheClock() {
+    @Test("moving the time source moves creation time, and nothing else has to change")
+    func creationTimeFollowsTheTimeSource() {
         let ids = SequentialIDProvider()
 
-        let early = capture("A", clock: FixedClock(instant: .testReference), ids: ids)
-        let late = capture("B", clock: FixedClock(instant: .daysFromReference(2)), ids: ids)
+        let early = capture("A", time: FixedTimeSource(instant: .testReference), ids: ids)
+        let late = capture("B", time: FixedTimeSource(instant: .daysFromReference(2)), ids: ids)
 
         #expect(early.createdAt < late.createdAt)
     }
