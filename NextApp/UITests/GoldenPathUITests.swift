@@ -188,10 +188,75 @@ final class GoldenPathUITests: XCTestCase {
         captureOneTask(app, text: "Email Professor Adeyemi")
 
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
-        for identifier in ["not-this-button", "why-this-button", "add-button"] {
+        for identifier in [
+            "im-stuck-button", "not-this-button", "why-this-button",
+            "everything-button", "add-button"
+        ] {
             let button = app.buttons[identifier]
             XCTAssertTrue(button.exists, "\(identifier) should be present")
             XCTAssertTrue(button.isHittable, "\(identifier) should be reachable by tap")
         }
+    }
+
+    func testEverythingShowsWhatWasCaptured() {
+        // Capture used to be a one-way door: a mistyped task was unreachable.
+        let app = launch()
+        captureOneTask(app, text: "Email Professor Adeyemi")
+
+        XCTAssertTrue(app.buttons["everything-button"].waitForExistence(timeout: 10))
+        app.buttons["everything-button"].tap()
+
+        XCTAssertTrue(
+            app.buttons["everything-close-button"].waitForExistence(timeout: 5),
+            "Everything should open"
+        )
+        XCTAssertTrue(
+            app.staticTexts["Email Professor Adeyemi"].waitForExistence(timeout: 5),
+            "the captured task should be listed"
+        )
+    }
+
+    func testATaskCanBeOpenedAndEdited() {
+        let app = launch()
+        captureOneTask(app, text: "Email Professor Adeyemi")
+
+        app.buttons["everything-button"].tap()
+        XCTAssertTrue(app.buttons["everything-close-button"].waitForExistence(timeout: 5))
+
+        let row = app.buttons["task-row"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        XCTAssertTrue(
+            app.buttons["detail-close-button"].waitForExistence(timeout: 5),
+            "tapping a task should open its detail"
+        )
+        XCTAssertTrue(app.buttons["detail-delete-button"].exists)
+    }
+
+    func testImStuckOffersTheFourPathsAndAnswersOne() {
+        // Rescue is a first-class feature, and never an open chatbot: four named paths only.
+        let app = launch()
+        captureOneTask(app, text: "Finish the history essay")
+
+        XCTAssertTrue(app.buttons["im-stuck-button"].waitForExistence(timeout: 10))
+        app.buttons["im-stuck-button"].tap()
+
+        for path in [
+            "rescue-path-dontKnowHowToStart", "rescue-path-tooMuch",
+            "rescue-path-notEnoughTime", "rescue-path-dontWantTo"
+        ] {
+            XCTAssertTrue(
+                app.buttons[path].waitForExistence(timeout: 5),
+                "\(path) should be offered"
+            )
+        }
+
+        app.buttons["rescue-path-dontKnowHowToStart"].tap()
+
+        XCTAssertTrue(
+            app.buttons["rescue-start-button"].waitForExistence(timeout: 5),
+            "choosing a path should produce something to do"
+        )
     }
 }

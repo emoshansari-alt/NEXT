@@ -30,6 +30,7 @@ final class StoredTask {
     @Attribute(.unique) var identifier: String
 
     var title: String
+    var notes: String
     var createdAt: Date
     var updatedAt: Date
 
@@ -50,6 +51,7 @@ final class StoredTask {
     init(task: TaskItem) {
         identifier = task.id.rawValue
         title = task.title
+        notes = task.notes
         createdAt = task.createdAt
         updatedAt = task.updatedAt
         statusRaw = task.status.rawValue
@@ -67,6 +69,7 @@ final class StoredTask {
     /// Overwrites this row with a task. Identity is never rewritten — a row is one task for life.
     func apply(_ task: TaskItem) {
         title = task.title
+        notes = task.notes
         createdAt = task.createdAt
         updatedAt = task.updatedAt
         statusRaw = task.status.rawValue
@@ -93,6 +96,7 @@ final class StoredTask {
         TaskItem(
             id: TaskID(identifier),
             title: title,
+            notes: notes,
             createdAt: createdAt,
             updatedAt: updatedAt,
             status: TaskStatus(rawValue: statusRaw) ?? .active,

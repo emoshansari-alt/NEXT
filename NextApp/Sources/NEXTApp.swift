@@ -32,9 +32,13 @@ struct NEXTApp: App {
             TodayView(
                 model: TodayViewModel(repository: repository),
                 storeIsEphemeral: storeIsEphemeral,
-                // Capture is built on demand so each visit starts from a clean sheet rather
-                // than from whatever the last one was abandoned mid-way through.
-                makeCaptureModel: { CaptureViewModel(repository: repository) }
+                // Built on demand so each visit starts fresh rather than from whatever the last
+                // one was abandoned mid-way through.
+                makeCaptureModel: { CaptureViewModel(repository: repository) },
+                makeEverythingModel: { EverythingViewModel(repository: repository) },
+                makeDetailModel: { task in
+                    TaskDetailViewModel(task: task, repository: repository)
+                }
             )
         }
     }

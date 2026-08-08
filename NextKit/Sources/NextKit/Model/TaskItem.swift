@@ -16,6 +16,12 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     /// What the user called it. e.g. "History essay".
     public var title: String
 
+    /// Anything else the user wrote down about it — the brief, a link, what the tutor said.
+    ///
+    /// Never read by the ranking engine and never sent to a model unless the operation
+    /// genuinely needs it. It is the user's own scratch space, not an input to a decision.
+    public var notes: String
+
     /// When the task entered the system. Supplied by the caller — `NextKit` never reads
     /// the clock itself (DECISIONS.md D-007).
     public let createdAt: Date
@@ -88,6 +94,7 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     public init(
         id: TaskID,
         title: String,
+        notes: String = "",
         createdAt: Date,
         updatedAt: Date? = nil,
         status: TaskStatus = .active,
@@ -103,6 +110,7 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
     ) {
         self.id = id
         self.title = title
+        self.notes = notes
         self.createdAt = createdAt
         // A task nothing has happened to yet was last changed when it was created. Defaulting
         // to `createdAt` rather than to some sentinel keeps `updatedAt` non-optional, so no

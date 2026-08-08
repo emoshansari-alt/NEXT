@@ -20,6 +20,13 @@ final class TodayViewModel {
     /// The task the user is working on, if Focus is open.
     private(set) var focused: TaskItem?
 
+    /// Everything currently in the store.
+    ///
+    /// Exposed because Rescue needs the whole set, not just the recommendation: the
+    /// "I don't have enough time" path re-ranks against a stated window, and the shrinking
+    /// paths need a task's substeps, which are separate tasks linked by `parentID`.
+    private(set) var tasks: [TaskItem] = []
+
     /// Set when the store could not be read or written.
     ///
     /// Surfaced rather than swallowed. A silent failure here would show the user an empty
@@ -52,8 +59,9 @@ final class TodayViewModel {
     /// removed both it and the test that was guarding against forgetting to.
     func load() async {
         do {
-            let tasks = try await repository.fetchAll()
-            outcome = engine.recommend(from: tasks, context: context())
+            let stored = try await repository.fetchAll()
+            tasks = stored
+            outcome = engine.recommend(from: stored, context: context())
             storeFailure = nil
         } catch {
             storeFailure = "NEXT could not open your tasks."
@@ -101,7 +109,9 @@ final class TodayViewModel {
     private func write(_ transition: () throws -> TaskItem) async {
         do {
             try await repository.upsert(transition())
-            outcome = engine.recommend(from: try await repository.fetchAll(), context: context())
+            let stored = try await repository.fetchAll()
+            tasks = stored
+            outcome = engine.recommend(from: stored, context: context())
             storeFailure = nil
         } catch {
             storeFailure = "NEXT could not save that change."

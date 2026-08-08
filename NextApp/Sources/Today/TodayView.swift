@@ -17,9 +17,18 @@ struct TodayView: View {
     /// fixed clock instead of the app's real ones.
     var makeCaptureModel: () -> CaptureViewModel
 
+    /// Builds the Everything screen's model. Same reasoning.
+    var makeEverythingModel: () -> EverythingViewModel
+
+    /// Builds Task Detail for one task.
+    var makeDetailModel: (TaskItem) -> TaskDetailViewModel
+
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
     @State private var showingCapture = false
+    @State private var showingEverything = false
+    @State private var showingRescue = false
+    @State private var detailTask: TaskItem?
 
     var body: some View {
         ZStack {
@@ -47,8 +56,36 @@ struct TodayView: View {
             }
         }
         .task { await model.load() }
+        // Every sheet reloads on dismiss. Any of them can change the store, and Today showing a
+        // recommendation for a task that was just deleted or completed elsewhere would be worse
+        // than a moment's delay.
         .sheet(isPresented: $showingCapture, onDismiss: { Task { await model.load() } }) {
             CaptureView(model: makeCaptureModel())
+        }
+        .sheet(isPresented: $showingEverything, onDismiss: { Task { await model.load() } }) {
+            EverythingView(
+                model: makeEverythingModel(),
+                onOpenTask: { task in
+                    showingEverything = false
+                    detailTask = task
+                }
+            )
+        }
+        .sheet(item: $detailTask, onDismiss: { Task { await model.load() } }) { task in
+            TaskDetailView(model: makeDetailModel(task))
+        }
+        .sheet(isPresented: $showingRescue) {
+            if let task = model.recommendation?.task {
+                RescueView(
+                    task: task,
+                    allTasks: model.tasks,
+                    onStart: { _ in
+                        // Rescue hands back a smaller step to do right now. Focus opens on the
+                        // task it belongs to; the step itself is what the user was just shown.
+                        Task { await model.startRecommended() }
+                    }
+                )
+            }
         }
         .fullScreenCover(item: focusBinding) { task in
             FocusView(
@@ -159,17 +196,29 @@ struct TodayView: View {
     }
 
     private func secondaryActions(_ recommendation: Recommendation) -> some View {
-        HStack(spacing: 24) {
-            Button("Not this") { showingRejectionReasons = true }
-                .accessibilityIdentifier("not-this-button")
+        VStack(spacing: 14) {
+            // "I'm stuck" sits on its own line and reads first. It is a first-class feature,
+            // not a footnote — the moment someone needs it is the moment they are least likely
+            // to go hunting for it.
+            Button("I'm stuck") { showingRescue = true }
+                .font(.subheadline.weight(.medium))
+                .accessibilityIdentifier("im-stuck-button")
 
-            Button("Why this?") { showingExplanation = true }
-                .accessibilityIdentifier("why-this-button")
+            HStack(spacing: 22) {
+                Button("Not this") { showingRejectionReasons = true }
+                    .accessibilityIdentifier("not-this-button")
 
-            Button("Add") { showingCapture = true }
-                .accessibilityIdentifier("add-button")
+                Button("Why this?") { showingExplanation = true }
+                    .accessibilityIdentifier("why-this-button")
+
+                Button("Everything") { showingEverything = true }
+                    .accessibilityIdentifier("everything-button")
+
+                Button("Add") { showingCapture = true }
+                    .accessibilityIdentifier("add-button")
+            }
+            .font(.subheadline)
         }
-        .font(.subheadline)
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .alert(
@@ -239,6 +288,14 @@ struct TodayView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .accessibilityIdentifier("empty-add-button")
+
+            // Reachable even with nothing outstanding — otherwise completed and archived work
+            // would be unreachable the moment the last task is done.
+            Button("Everything") { showingEverything = true }
+                .font(.subheadline)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("everything-button")
         }
         .padding(.horizontal, 32)
         .padding(.bottom, 32)
