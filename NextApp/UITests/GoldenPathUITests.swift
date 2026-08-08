@@ -47,6 +47,9 @@ final class GoldenPathUITests: XCTestCase {
         let saveSingle = app.buttons["capture-save-single-button"]
         XCTAssertTrue(saveSingle.waitForExistence(timeout: 5))
         XCTAssertTrue(saveSingle.isEnabled, "save should be enabled once there is text")
+        // Reachable with the keyboard up. Existing is not the same as being tappable, and a tap
+        // on a covered control fails silently several assertions before anyone notices.
+        XCTAssertTrue(saveSingle.isHittable, "save must be reachable while the keyboard is up")
         saveSingle.tap()
 
         let done = app.buttons["capture-done-button"]

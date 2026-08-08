@@ -66,6 +66,19 @@ struct CaptureView: View {
             .focused($isFieldFocused)
             .accessibilityIdentifier("capture-text-field")
 
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        // The actions live in a safe-area inset so they sit *above* the keyboard rather than
+        // behind it. Capture is a screen the user is typing on the whole time they are on it;
+        // making them dismiss the keyboard to reach Save would add a step to the one flow that
+        // has to stay frictionless. It is also why the UI tests could not tap the button.
+        .safeAreaInset(edge: .bottom) { actions }
+        .onAppear { isFieldFocused = true }
+    }
+
+    private var actions: some View {
+        VStack(spacing: 10) {
             if let failure = model.failure {
                 Text(failure)
                     .font(.footnote)
@@ -98,11 +111,10 @@ struct CaptureView: View {
             .font(.subheadline)
             .disabled(!model.canSubmit)
             .accessibilityIdentifier("capture-save-single-button")
-
-            Spacer()
         }
-        .padding(20)
-        .onAppear { isFieldFocused = true }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
     }
 
     // MARK: Saved
