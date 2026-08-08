@@ -87,13 +87,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31279172396](https://github.com/emoshansari-alt/NEXT/actions/runs/31279172396)
+run [31284277004](https://github.com/emoshansari-alt/NEXT/actions/runs/31284277004)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 46 tests in 9 suites, passed |
-| `NextAppUITests` (XCTest, real Simulator) | 12 tests, passed |
+| `NextAppTests` (swift-testing) | 55 tests in 12 suites, passed |
+| `NextAppUITests` (XCTest, real Simulator) | 13 tests, passed |
 
 This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
 the storage contract, and the golden path works end to end on a Simulator. It proves nothing

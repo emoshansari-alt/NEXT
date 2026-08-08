@@ -16,22 +16,28 @@ honesty policy in [`TESTING.md`](TESTING.md).
 
 ### Product completeness
 
-- [ ] Onboarding — three screens, no account, contextual permissions
-- [ ] Today / NEXT — single dominant recommendation
-- [ ] Not this — rejection with reasons and a temporary penalty
-- [ ] Why this? — deterministic explanation, works offline
-- [ ] Capture — manual entry
-- [ ] Capture — brain dump with extraction
-- [ ] Capture Confirmation — deadlines confirmable, low confidence asks
-- [ ] Everything — Today / Upcoming / No deadline / Overdue / Completed
-- [ ] Task Detail — all fields and actions
-- [ ] Focus — timer presets, Done / Pause / I'm stuck / Stop
-- [ ] Completion — calm feedback, immediate recalculation
-- [ ] Rescue — all four paths
-- [ ] Minimum Win
-- [ ] Daily replanning, no shame language
-- [ ] Settings
-- [ ] Notifications with real user controls
+Ticked means the surface exists and is Tier 2 verified. It does **not** mean device-verified —
+see `RELEASE_GATED.md` Gate B.
+
+- [x] Onboarding — three screens, no account, contextual permissions
+- [x] Today / NEXT — single dominant recommendation
+- [x] Not this — rejection with reasons and a temporary penalty
+- [x] Why this? — deterministic explanation, works offline
+- [x] Capture — manual entry
+- [x] Capture — brain dump with extraction
+- [x] Capture Confirmation — deadlines confirmable, low confidence asks
+- [x] Everything — Overdue / Today / Upcoming / No deadline / Completed / Archived
+- [x] Task Detail — fields, actions, and Break it down
+- [x] Focus — timer presets, Done / Pause / Stop
+- [x] Completion — calm feedback, immediate recalculation
+- [x] Rescue — all four paths
+- [x] Minimum Win — planner built and Tier 1 tested
+- [x] Settings — reminder controls and the cloud-processing consent switch
+- [x] Notifications — scheduling planned and Tier 1 tested
+- [ ] Daily replanning, no shame language — engine recalculates, but no day-boundary behaviour
+- [ ] Minimum Win **surfaced in the UI** — the planner has no caller yet
+- [ ] "I'm stuck" reachable from inside Focus (currently Today only)
+- [ ] Notification delivery observed, deep link, and actions
 - [ ] Widget with working deep link
 - [ ] Paywall — invoked only by intent
 

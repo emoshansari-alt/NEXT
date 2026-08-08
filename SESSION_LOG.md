@@ -5,6 +5,79 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 7: Settings, notification scheduling, consent switch
+
+**Objective.** Build the last 1.0 surface that did not exist at all, and the notification
+scheduling behind it.
+
+### Result
+
+**Tier 1: 468 tests / 85 suites. Tier 2: 55 unit + 13 UI tests.** Green on the first CI attempt
+— run [31284277004](https://github.com/emoshansari-alt/NEXT/actions/runs/31284277004).
+
+**All nine primary surfaces from `PRODUCT_SPEC.md` §4 now exist**: Onboarding, Today, Capture,
+Capture Confirmation, Everything, Task Detail, Focus, Rescue, Settings.
+
+### What was built
+
+**`ReminderPlanner`** in `NextKit` — a pure function deciding what NEXT would ask iOS to
+deliver, so every scheduling rule is checked at Tier 1 rather than by watching a device.
+
+What it *refuses* to schedule is the substance:
+
+- nothing for finished or filed work — a notification about a completed task is the clearest
+  possible signal an app is not paying attention
+- nothing for an overdue task — the user knows; daily replanning surfaces it in the app, and a
+  push about it would be the app telling them off (P5)
+- nothing whose moment has passed, since iOS delivers those immediately
+- no daily reminder when nothing is outstanding, which is pure engagement bait
+
+It caps at **64**, because that is what iOS holds before silently discarding the rest — so the
+choice of what gets dropped is ours (the soonest survive) rather than the system's. Identifiers
+are stable, so re-planning replaces rather than stacking duplicates. A test sweeps every
+generated string for "miss you", "don't forget", "still", "behind", "hurry", and "!".
+
+**Permission is requested when a reminder is switched on, never at launch.** Being asked to
+allow notifications before writing down a single task is a request with no context. A refused
+permission is stated plainly rather than left as a switch that silently does nothing. Sound and
+badge are not requested at all — a badge counting outstanding work is exactly the low-grade
+pressure this app exists to remove.
+
+`TodayViewModel` reschedules after every write, so completing something cancels its reminder.
+
+**The cloud-processing consent switch exists and defaults to off.** Nothing reads it yet — the
+only provider is the offline template one, which sends nothing — and the Settings footer says
+exactly that rather than implying a feature. It is built first so a cloud provider cannot be
+added later without a consent gate already in front of it (`PRIVACY.md`).
+
+Settings is reached from Everything, not Today. Today's job is to show one thing; a gear would
+be a sixth control on a screen whose point is that there is nothing to choose between.
+
+### Known limitations
+
+- **Notification *delivery* has never been observed.** Simulator notification behaviour is not
+  device behaviour, and no test asserts anything arrives. Only the plan is verified. Real
+  delivery is `RELEASE_GATED.md` Gate B.
+- Rescue's "Do that" still opens Focus on the parent task rather than the shrunken step.
+- No notification *actions* (complete/snooze from the banner), no deep link from a notification.
+- No widget, no StoreKit, no paywall.
+- `friction` is still an explicit zero.
+- No relaunch-persistence UI test — the UI target gets a fresh in-memory store per launch.
+
+### Exact next action
+
+1. **Widget** (Phase 9) — one timeline entry showing the current recommendation, with a deep
+   link into the app. Requires an App Group so the widget can read the same store, which is the
+   first piece of work that touches entitlements; check whether an App Group works unsigned in
+   the Simulator before assuming it is release-gated.
+2. **Notification deep link and actions** — tapping a reminder should open that task.
+3. **StoreKit** (Phase 10) — `.storekit` configuration, entitlement model, paywall.
+4. Rescue → Focus should carry the shrunken step through.
+
+Phase 12 visual assets follow **D-014**: Claude design tooling first, Higgsfield as fallback.
+
+---
+
 ## 2026-08-08 — Session 6: onboarding, the Focus timer, and Break it down
 
 **Objective.** Finish the surfaces that make a coherent first run, and give the intelligence
