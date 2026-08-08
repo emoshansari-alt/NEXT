@@ -31,7 +31,10 @@ struct NEXTApp: App {
         WindowGroup {
             TodayView(
                 model: TodayViewModel(repository: repository),
-                storeIsEphemeral: storeIsEphemeral
+                storeIsEphemeral: storeIsEphemeral,
+                // Capture is built on demand so each visit starts from a clean sheet rather
+                // than from whatever the last one was abandoned mid-way through.
+                makeCaptureModel: { CaptureViewModel(repository: repository) }
             )
         }
     }

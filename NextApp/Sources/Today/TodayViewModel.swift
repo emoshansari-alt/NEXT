@@ -47,20 +47,12 @@ final class TodayViewModel {
 
     /// Reads the store and works out what to do next.
     ///
-    /// Seeds sample tasks when the store is empty. **That is temporary**: capture does not exist
-    /// yet, so without it a first run is a dead end with nothing to add and nothing to do. It
-    /// goes when Phase 5 lands and a genuine first run shows the empty state.
+    /// A first run genuinely shows the empty state now. Sample seeding lived here while capture
+    /// did not exist, because an empty app with no way to add anything was a dead end; Phase 5
+    /// removed both it and the test that was guarding against forgetting to.
     func load() async {
         do {
-            var tasks = try await repository.fetchAll()
-
-            if tasks.isEmpty {
-                for task in SampleTasks.starter(now: timeSource.now) {
-                    try await repository.upsert(task)
-                }
-                tasks = try await repository.fetchAll()
-            }
-
+            let tasks = try await repository.fetchAll()
             outcome = engine.recommend(from: tasks, context: context())
             storeFailure = nil
         } catch {

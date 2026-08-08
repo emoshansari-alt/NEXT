@@ -56,17 +56,18 @@ struct TodayViewModelTests {
         #expect(try #require(model.recommendation).task.id == TaskID("sooner"))
     }
 
-    @Test("an empty store is seeded so a first run is not a dead end")
-    func emptyStoreIsSeeded() async throws {
-        // Temporary behaviour: capture does not exist yet. This test is the tripwire that makes
-        // sure the seeding is deliberately removed rather than quietly forgotten in Phase 5.
+    @Test("a first run shows the empty state and invents nothing")
+    func emptyStoreStaysEmpty() async throws {
+        // This replaces the seeding tripwire from Phase 2. Sample tasks existed only because
+        // capture did not; now that it does, a store the user has not written to must stay
+        // untouched. An app that plants tasks a student never wrote is lying to them.
         let repository = InMemoryTaskRepository()
         let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
 
         await model.load()
 
-        #expect(model.recommendation != nil)
-        #expect(try await repository.fetchAll().isEmpty == false)
+        #expect(model.outcome == .nothingToDo)
+        #expect(try await repository.fetchAll().isEmpty)
     }
 
     @Test("START opens Focus on the recommended task")
@@ -195,6 +196,7 @@ private struct FailingTaskRepository: TaskRepository {
     func fetch(id: TaskID) async throws -> TaskItem? { throw Failure() }
     func fetch(status: TaskStatus) async throws -> [TaskItem] { throw Failure() }
     func upsert(_ task: TaskItem) async throws { throw Failure() }
+    func upsert(_ tasks: [TaskItem]) async throws { throw Failure() }
     func delete(id: TaskID) async throws { throw Failure() }
 }
 

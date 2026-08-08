@@ -47,6 +47,18 @@ public actor InMemoryTaskRepository: TaskRepository {
         tasksByID[task.id] = task
     }
 
+    /// Atomic by construction: the batch is staged in a copy and swapped in at the end, so a
+    /// caller cancelled midway cannot leave half a brain dump behind. Nothing here throws, but
+    /// the shape matters — it is the contract this store is promising to keep, and the next
+    /// implementation of it will be one where writes really can fail.
+    public func upsert(_ tasks: [TaskItem]) async throws {
+        guard !tasks.isEmpty else { return }
+
+        var staged = tasksByID
+        for task in tasks { staged[task.id] = task }
+        tasksByID = staged
+    }
+
     public func delete(id: TaskID) async throws {
         tasksByID.removeValue(forKey: id)
     }

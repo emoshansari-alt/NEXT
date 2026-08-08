@@ -44,6 +44,34 @@ actor SwiftDataTaskRepository: TaskRepository {
         try modelContext.save()
     }
 
+    /// One brain dump, one write.
+    ///
+    /// Every row is staged and then a single `save()` commits the lot. If that save throws, the
+    /// context is rolled back so the partially-applied inserts are discarded rather than left
+    /// sitting in memory waiting to be flushed by some unrelated later write — which is exactly
+    /// how a "failed" capture would reappear half-saved.
+    ///
+    /// The caller then still has the user's text and can retry. A partial save would leave the
+    /// student with some of their obligations stored, some gone, and nothing on screen saying
+    /// which.
+    func upsert(_ tasks: [TaskItem]) throws {
+        guard !tasks.isEmpty else { return }
+
+        do {
+            for task in tasks {
+                if let existing = try row(for: task.id.rawValue) {
+                    existing.apply(task)
+                } else {
+                    modelContext.insert(StoredTask(task: task))
+                }
+            }
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
+
     func delete(id: TaskID) throws {
         // Deleting something that is not there is a no-op, not an error — the contract says so,
         // because delete is reachable from a stale widget snapshot or a notification action.

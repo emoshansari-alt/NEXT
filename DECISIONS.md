@@ -199,6 +199,32 @@ dependency cost before there is any evidence it is needed.
 
 ---
 
+## D-014 — Visual asset tooling: Claude design first, Higgsfield as fallback
+
+**Date:** 2026-08-08 · **Status:** Accepted (owner instruction) · **Applies from Phase 12**
+
+**Decision.** When NEXT needs generated visual assets — app icon, App Store screenshot
+compositions, marketing art, any justified onboarding illustration — the order of preference is:
+
+1. **Claude's own design tooling** (`/design`, or the `frontend-design` / `artifact-design`
+   skills). Try this first, for the whole job.
+2. **Higgsfield.ai MCP** for whatever the first option cannot do well, or at all.
+
+This is the owner's explicit instruction, not an inference. Falling straight to Higgsfield
+because it is connected and convenient is not acceptable.
+
+**Note recorded at decision time.** No skill named `/design` appeared in the session's
+registered skill list on 2026-08-08; `frontend-design`, `artifact-design`, Canva skills and a
+visualize MCP did, and the Higgsfield bridge was connected. Whoever reaches Phase 12 should
+check for `/design` again before assuming it is unavailable, and say plainly if it is rather
+than quietly substituting something else.
+
+**Unchanged by this.** The product UI stays native SwiftUI (PRODUCT_SPEC.md §10). Generated
+imagery is for the icon, the store listing and marketing — not for coating the app's screens.
+Any asset used in App Store material must still represent the real app truthfully.
+
+---
+
 ## D-013 — The time seam is `TimeSource`, not `Clock` (supersedes the naming in D-007)
 
 **Date:** 2026-08-08 · **Status:** Accepted

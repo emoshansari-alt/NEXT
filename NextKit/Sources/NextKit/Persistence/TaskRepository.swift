@@ -59,6 +59,21 @@ public protocol TaskRepository: Sendable {
     /// dump take the same path, and a caller forced to check first would race with itself.
     func upsert(_ task: TaskItem) async throws
 
+    /// Stores several tasks as a single unit. **All of them land, or none of them do.**
+    ///
+    /// This exists for capture. A brain dump is one thought the user had, typed once, and a
+    /// partial save is the worst possible outcome: four of their seven obligations are stored,
+    /// three are gone, and nothing on screen says which. They would have to remember what they
+    /// wrote in order to notice. All-or-nothing keeps the failure recoverable — nothing was
+    /// saved, the text is still in the field, and they can try again.
+    ///
+    /// This is why it is a protocol requirement rather than a defaulted loop over `upsert`. A
+    /// default implementation would be silently non-atomic, and every store would inherit
+    /// exactly the behaviour this method exists to prevent.
+    ///
+    /// An empty array is a no-op. Later duplicates within the batch win, matching `upsert`.
+    func upsert(_ tasks: [TaskItem]) async throws
+
     /// Removes a task. Removing one that is not there is a no-op, not an error.
     ///
     /// Idempotence matters because delete is reachable from more than one surface at once and

@@ -93,9 +93,72 @@ public func verifyRepositoryContract(
     _ make: @Sendable () async throws -> any TaskRepository
 ) async throws {
     try await verifyReadingAndWriting(make())
+    try await verifyBatchWriting(make())
     try await verifyStatusQueries(make())
     try await verifyOrdering(make())
     try await verifyConcurrency(make())
+}
+
+/// Batch capture. One brain dump is one write.
+///
+/// Note what is *not* checked here: that a failed batch leaves nothing behind. Neither store can
+/// be made to fail on demand through the protocol, so atomicity is asserted by construction — a
+/// staged swap in memory, a single `save()` with rollback in SwiftData — and stated in the
+/// contract, rather than proven by a test. `TESTING.md` records that gap rather than implying it
+/// away.
+private func verifyBatchWriting(_ repository: any TaskRepository) async throws {
+    try await repository.upsert([])
+    let afterEmpty = try await repository.fetchAll()
+    try require(
+        afterEmpty.isEmpty,
+        "an empty batch is a no-op",
+        "store holds \(afterEmpty.count) task(s)"
+    )
+
+    // Every task from one dump shares a creation instant, which is exactly the case the
+    // identifier tie-break in the ordering contract exists for.
+    let dump = ["chem", "essay", "email"].map {
+        contractTask(id: $0, title: $0.capitalized, createdAt: contractReference)
+    }
+    try await repository.upsert(dump)
+
+    let stored = try await repository.fetchAll()
+    try require(
+        stored.count == 3,
+        "every task in the batch is stored",
+        "stored \(stored.count) of 3"
+    )
+    try require(
+        stored.map(\.id.rawValue) == ["chem", "email", "essay"],
+        "a batch written at one instant comes back in identifier order",
+        "got \(stored.map(\.id.rawValue))"
+    )
+
+    // A batch is an upsert, not an insert: re-capturing over an existing task replaces it.
+    var revised = dump[0]
+    revised.title = "Chemistry worksheet"
+    try await repository.upsert([revised, contractTask(id: "new", createdAt: contractReference)])
+
+    let afterOverlap = try await repository.fetchAll()
+    try require(
+        afterOverlap.count == 4,
+        "a batch overlapping existing tasks replaces rather than duplicates",
+        "store holds \(afterOverlap.count) task(s)"
+    )
+    try require(
+        afterOverlap.first(where: { $0.id == TaskID("chem") })?.title == "Chemistry worksheet",
+        "the replacement is the task that was written"
+    )
+
+    // Later duplicates within one batch win, matching single upsert.
+    var first = contractTask(id: "dupe", title: "First")
+    let second = contractTask(id: "dupe", title: "Second")
+    first.title = "First"
+    try await repository.upsert([first, second])
+    try require(
+        await repository.fetch(id: TaskID("dupe"))?.title == "Second",
+        "within a batch, the later duplicate wins"
+    )
 }
 
 /// Insert, read back, replace, delete — and the two "absent is an ordinary answer" promises.

@@ -13,8 +13,13 @@ struct TodayView: View {
     /// Set when the app is running on a throwaway store. Shown, never hidden.
     var storeIsEphemeral: Bool = false
 
+    /// Builds the capture screen's model. Injected so tests can supply an in-memory store and a
+    /// fixed clock instead of the app's real ones.
+    var makeCaptureModel: () -> CaptureViewModel
+
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
+    @State private var showingCapture = false
 
     var body: some View {
         ZStack {
@@ -42,6 +47,9 @@ struct TodayView: View {
             }
         }
         .task { await model.load() }
+        .sheet(isPresented: $showingCapture, onDismiss: { Task { await model.load() } }) {
+            CaptureView(model: makeCaptureModel())
+        }
         .fullScreenCover(item: focusBinding) { task in
             FocusView(
                 task: task,
@@ -157,6 +165,9 @@ struct TodayView: View {
 
             Button("Why this?") { showingExplanation = true }
                 .accessibilityIdentifier("why-this-button")
+
+            Button("Add") { showingCapture = true }
+                .accessibilityIdentifier("add-button")
         }
         .font(.subheadline)
         .buttonStyle(.plain)
@@ -197,20 +208,40 @@ struct TodayView: View {
 
     // MARK: Empty states
 
+    /// Every empty state offers the way out of it.
+    ///
+    /// A first run has nothing to recommend, and a screen that only says so is a dead end. The
+    /// button is the whole point of the state, not a footnote to it.
     private func empty(headline: String, detail: String) -> some View {
         VStack(spacing: 10) {
             Spacer()
-            Text(headline)
-                .font(.title2.weight(.semibold))
-            Text(detail)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+
+            VStack(spacing: 10) {
+                Text(headline)
+                    .font(.title2.weight(.semibold))
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("empty-state")
+
             Spacer()
+
+            Button {
+                showingCapture = true
+            } label: {
+                Text("Add something")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .accessibilityIdentifier("empty-add-button")
         }
-        .padding(.horizontal, 40)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("empty-state")
+        .padding(.horizontal, 32)
+        .padding(.bottom, 32)
     }
 
     // MARK: Focus presentation
