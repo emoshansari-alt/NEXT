@@ -24,6 +24,16 @@ extension Date {
     /// Mid-week and mid-morning, so that "tomorrow", "this weekend" and "overdue"
     /// are all expressible without wrapping past a month or year boundary.
     static let testReference = iso("2026-03-10T09:00:00Z")
+
+    /// `Date.testReference` shifted by a whole number of hours. Negative means the past.
+    static func hoursFromReference(_ hours: Double) -> Date {
+        testReference.addingTimeInterval(hours * 3600)
+    }
+
+    /// `Date.testReference` shifted by a whole number of days. Negative means the past.
+    static func daysFromReference(_ days: Double) -> Date {
+        hoursFromReference(days * 24)
+    }
 }
 
 // MARK: - Task builder
@@ -32,12 +42,17 @@ extension Date {
 func makeTask(
     id: String,
     title: String = "Untitled",
-    status: TaskStatus = .active
+    status: TaskStatus = .active,
+    deadline: Date? = nil,
+    importance: Importance = .normal,
+    createdAt: Date = .testReference
 ) -> TaskItem {
     TaskItem(
         id: TaskID(id),
         title: title,
-        createdAt: .testReference,
-        status: status
+        createdAt: createdAt,
+        status: status,
+        deadline: deadline,
+        importance: importance
     )
 }

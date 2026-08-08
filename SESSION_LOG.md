@@ -89,10 +89,40 @@ Tier 2 and Tier 3: **not run.** Nothing exists to run there yet.
 - Ranking is two explicit stages — filter for eligibility, then score — so an empty result is
   always explainable.
 
+### Second TDD cycle — scoring
+
+Added `Importance`, `RankingFactor`, `ScoringWeights`, `ScoreBreakdown`, and real factor-based
+ranking. Tests written first, RED verified, then implemented.
+
+**Tier 1 after this cycle: 16 tests, 16 passed, 0 failed.**
+
+Design points:
+
+- Each factor produces a normalised `0...1` signal, then gets multiplied by its weight. That
+  is what makes the weights comparable to each other — a weight reads as "points at full
+  strength".
+- Weights: urgency 40 · overdue 25 · importance 15 · unlock 12 · startability 10 ·
+  contextual fit 10 · friction −8 · rejection −60 · urgency horizon 7 days. These are a
+  considered starting point, not measured truth.
+- Urgency is deliberately dominant over importance, and there is a test for it: an important
+  essay due in a week must not beat a normal worksheet due in an hour.
+- Ordering is a **total** order (score → nearer deadline → older → id), so equal scores resolve
+  identically regardless of input array order. There is a test that shuffles the input.
+- Five factors — unlock, startability, contextual fit, friction, rejection — are wired in but
+  return zero. They are named zeros, not omissions, and a test enforces that every factor
+  appears in every breakdown so the "Why this?" explanation can never silently lose one.
+
+### Open design question, not yet resolved
+
+Overdue currently contributes a flat full weight with no decay. That means a task three months
+overdue pins to the top permanently, which risks reading as the punishment the product
+invariants forbid (P4, P5). "Not this" and archiving mitigate it, but a decay curve may be the
+right answer. Needs a deliberate decision and a test — do not implement silently.
+
 ### Known limitations
 
-- `NextKit` currently returns the first eligible task. **There is no scoring yet.** This is the
-  next piece of work, not an oversight.
+- Five of the eight ranking factors are stubbed at zero (listed above).
+- No "Why this?" string is generated yet, though the breakdown that feeds it exists.
 - `NextApp`, `NextWidget` and `project.yml` do not exist yet.
 - No CI workflow yet, so Tier 2 has never run.
 - The lint checks promised in D-002 and D-007 are specified but not implemented.
@@ -108,14 +138,25 @@ compiled, and must stay marked UNVERIFIED.
 
 ### Exact next action
 
-Continue Phase 3. Next TDD cycle: `ScoringWeights` and deadline-urgency scoring — write the
-failing tests for "recommends the sooner deadline", "an overdue task outranks a future one",
-and "a task with no deadline ranks below one with a deadline", then implement
-`ScoreBreakdown` and factor-based ranking in `RankingEngine`.
+Continue Phase 3, next TDD cycle: **rejection handling**. Write the failing tests first —
 
-After the engine has scoring, add `.github/workflows/ci.yml` so Tier 1 runs on every push and
-the Tier 2 macOS job is ready the moment a repository exists.
+1. a task rejected within the cooldown scores below an unrejected alternative;
+2. the same task is not immediately re-recommended after "Not this";
+3. when the rejected task is the *only* task, it is still returned rather than a blank screen,
+   and the outcome says so;
+4. the penalty expires after `rejectionCooldown`.
 
-### Commit
+That requires adding rejection state to `TaskItem` and a `RejectionReason` enum matching the
+five reasons in `PRODUCT_SPEC.md` §4.3.
 
-`chore: bootstrap NEXT — docs, Windows Swift toolchain, NextKit core` (see `git log`)
+Then, in order: `estimatedMinutes` and the time-budget filter · prerequisites and unlock value ·
+`nextAction` and startability · the "Why this?" explanation string built from
+`ScoreBreakdown.topPositiveContributors`.
+
+After the engine is complete, add `.github/workflows/ci.yml` so Tier 1 runs on every push and
+the Tier 2 macOS job is ready the moment a GitHub repository exists.
+
+### Commits
+
+- `97c80b1` chore: bootstrap NEXT - docs, Windows Swift toolchain, NextKit core
+- `feat(ranking): deterministic factor-based scoring` (this cycle)

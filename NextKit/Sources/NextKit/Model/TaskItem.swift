@@ -24,15 +24,35 @@ public struct TaskItem: Hashable, Sendable, Identifiable {
 
     public var status: TaskStatus
 
+    // MARK: Ranking inputs
+
+    /// When it is due. `nil` means genuinely undated, not "unknown" — an undated task is a
+    /// legitimate thing a student has, and it simply contributes no urgency.
+    public var deadline: Date?
+
+    /// How much it matters. Two levels only — see `Importance`.
+    public var importance: Importance
+
     public init(
         id: TaskID,
         title: String,
         createdAt: Date,
-        status: TaskStatus = .active
+        status: TaskStatus = .active,
+        deadline: Date? = nil,
+        importance: Importance = .normal
     ) {
         self.id = id
         self.title = title
         self.createdAt = createdAt
         self.status = status
+        self.deadline = deadline
+        self.importance = importance
+    }
+
+    /// Whether the deadline has already passed at the given instant.
+    /// Takes `now` as a parameter because `NextKit` never reads the clock (D-007).
+    public func isOverdue(at now: Date) -> Bool {
+        guard let deadline else { return false }
+        return deadline < now
     }
 }

@@ -47,21 +47,27 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-08 · **Result:** 5 tests, 5 passed, 0 failed · Swift 6.3.3,
+**Last run:** 2026-08-08 · **Result:** 16 tests, 16 passed, 0 failed · Swift 6.3.3,
 `x86_64-unknown-windows-msvc`
 
 | Suite | Tests | Status |
 |---|---|---|
 | `RankingEngine — outcome states` | 5 | passing |
+| `RankingEngine — deadline urgency` | 5 | passing |
+| `RankingEngine — importance` | 2 | passing |
+| `RankingEngine — determinism` | 4 | passing |
 
 ### Not yet written
 
 The following are required by the product spec and are **not** yet covered. Their absence is
 tracked here honestly rather than implied away:
 
-- deadline urgency scoring · importance weighting · unlock/prerequisite value · overdue
-  relevance · startability · contextual fit · friction · rejection penalty
-- every ranking edge case in `PRODUCT_SPEC.md` §5
+- unlock/prerequisite value · startability · contextual fit · friction · rejection penalty
+  (these five factors currently contribute an explicit zero)
+- every remaining ranking edge case in `PRODUCT_SPEC.md` §5 — impossible deadline, task longer
+  than available time, blocked task, completed parent with pending child, missing duration,
+  all tasks unavailable
+- the "Why this?" explanation string
 - task state transitions
 - rescue strategies (all four paths)
 - time-budget selection
