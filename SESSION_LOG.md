@@ -5,6 +5,72 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 6: onboarding, the Focus timer, and Break it down
+
+**Objective.** Finish the surfaces that make a coherent first run, and give the intelligence
+layer its first real caller.
+
+### Result
+
+**Tier 1: 452 tests / 82 suites. Tier 2: 46 unit + 12 UI tests.** All green on the first CI
+attempt — run [31279172396](https://github.com/emoshansari-alt/NEXT/actions/runs/31279172396).
+
+### What was built
+
+Two pieces of domain logic went into `NextKit` specifically so they could be tested locally
+rather than through ten-minute CI rounds:
+
+- **`FocusSession`** — a value type that *does not tick*. Elapsed time is arithmetic against
+  whatever instant the caller asks about, so nothing runs, nothing needs cancelling, and a
+  session survives the app being backgrounded or killed without bookkeeping. `remaining()`
+  returns `nil` rather than zero when there is no timer, because zero renders as "0:00 left" —
+  a different and untrue claim. `spokenRemaining()` exists because VoiceOver reading "23:30" as
+  digits is close to useless and timer state must be accessible.
+- **Decomposition → child tasks** — steps become real tasks linked by `parentID`, the shape
+  `StepShrinker` and `MinimumWinPlanner` already read, so breaking a task down improves Rescue
+  and Minimum Win too. **The parent then waits on its own steps** via `prerequisiteIDs`, so the
+  engine recommends a step rather than the mountain. Without that, decomposing would make the
+  screen *worse* — the parent competing with its own pieces. Written as one batch including the
+  parent, because half a decomposition is exactly that failure.
+
+App layer: **Onboarding** (three screens, asks for nothing, Skip always available — a UI test
+asserts zero text fields so "just one small question" cannot creep in), the **Focus timer**
+(length chosen before the clock starts; "Just start" sits alongside the presets as a normal
+choice, not an opt-out), and **Break it down** in Task Detail.
+
+### A compiler crash worth knowing about
+
+`paused(at: at(5))` — a helper whose name matches an argument label, nested inside it — crashed
+`swiftc` 6.3.3 on Windows with `compile command failed due to exception 3`, reporting no file
+and no line. `swift build` passed; only the test target failed. Found by removing test files
+one at a time. Recorded in `TESTING.md`; the helper is now `mark(_:)`.
+
+### Known limitations
+
+- **Rescue's "Do that" still opens Focus on the parent task**, not the shrunken step. The step
+  is what the user was just shown, so this is not wrong, but Focus should display it.
+- **No Settings screen** — so no notification controls and no cloud-AI consent switch, which
+  `PRIVACY.md` promises before any task text leaves the device. Nothing sends anything today
+  (the only provider is the offline template one), so nothing is currently misrepresented.
+- No notifications, no widget, no StoreKit.
+- `friction` is still an explicit zero.
+- Still no relaunch-persistence UI test — the UI target gets a fresh in-memory store per launch.
+- Onboarding illustrations are text-only. Phase 12 and **D-014** cover that.
+
+### Exact next action
+
+1. **Settings** — notification permission controls and the cloud-AI consent switch. It is the
+   last surface in the 1.0 list that does not exist at all.
+2. **Notifications** (Phase 9) — deadline reminders and the optional daily NEXT reminder, with
+   permission requested contextually rather than at launch. Scheduling logic belongs in
+   `NextKit` where it can be tested locally; only delivery needs the app.
+3. **Rescue → Focus** should carry the shrunken step through.
+4. **Widget** (Phase 9) and then StoreKit (Phase 10).
+
+Phase 12 visual assets follow **D-014**: Claude design tooling first, Higgsfield as fallback.
+
+---
+
 ## 2026-08-08 — Session 5: Everything, Task Detail, Rescue wired up
 
 **Objective.** Close the repair hole — capture was a one-way door — and give the finished

@@ -87,13 +87,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31278176415](https://github.com/emoshansari-alt/NEXT/actions/runs/31278176415)
+run [31279172396](https://github.com/emoshansari-alt/NEXT/actions/runs/31279172396)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
 | `NextAppTests` (swift-testing) | 46 tests in 9 suites, passed |
-| `NextAppUITests` (XCTest, real Simulator) | 10 tests, passed |
+| `NextAppUITests` (XCTest, real Simulator) | 12 tests, passed |
 
 This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
 the storage contract, and the golden path works end to end on a Simulator. It proves nothing
@@ -121,6 +121,20 @@ exist yet. Scroll to it — that is part of checking it is reachable, not a work
 When a UI failure is not obvious, dump `app.debugDescription` rather than guessing across
 ten-minute CI round-trips. That is what identified the identifier collision in one run, and it
 narrowed the detail-navigation failure to its real cause in one more.
+
+### A Swift-on-Windows compiler crash worth recognising
+
+`paused(at: at(5))` — a helper function whose name matches an argument label, nested inside a
+call using that label — reliably crashed `swiftc` 6.3.3 on Windows with:
+
+```
+error: compile command failed due to exception 3
+```
+
+No file, no line, no diagnostic. `swift build` succeeded; only the test target failed, so the
+sources were not the problem. It was found by moving test files out one at a time until the
+build recovered. If that error appears with no location, bisect by removing files rather than
+reading the message — it has nothing more to tell you. The helper is now `mark(_:)`.
 
 ### The storage contract is shared, not restated
 
