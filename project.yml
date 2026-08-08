@@ -44,11 +44,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next
-        PRODUCT_NAME: NEXT
-        # The user-facing name is NEXT, but the Swift module keeps the target name so
-        # `@testable import NextApp` is predictable. Without this the module would be
-        # derived from PRODUCT_NAME instead.
-        PRODUCT_MODULE_NAME: NextApp
+        # PRODUCT_NAME is deliberately NOT overridden. Setting it to "NEXT" renames the
+        # bundle to NEXT.app, but XcodeGen derives the test target's TEST_HOST from the
+        # target name, so it goes looking for NextApp.app/NextApp and the build fails with
+        # "Could not find test host". The user-facing name comes from CFBundleDisplayName
+        # below, which is the right knob for it anyway.
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1"        # iPhone only — iPhone-first is settled
         INFOPLIST_FILE: NextApp/Info.plist
