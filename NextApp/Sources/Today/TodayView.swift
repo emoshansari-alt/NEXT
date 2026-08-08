@@ -23,6 +23,9 @@ struct TodayView: View {
     /// Builds Task Detail for one task.
     var makeDetailModel: (TaskItem) -> TaskDetailViewModel
 
+    /// Builds Settings, reached from Everything.
+    var makeSettingsModel: () -> SettingsViewModel
+
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
     @State private var showingCapture = false
@@ -64,7 +67,8 @@ struct TodayView: View {
         .sheet(isPresented: $showingEverything, onDismiss: { Task { await model.load() } }) {
             EverythingView(
                 model: makeEverythingModel(),
-                makeDetailModel: makeDetailModel
+                makeDetailModel: makeDetailModel,
+                makeSettingsModel: makeSettingsModel
             )
         }
         .sheet(isPresented: $showingRescue) {

@@ -37,14 +37,23 @@ final class TodayViewModel {
     private let engine: RankingEngine
     private let timeSource: any TimeSource
 
+    /// Called after anything is written.
+    ///
+    /// Reminders are planned from the whole task list, so completing something has to cancel
+    /// its reminder — otherwise NEXT would notify a student about work they finished this
+    /// morning, which is the clearest possible sign an app is not paying attention.
+    private let onStoreChanged: () async -> Void
+
     init(
         repository: any TaskRepository,
         engine: RankingEngine = RankingEngine(),
-        timeSource: any TimeSource = SystemTimeSource()
+        timeSource: any TimeSource = SystemTimeSource(),
+        onStoreChanged: @escaping () async -> Void = {}
     ) {
         self.repository = repository
         self.engine = engine
         self.timeSource = timeSource
+        self.onStoreChanged = onStoreChanged
     }
 
     /// The current recommendation, if there is one.
@@ -113,6 +122,7 @@ final class TodayViewModel {
             tasks = stored
             outcome = engine.recommend(from: stored, context: context())
             storeFailure = nil
+            await onStoreChanged()
         } catch {
             storeFailure = "NEXT could not save that change."
         }

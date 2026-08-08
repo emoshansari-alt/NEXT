@@ -324,6 +324,29 @@ final class GoldenPathUITests: XCTestCase {
         )
     }
 
+    func testSettingsIsReachableAndAsksBeforeItActs() {
+        // Notification permission must not be requested at launch. Reaching Settings and seeing
+        // the switches should still not have prompted for anything.
+        let app = launchPastOnboarding()
+        captureOneTask(app, text: "Email Professor Adeyemi")
+
+        app.buttons["everything-button"].tap()
+        XCTAssertTrue(app.buttons["settings-button"].waitForExistence(timeout: 5))
+        app.buttons["settings-button"].tap()
+
+        XCTAssertTrue(
+            app.buttons["settings-close-button"].waitForExistence(timeout: 5),
+            "Settings should open"
+        )
+        XCTAssertTrue(app.switches["settings-deadline-toggle"].exists)
+        XCTAssertTrue(app.switches["settings-daily-toggle"].exists)
+        XCTAssertTrue(app.switches["settings-cloud-ai-toggle"].exists)
+
+        // Cloud processing is off until explicitly turned on (PRIVACY.md).
+        let cloud = app.switches["settings-cloud-ai-toggle"]
+        XCTAssertEqual(cloud.value as? String, "0", "cloud processing must default to off")
+    }
+
     func testImStuckOffersTheFourPathsAndAnswersOne() {
         // Rescue is a first-class feature, and never an open chatbot: four named paths only.
         let app = launchPastOnboarding()

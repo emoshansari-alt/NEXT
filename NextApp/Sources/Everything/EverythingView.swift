@@ -16,8 +16,16 @@ struct EverythingView: View {
     /// natural shape regardless — you come back to the list you were in.
     var makeDetailModel: (TaskItem) -> TaskDetailViewModel
 
+    /// Settings is reached from here rather than from Today.
+    ///
+    /// Today's whole job is to show one thing; hanging a gear off it would be a sixth control on
+    /// a screen whose point is that there is nothing to choose between. Everything is already
+    /// the manage-your-stuff surface, so settings belong with it.
+    var makeSettingsModel: () -> SettingsViewModel
+
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTask: TaskItem?
+    @State private var showingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -31,6 +39,15 @@ struct EverythingView: View {
             .navigationTitle("Everything")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                    .accessibilityIdentifier("settings-button")
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .accessibilityIdentifier("everything-close-button")
@@ -38,6 +55,9 @@ struct EverythingView: View {
             }
             .navigationDestination(item: $selectedTask) { task in
                 TaskDetailView(model: makeDetailModel(task))
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(model: makeSettingsModel())
             }
         }
         .task { await model.load() }

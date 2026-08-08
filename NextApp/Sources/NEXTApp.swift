@@ -50,7 +50,13 @@ struct NEXTApp: App {
 
     private var today: TodayView {
         TodayView(
-            model: TodayViewModel(repository: repository),
+            model: TodayViewModel(
+                repository: repository,
+                // Reminders are planned from the whole list, so a completion has to cancel its
+                // own reminder. Without this NEXT would notify someone about work they finished
+                // this morning.
+                onStoreChanged: { await Self.rescheduleReminders(repository: repository) }
+            ),
             storeIsEphemeral: storeIsEphemeral,
             // Built on demand so each visit starts fresh rather than from whatever the last one
             // was abandoned mid-way through.
@@ -58,8 +64,30 @@ struct NEXTApp: App {
             makeEverythingModel: { EverythingViewModel(repository: repository) },
             makeDetailModel: { task in
                 TaskDetailViewModel(task: task, repository: repository)
-            }
+            },
+            makeSettingsModel: { SettingsViewModel(repository: repository) }
         )
+    }
+
+    /// Re-plans and re-schedules every reminder from the current task list.
+    ///
+    /// Silently does nothing when the user has not granted permission, which is the correct
+    /// outcome rather than an error: they said no, and the app's job is to respect that without
+    /// making a fuss about it every time a task changes.
+    private static func rescheduleReminders(repository: any TaskRepository) async {
+        let scheduler = SystemNotificationScheduler()
+        guard await scheduler.authorizationStatus() == .authorized else { return }
+
+        let store = AppSettingsStore()
+        guard let tasks = try? await repository.fetchAll() else { return }
+
+        let reminders = ReminderPlanner.reminders(
+            for: tasks,
+            preferences: store.reminderPreferences,
+            now: Date(),
+            calendar: .current
+        )
+        await scheduler.replacePending(with: reminders)
     }
 
     private static func makeContainer() -> (ModelContainer, Bool) {
