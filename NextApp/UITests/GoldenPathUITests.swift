@@ -239,7 +239,16 @@ final class GoldenPathUITests: XCTestCase {
             return
         }
         XCTAssertTrue(app.textFields["detail-title-field"].exists)
-        XCTAssertTrue(app.buttons["detail-delete-button"].exists)
+
+        // Delete lives at the bottom of the form, below the fold. A Form renders its rows
+        // lazily, so an off-screen control genuinely does not exist yet — scrolling to it is
+        // part of checking it is reachable, not a workaround.
+        let delete = app.buttons["detail-delete-button"]
+        if !delete.exists { app.swipeUp() }
+        XCTAssertTrue(
+            delete.waitForExistence(timeout: 5),
+            "delete should be reachable by scrolling the form"
+        )
     }
 
     func testImStuckOffersTheFourPathsAndAnswersOne() {
