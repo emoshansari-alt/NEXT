@@ -119,11 +119,16 @@ struct CaptureView: View {
 
     // MARK: Saved
 
+    // Note: no accessibility identifier on the container. SwiftUI propagates a container's
+    // identifier down to its children, which silently overwrote the Done button's own — the
+    // button was on screen the whole time under the wrong name, and the UI suite spent several
+    // CI runs failing as though saving had not worked.
     private func saved(count: Int) -> some View {
         VStack(spacing: 12) {
             Spacer()
             Text(count == 1 ? "Added." : "Added \(count) things.")
                 .font(.title2.weight(.semibold))
+                .accessibilityIdentifier("capture-saved")
             Text("NEXT will work out where to start.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -134,6 +139,5 @@ struct CaptureView: View {
                 .accessibilityIdentifier("capture-done-button")
         }
         .padding(24)
-        .accessibilityIdentifier("capture-saved")
     }
 }

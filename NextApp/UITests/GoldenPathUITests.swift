@@ -107,13 +107,14 @@ final class GoldenPathUITests: XCTestCase {
         app.buttons["capture-extract-button"].tap()
 
         // Confirmation is not optional. Nothing has been written at this point.
+        // Waits on the accept button rather than the container: a leaf control is what proves
+        // the screen is usable, and container identifiers are the thing that already went wrong.
+        let accept = app.buttons["confirmation-accept-button"]
         XCTAssertTrue(
-            app.descendants(matching: .any)["capture-confirmation"].waitForExistence(timeout: 10),
+            accept.waitForExistence(timeout: 15),
             "extraction must land on confirmation, not save straight away"
         )
-
-        let accept = app.buttons["confirmation-accept-button"]
-        XCTAssertTrue(accept.waitForExistence(timeout: 5))
+        XCTAssertTrue(accept.isHittable)
         accept.tap()
 
         let done = app.buttons["capture-done-button"]

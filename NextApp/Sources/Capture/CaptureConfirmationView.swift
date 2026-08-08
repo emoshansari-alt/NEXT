@@ -32,10 +32,13 @@ struct CaptureConfirmationView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            // On the list, not on the enclosing stack. A container's identifier propagates to
+            // its children and would overwrite every control's own — including the accept
+            // button in the footer below.
+            .accessibilityIdentifier("capture-confirmation")
 
             footer
         }
-        .accessibilityIdentifier("capture-confirmation")
     }
 
     // MARK: Row
