@@ -5,6 +5,86 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-08 — Session 3: SwiftData persistence, and the storage contract made real
+
+**Objective.** Finish Phase 2 — put a real store behind the app.
+
+### Result
+
+**Tier 1: 410 tests / 75 suites. Tier 2: 20 unit + 5 UI tests.** All green —
+run [31266799111](https://github.com/emoshansari-alt/NEXT/actions/runs/31266799111).
+The SwiftData store passed the storage contract on its first successful compile.
+
+### The contract was not actually shared, and now is
+
+`verifyRepositoryContract(_:)` lived in `NextKitTests`. `NextAppTests` cannot import a test
+target, so the claim that it bound *both* implementations was false — it described the
+in-memory one. It now lives in a **`NextKitTestSupport` library product** that both tiers
+depend on, and it **throws** instead of using `#expect`, because importing `Testing` would
+restrict the target to test bundles and defeat the point.
+
+Tier 2 now runs that identical function against SwiftData. Ordering, status partitioning,
+upsert-by-identity, delete idempotence and 100-way concurrent writes are all verified against
+the real store.
+
+### What was built
+
+`StoredTask` (`@Model`) with explicit mapping to and from `TaskItem`; `NextSchemaV1` plus a
+migration plan from the first version; `SwiftDataTaskRepository` as a `@ModelActor`;
+`SystemTimeSource` and `UUIDProvider` — the concrete seams that belong in the app precisely
+because they may call `Date()` and `UUID()`. `TodayViewModel` now reads and writes through the
+repository and recalculates from a fresh read, so the widget or a notification action changing
+the same store cannot leave the screen lying.
+
+Decisions worth knowing:
+
+- **Decoding is lenient in one direction only.** An unknown status becomes `.active`; an
+  unreadable rejection blob becomes an empty list. The task is what the student wrote down —
+  metadata a future version wrote is not worth losing it over. Nothing lenient can invent a
+  task or move a deadline.
+- **Rejections are a JSON blob.** A small append-only list read whole or not at all does not
+  earn a relationship, a delete rule and a second table. Full-precision date encoding on
+  purpose: ISO-8601 truncates sub-seconds and a task would stop equalling itself after a save.
+- **A container that will not open falls back to in-memory and shows a banner.** Crashing is
+  worse and silently presenting an empty store is far worse — a student would assume their
+  work was deleted.
+- **UI tests launch with `-ui-testing`** and get a clean in-memory store. Without it the
+  golden-path test, which completes a task, would slowly eat its own fixtures.
+
+### Two CI failures, both mine
+
+`PRODUCT_NAME` was not involved this time. The package had no `platforms:` declaration, so
+SwiftPM assumed macOS 10.13 where structured concurrency does not exist — green on Windows,
+red on macOS. It only surfaced now because the contract moved from a test target (newer
+default) into a library target (older one).
+
+### Known limitations
+
+- Sample seeding still runs on an empty store. Deliberate — capture does not exist, so a first
+  run would otherwise be a dead end. A test named `emptyStoreIsSeeded` is the tripwire so it is
+  removed on purpose in Phase 5 rather than forgotten.
+- No `TaskRepository` batch write, so a brain dump would be N awaits with no atomicity. This
+  becomes a real decision in Phase 5.
+- No change-notification on the repository; the view model re-reads after every write.
+- Migration has one version and no stage. A round-trip test per version is required before
+  release-candidate status.
+- `friction` is still an explicit zero. Onboarding, Everything, Task Detail, Settings, capture,
+  the Focus timer, notifications, widget and StoreKit do not exist.
+
+### Exact next action
+
+**Phase 5, capture.** It is what makes NEXT usable by a real person for the first time — until
+then the app can only ever show tasks it invented. In order:
+
+1. Add `upsert(_ tasks: [TaskItem])` to `TaskRepository` and decide whether it is atomic; add
+   it to the shared contract so both stores are held to the answer.
+2. Manual entry first — a task the user typed is the fallback that must work with no model.
+3. Brain dump, using the existing `TemplateFallbackProvider` for deterministic extraction.
+4. Capture Confirmation, driven by `Validated.requiresConfirmation`.
+5. Delete `SampleTasks` and the `emptyStoreIsSeeded` tripwire.
+
+---
+
 ## 2026-08-08 — Session 2: engine completed, Tier 2 live, four modules built and reviewed
 
 **Objective.** Finish the deterministic engine, turn on Tier 2 verification, and build the

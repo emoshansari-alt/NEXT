@@ -36,7 +36,31 @@ struct NEXTApp: App {
         }
     }
 
+    /// Set by the UI test target so each run starts from a clean store.
+    ///
+    /// Without this the UI tests would share the simulator's real database: the golden-path
+    /// test completes a task, that completion persists, and after enough runs there is nothing
+    /// left to recommend and the suite starts failing for reasons that have nothing to do with
+    /// the code. A test that depends on how many times it has been run before is not a test.
+    static let uiTestingArgument = "-ui-testing"
+
     private static func makeContainer() -> (ModelContainer, Bool) {
+        if ProcessInfo.processInfo.arguments.contains(uiTestingArgument) {
+            do {
+                return (
+                    try ModelContainer(
+                        for: StoredTask.self,
+                        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                    ),
+                    // Not a warning here: ephemeral is exactly what was asked for, so showing
+                    // the banner would put a message on screen in every UI test snapshot.
+                    false
+                )
+            } catch {
+                fatalError("NEXT could not create an in-memory store for UI testing: \(error)")
+            }
+        }
+
         do {
             return (
                 try ModelContainer(

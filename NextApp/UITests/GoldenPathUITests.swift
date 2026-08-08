@@ -15,6 +15,11 @@ final class GoldenPathUITests: XCTestCase {
 
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
+        // Every run starts from a clean in-memory store. Without this the suite would share the
+        // simulator's real database, and the golden-path test — which completes a task — would
+        // slowly consume its own fixtures until there was nothing left to recommend. A test
+        // whose result depends on how many times it has run before is not a test.
+        app.launchArguments = ["-ui-testing"]
         app.launch()
         return app
     }

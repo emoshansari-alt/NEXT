@@ -87,16 +87,35 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31255945755](https://github.com/emoshansari-alt/NEXT/actions/runs/31255945755)
+run [31266799111](https://github.com/emoshansari-alt/NEXT/actions/runs/31266799111)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 10 tests in 2 suites, passed |
+| `NextAppTests` (swift-testing) | 20 tests in 4 suites, passed |
 | `NextAppUITests` (XCTest, real Simulator) | 5 tests, passed |
 
-This proves the app compiles, `NextKit` links into an iOS target, and the golden-path UI
-interactions work. It proves nothing about a physical device — see `RELEASE_GATED.md` Gate B.
+This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
+the storage contract, and the golden-path UI interactions work. It proves nothing about a
+physical device — see `RELEASE_GATED.md` Gate B.
+
+### The storage contract is shared, not restated
+
+`verifyRepositoryContract(_:)` lives in the **`NextKitTestSupport` library**, not in a test
+target. Tier 1 runs it against `InMemoryTaskRepository`; Tier 2 runs *the identical function*
+against SwiftData. Neither re-derives the rules, so they cannot drift.
+
+It was moved there because the earlier version could not do this: it lived in `NextKitTests`,
+which `NextAppTests` cannot import, so the claim that it bound both implementations was untrue.
+It throws rather than using `#expect`, because importing `Testing` would restrict the target to
+test bundles and defeat the purpose.
+
+### UI tests run against a clean store
+
+The UI target launches the app with `-ui-testing`, which swaps in an in-memory container.
+Without it the suite would share the simulator's real database and the golden-path test — which
+completes a task — would consume its own fixtures until nothing was left to recommend. A test
+whose result depends on how many times it has run before is not a test.
 
 ### Not yet written
 
