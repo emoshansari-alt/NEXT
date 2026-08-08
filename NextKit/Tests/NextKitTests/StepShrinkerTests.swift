@@ -123,6 +123,27 @@ struct StepShrinkerRecordedTests {
         #expect(steps.count == 1)
     }
 
+    @Test("substeps that differ only by their number are three rungs, not one")
+    func numberedSubstepsAreDistinctRungs() {
+        // The commonest shape a student decomposition takes, and the shape the product spec's
+        // own §4.2 mockup uses ("Questions 1-5"). Collapsing these would silently throw away
+        // work the user recorded themselves.
+        let parent = makeTask(id: "maths", title: "Maths worksheet")
+        let children = (1...3).map {
+            makeTask(
+                id: "c\($0)", title: "Answer question \($0)",
+                parentID: TaskID("maths"), createdAt: .hoursFromReference(Double($0))
+            )
+        }
+
+        let steps = shrinker.steps(for: parent, among: [parent] + children)
+
+        #expect(
+            steps.map(\.text)
+                == ["Answer question 1.", "Answer question 2.", "Answer question 3."]
+        )
+    }
+
     @Test("an unrelated task's children are not borrowed")
     func onlyOwnChildrenCount() {
         let task = makeTask(id: "a", title: "Untitled")
@@ -215,6 +236,23 @@ struct StepShrinkerInferenceTests {
         #expect(try firstStep("Enter the contest").origin == .generic)
     }
 
+    @Test("a keyword that is not the subject of the title does not hijack the inference")
+    func incidentalKeywordsDoNotWin() throws {
+        // Both titles used to match on a word that is not what the task is about: "answer" in
+        // a title whose real subject is an email, and "page" in a title whose real subject is
+        // an essay. A confidently wrong step is worse than a generic one — it sends the user
+        // to open the wrong thing, which is precisely the failure this file exists to prevent.
+        let email = try firstStep("Answer Professor Hale's email")
+
+        #expect(email.origin == .template(.correspondence))
+        #expect(email.text == "Open a new message and fill in the recipient.")
+
+        let titlePage = try firstStep("Make a title page for the essay")
+
+        #expect(titlePage.origin == .template(.writing))
+        #expect(titlePage.text == "Open the assignment instructions.")
+    }
+
     @Test("an unrecognised title gets an honest generic step, not a confident guess")
     func unknownTitleIsHonest() throws {
         let step = try firstStep("Sort out the thing with the bike")
@@ -263,14 +301,38 @@ struct StepShrinkerGuaranteeTests {
     }
 
     @Test("a step knows whether it came from the user or from a guess")
-    func originsDistinguishRecordedFromInferred() {
+    func originsDistinguishRecordedFromInferred() throws {
         // The app layer needs this to decide whether a step may be presented flatly or
         // should be offered as NEXT's suggestion. Getting it backwards would have the app
         // asserting an inference as though the user had written it.
-        #expect(RescueStepOrigin.recordedNextAction.isFromRecordedWork)
-        #expect(RescueStepOrigin.substep(TaskID("c")).isFromRecordedWork)
-        #expect(!RescueStepOrigin.template(.writing).isFromRecordedWork)
-        #expect(!RescueStepOrigin.generic.isFromRecordedWork)
+        //
+        // Asked of real shrinks rather than of the enum: the same title is shrunk with a
+        // recorded next action, with a substep, and with neither, and the answer is read off
+        // the step that actually comes back. Restating the four arms of `isFromRecordedWork`
+        // against themselves would be a test that cannot fail.
+        let bare = makeTask(id: "essay", title: "Finish history essay")
+        let recorded = makeTask(
+            id: "essay", title: "Finish history essay", nextAction: "Reread Thursday's notes"
+        )
+        let child = makeTask(id: "c1", title: "Find one source", parentID: TaskID("essay"))
+        let unreadable = makeTask(id: "bike", title: "Sort out the thing with the bike")
+
+        let fromNextAction = try #require(shrinker.steps(for: recorded).first)
+        let fromSubstep = try #require(shrinker.steps(for: bare, among: [bare, child]).first)
+        let fromTemplate = try #require(shrinker.steps(for: bare).first)
+        let fromNothing = try #require(shrinker.steps(for: unreadable).first)
+
+        #expect(fromNextAction.origin == .recordedNextAction)
+        #expect(fromNextAction.origin.isFromRecordedWork)
+
+        #expect(fromSubstep.origin == .substep(TaskID("c1")))
+        #expect(fromSubstep.origin.isFromRecordedWork)
+
+        #expect(fromTemplate.origin == .template(.writing))
+        #expect(!fromTemplate.origin.isFromRecordedWork)
+
+        #expect(fromNothing.origin == .generic)
+        #expect(!fromNothing.origin.isFromRecordedWork)
     }
 
     @Test("the same task always shrinks the same way, whatever order the list arrives in")

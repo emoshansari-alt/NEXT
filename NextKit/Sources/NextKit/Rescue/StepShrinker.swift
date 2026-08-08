@@ -102,8 +102,15 @@ public struct StepShrinker: Sendable {
 
     /// Case- and punctuation-insensitive key, so a substep that merely restates the recorded
     /// next action is not offered as though it were a second rung.
+    ///
+    /// Digits are part of the key and word boundaries are preserved. Numbered substeps —
+    /// "Answer question 1", "Answer question 2" — are the commonest shape a decomposition
+    /// takes, and a key that discarded the number would fold them into a single rung and drop
+    /// the rest of the user's own recorded work on the floor.
     private static func deduplicationKey(_ text: String) -> String {
-        String(text.lowercased().filter(\.isLetter))
+        text.lowercased()
+            .split { !($0.isLetter || $0.isNumber) }
+            .joined(separator: " ")
     }
 
     // MARK: - Fallbacks

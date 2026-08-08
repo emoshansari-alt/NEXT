@@ -84,6 +84,33 @@ struct RescueDontKnowHowToStartTests {
         #expect(!response.hasMoreSteps)
     }
 
+    @Test("numbered substeps are walked one at a time, and more are admitted to exist")
+    func numberedSubstepsFormAWalkableLadder() {
+        let parent = makeTask(id: "maths", title: "Maths worksheet")
+        let children = (1...3).map {
+            makeTask(
+                id: "c\($0)", title: "Answer question \($0)",
+                parentID: TaskID("maths"), createdAt: .hoursFromReference(Double($0))
+            )
+        }
+        let all = [parent] + children
+
+        let first = rescue.dontKnowHowToStart(with: parent, among: all)
+
+        #expect(first.step.text == "Answer question 1.")
+        #expect(first.hasMoreSteps)
+
+        let second = rescue.dontKnowHowToStart(with: parent, among: all, stepsAlreadyRevealed: 1)
+
+        #expect(second.step.text == "Answer question 2.")
+        #expect(second.hasMoreSteps)
+
+        let third = rescue.dontKnowHowToStart(with: parent, among: all, stepsAlreadyRevealed: 2)
+
+        #expect(third.step.text == "Answer question 3.")
+        #expect(!third.hasMoreSteps)
+    }
+
     @Test("the task is named, because knowing what this belongs to is not the problem here")
     func theTaskIsNamed() {
         #expect(rescue.dontKnowHowToStart(with: essay).taskTitle == "Finish history essay")
@@ -142,6 +169,47 @@ struct RescueTooMuchTests {
         )
 
         let response = rescue.tooMuch(with: parent, among: [parent, second, first])
+
+        #expect(response.step.text == "Find one source.")
+    }
+
+    @Test("an unsized earlier rung is not displaced by a large sized one")
+    func unsizedEarlierRungBeatsABigSizedOne() {
+        // The user said the thing is too much. A rung whose length nobody recorded is not
+        // thereby infinitely long, and handing back the forty-five-minute piece because it is
+        // the only one carrying a number is handing back the mountain (PRODUCT_SPEC.md §4.11).
+        let parent = makeTask(
+            id: "essay", title: "Finish history essay", nextAction: "Open the brief"
+        )
+        let big = makeTask(
+            id: "c1", title: "Draft the introduction", estimatedMinutes: 45,
+            parentID: TaskID("essay"), createdAt: .hoursFromReference(1)
+        )
+
+        let response = rescue.tooMuch(with: parent, among: [parent, big])
+
+        #expect(response.step.text == "Open the brief.")
+        #expect(response.step.origin == .recordedNextAction)
+    }
+
+    @Test("a sized first rung still yields to a smaller sized one")
+    func sizedFirstRungYieldsToASmallerOne() {
+        // The other side of the same rule: when both rungs state a length, size decides.
+        let parent = makeTask(id: "essay", title: "Finish history essay")
+        let big = makeTask(
+            id: "c1", title: "Draft the introduction", estimatedMinutes: 45,
+            parentID: TaskID("essay"), createdAt: .hoursFromReference(1)
+        )
+        let small = makeTask(
+            id: "c2", title: "Find one source", estimatedMinutes: 10,
+            parentID: TaskID("essay"), createdAt: .hoursFromReference(2)
+        )
+        let unsized = makeTask(
+            id: "c3", title: "Reread the notes",
+            parentID: TaskID("essay"), createdAt: .hoursFromReference(3)
+        )
+
+        let response = rescue.tooMuch(with: parent, among: [parent, big, small, unsized])
 
         #expect(response.step.text == "Find one source.")
     }
@@ -235,6 +303,53 @@ struct RescueNotEnoughTimeTests {
         let response = try #require(outcome.response)
 
         #expect(response.step == StepShrinker.genericFirstStep)
+    }
+
+    @Test("saying the whole thing fits does not hide the rungs that follow the one shown")
+    func wholeThingFitsStillAdmitsTheRestOfTheLadder() throws {
+        // "The whole thing fits the 15 minutes you have." followed by rung one of three, with
+        // nothing said about the other two, is the response contradicting itself. Unlike
+        // "it's too much", this path is not hiding the size of anything — it names the task.
+        let worksheet = makeTask(
+            id: "worksheet", title: "Maths worksheet",
+            deadline: .daysFromReference(3), estimatedMinutes: 15
+        )
+
+        let outcome = rescue.notEnoughTime(.fifteen, from: [worksheet], now: .testReference)
+        let response = try #require(outcome.response)
+
+        #expect(response.framing == .theWholeThingFits(minutes: 15))
+        #expect(response.step.text == "Open the worksheet.")
+        #expect(response.hasMoreSteps)
+    }
+
+    @Test("a single-rung task that fits is not made to look like it has more")
+    func aSingleRungTaskAdmitsNothingFurther() throws {
+        let worksheet = makeTask(
+            id: "worksheet", title: "Maths worksheet",
+            deadline: .daysFromReference(3), estimatedMinutes: 15,
+            nextAction: "Answer questions 1 to 5"
+        )
+
+        let outcome = rescue.notEnoughTime(.fifteen, from: [worksheet], now: .testReference)
+        let response = try #require(outcome.response)
+
+        #expect(!response.hasMoreSteps)
+    }
+
+    @Test("the honest universal step is not dressed up as one rung of a ladder")
+    func genericFallbackAdmitsNothingFurther() throws {
+        let parent = makeTask(id: "thing", title: "Sort out the thing with the bike")
+        let big = makeTask(
+            id: "c1", title: "Strip the wheel down", estimatedMinutes: 90,
+            parentID: TaskID("thing")
+        )
+
+        let outcome = rescue.notEnoughTime(.five, from: [parent, big], now: .testReference)
+        let response = try #require(outcome.response)
+
+        #expect(response.step == StepShrinker.genericFirstStep)
+        #expect(!response.hasMoreSteps)
     }
 
     @Test("when nothing at all fits, Rescue says so and names the shortest thing there is")

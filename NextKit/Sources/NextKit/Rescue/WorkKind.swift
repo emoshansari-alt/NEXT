@@ -171,7 +171,12 @@ public enum WorkKind: String, Hashable, Sendable, CaseIterable, Codable {
              "enrol", "enroll"]
 
         case .problemSet:
-            ["solve", "solving", "calculate", "calculating", "answer", "answering"]
+            // "answer" is deliberately absent. It is the ordinary verb for replying to a
+            // person as well as for working a question, so "Answer Professor Hale's email"
+            // matched here and offered "Open the worksheet." A real problem set almost always
+            // names its artefact too — question, worksheet, homework — so the object pass
+            // catches "Answer question 3" without the verb, and correspondence keeps its own.
+            ["solve", "solving", "calculate", "calculating"]
 
         case .presentation:
             ["present", "presenting"]
@@ -221,7 +226,11 @@ public enum WorkKind: String, Hashable, Sendable, CaseIterable, Codable {
              "blog", "article", "coursework"]
 
         case .reading:
-            ["chapter", "book", "textbook", "page", "novel", "reading"]
+            // "page" is deliberately absent. A page is a unit of almost every kind of work —
+            // a title page, a cover page, a web page — so it named the artefact only by
+            // accident, and "Make a title page for the essay" was answered with "Open the
+            // text to where you left off." The verbs and the remaining nouns carry this kind.
+            ["chapter", "book", "textbook", "novel", "reading"]
         }
     }
 }

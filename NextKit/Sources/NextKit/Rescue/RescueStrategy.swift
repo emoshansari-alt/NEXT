@@ -77,15 +77,34 @@ public struct RescueStrategy: Sendable {
     /// is *smallest*: the complaint is about size, so size decides. When no rung has a
     /// recorded length the earliest one is the small one, which is both the honest default
     /// and the same answer every time.
+    ///
+    /// A rung with no recorded length is not thereby enormous. Comparison happens only among
+    /// rungs that actually state a size; an unrecorded one keeps its place in the ladder and
+    /// is displaced only by a rung that is demonstrably smaller than it. Treating "unknown"
+    /// as the largest possible number is how this path ends up handing back the mountain the
+    /// user came here to get away from (PRODUCT_SPEC.md §4.11).
     public func tooMuch(with task: TaskItem, among tasks: [TaskItem] = []) -> RescueResponse {
         let ladder = ladder(for: task, among: tasks)
+        let first = ladder[0]
 
         // Strictly less-than, so an equal-sized later rung never displaces an earlier one:
         // with no lengths recorded at all this degrades to "the first rung", deterministically.
-        let smallest = ladder.dropFirst().reduce(ladder[0]) { best, candidate in
-            (candidate.estimatedMinutes ?? Int.max) < (best.estimatedMinutes ?? Int.max)
-                ? candidate
-                : best
+        let smallestSized = ladder.reduce(nil as RescueStep?) { best, candidate in
+            guard let size = candidate.estimatedMinutes else { return best }
+            guard let bestSize = best?.estimatedMinutes else { return candidate }
+            return size < bestSize ? candidate : best
+        }
+
+        // Only a size beats a position. Rung zero yields when it too states a size and that
+        // size is the larger of the two; otherwise being first is what makes it the small one.
+        let smallest: RescueStep
+        if let candidate = smallestSized,
+           let candidateSize = candidate.estimatedMinutes,
+           let firstSize = first.estimatedMinutes,
+           candidateSize < firstSize {
+            smallest = candidate
+        } else {
+            smallest = first
         }
 
         return RescueResponse(
@@ -132,10 +151,25 @@ public struct RescueStrategy: Sendable {
             // Rungs are walked in order and the first one that fits is taken. Order matters
             // more than filling the window here: a later rung usually depends on an earlier
             // one, so the biggest thing that fits is not necessarily a thing you can do yet.
-            let step = ladder.first { ($0.estimatedMinutes ?? 0) <= budget.minutes }
-                ?? StepShrinker.genericFirstStep
+            //
+            // The two `nil` conventions are opposite on purpose, and both are stated rather
+            // than smuggled in through a coercion. A rung of unknown length is offered — the
+            // shrinker's job was to make it small, and refusing everything unmeasured would
+            // leave this path with nothing to say. A *task* of unknown length is not declared
+            // to fit, because claiming that would be inventing a measurement the user never
+            // gave.
+            let fitting = ladder.firstIndex {
+                $0.estimatedMinutes.map { $0 <= budget.minutes } ?? true
+            }
+            let step = fitting.map { ladder[$0] } ?? StepShrinker.genericFirstStep
+            let wholeTaskFits = task.estimatedMinutes.map { $0 <= budget.minutes } ?? false
 
-            let wholeTaskFits = (task.estimatedMinutes ?? Int.max) <= budget.minutes
+            // Unlike "it's too much", this path already names the task, so it is not hiding
+            // size and has no reason to deny that the ladder continues. Saying the whole
+            // thing fits and then showing rung one of three without admitting the other two
+            // is the response contradicting itself. The generic fallback is not a rung of
+            // anything, so nothing follows it.
+            let hasMoreSteps = fitting.map { $0 < ladder.count - 1 } ?? false
 
             return .guidance(
                 RescueResponse(
@@ -147,7 +181,7 @@ public struct RescueStrategy: Sendable {
                         : .oneStepInTheWindow(minutes: budget.minutes),
                     step: step,
                     stepNumber: 1,
-                    hasMoreSteps: false,
+                    hasMoreSteps: hasMoreSteps,
                     commitmentMinutes: budget.minutes
                 )
             )

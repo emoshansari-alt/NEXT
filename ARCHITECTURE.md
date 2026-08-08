@@ -36,7 +36,10 @@ This yields three benefits at once:
 │                     Rejection, TaskSource, Estimate          │
 │   Ranking/          RankingEngine, ScoringWeights, Factor,   │
 │                     Recommendation, Explanation              │
-│   Rescue/           RescueStrategy, StepShrinker, TimeBudget │
+│   Rescue/           RescueStrategy, StepShrinker, WorkKind,  │
+│                     RescuePath, TimeBudget, RescueFraming,   │
+│                     RescueStep, RescueStepOrigin,            │
+│                     RescueResponse, RescueOutcome            │
 │   MinimumWin/       MinimumWinPlanner                        │
 │   Intelligence/     IntelligenceProvider, request/response   │
 │                     DTOs, ResponseValidator, MockProvider,   │
