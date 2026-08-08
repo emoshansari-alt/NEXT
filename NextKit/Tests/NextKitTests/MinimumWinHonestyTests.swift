@@ -24,6 +24,101 @@ private func allStageInstructions() -> [String] {
     }
 }
 
+// MARK: - The reviewed table
+//
+// Every line Minimum Win can put in front of a student when the task says nothing about its own
+// shape: nine kinds of work — the eight NEXT recognises plus the one it does not — times three
+// stages. Twenty-seven strings, written out here as literals.
+//
+// They are literals on purpose, and this is the whole point of the file. A table built by
+// calling `MinimumWinStage.instruction(for:)` — the same function the planner calls — turns
+// every assertion below into `implementation == implementation`, which no edit to the copy can
+// ever break. That hole was real: an outright invitation to submit another student's outline
+// sat in the shipping writing ladder and the entire suite, academic-integrity sweep included,
+// stayed green. Pinning the copy means changing a line NEXT says to a student is a red suite,
+// and a red suite is a human re-reading the new wording before it ships (PRODUCT_SPEC.md §1).
+//
+// So: if this table sent you here, do not sync it to the implementation. Read the new line and
+// decide whether NEXT should be saying it.
+
+/// The three reviewed lines for one kind of work, in stage order.
+private struct ReviewedLadder {
+    let kind: WorkKind?
+    let outline: String
+    let opening: String
+    let firstPart: String
+
+    func line(for stage: MinimumWinStage) -> String {
+        switch stage {
+        case .outline: outline
+        case .opening: opening
+        case .firstPart: firstPart
+        }
+    }
+}
+
+private let reviewedLadders: [ReviewedLadder] = [
+    ReviewedLadder(
+        kind: nil,
+        outline: "Find the instructions and write down what this has to produce.",
+        opening: "Do the first item on that list.",
+        firstPart: "Do the next item on that list."
+    ),
+    ReviewedLadder(
+        kind: .writing,
+        outline: "Write a bare outline: your points, in the order you will make them.",
+        opening: "Write the introduction.",
+        firstPart: "Write the first section in full."
+    ),
+    ReviewedLadder(
+        kind: .reading,
+        outline: "Skim the headings and write down what the text covers.",
+        opening: "Read the first section.",
+        firstPart: "Write three lines on what that section said."
+    ),
+    ReviewedLadder(
+        kind: .problemSet,
+        outline: "Read every question and mark the ones you can already do.",
+        opening: "Answer the first question you marked.",
+        firstPart: "Answer the rest of the ones you marked."
+    ),
+    ReviewedLadder(
+        kind: .presentation,
+        outline: "List the three points the talk has to make.",
+        opening: "Make a title slide and one slide per point.",
+        firstPart: "Fill in the first point's slide properly."
+    ),
+    ReviewedLadder(
+        kind: .revision,
+        outline: "List the topics it covers and mark the ones you have not gone over.",
+        opening: "Read your notes on the first topic you marked.",
+        firstPart: "Cover the page and write down what you remember of it."
+    ),
+    ReviewedLadder(
+        kind: .practice,
+        outline: "Set out what you need and pick the one section to work on.",
+        opening: "Run that section once, slowly.",
+        firstPart: "Repeat that section until it is clean."
+    ),
+    ReviewedLadder(
+        kind: .correspondence,
+        outline: "Write down the one thing you need from them.",
+        opening: "Open a message and fill in the recipient and the subject.",
+        firstPart: "Write the message in your own words and send it."
+    ),
+    ReviewedLadder(
+        kind: .admin,
+        outline: "Open the form and read what it asks for.",
+        opening: "Fill in every field you already have to hand.",
+        firstPart: "Track down the one missing detail and finish the form."
+    )
+]
+
+/// The reviewed table, flattened. The only definition of "a line a human has signed off".
+private let reviewedStageLines: [String] = reviewedLadders.flatMap {
+    [$0.outline, $0.opening, $0.firstPart]
+}
+
 /// Plans covering each kind of work at several sizes of window, so the assembled output is
 /// checked as it is actually read rather than only in pieces.
 private func allGeneratedPlans() -> [MinimumWinPlan] {
@@ -69,6 +164,44 @@ private func allMinimumWinCopy() -> [String] {
     return copy
 }
 
+@Suite("Minimum Win — the reviewed stage copy")
+struct MinimumWinStageCopyTests {
+
+    @Test("the table covers every kind of work exactly once")
+    func tableIsComplete() {
+        // A kind missing from the table would be a kind whose copy nothing pins, which is the
+        // same hole in a smaller shape.
+        #expect(reviewedLadders.count == everyKind.count)
+        #expect(Set(reviewedLadders.map(\.kind)) == Set(everyKind))
+        #expect(reviewedStageLines.count == 27)
+    }
+
+    @Test("each stage of each kind renders its reviewed line, word for word")
+    func everyLineMatchesTheReviewedCopy() {
+        for ladder in reviewedLadders {
+            for stage in MinimumWinStage.allCases {
+                #expect(
+                    stage.instruction(for: ladder.kind) == ladder.line(for: stage),
+                    """
+                    Stage copy changed — \(String(describing: ladder.kind)) / \(stage).
+                      reviewed: \(ladder.line(for: stage))
+                       shipping: \(stage.instruction(for: ladder.kind))
+                    Read the new line against PRODUCT_SPEC.md §1 and §3 before updating the \
+                    table.
+                    """
+                )
+            }
+        }
+    }
+
+    @Test("the module can render nothing outside the reviewed table")
+    func nothingElseIsRenderable() {
+        // Sorted rather than set-compared, so a line quietly duplicated across two kinds — or
+        // one dropped — shows up as well as one reworded.
+        #expect(allStageInstructions().sorted() == reviewedStageLines.sorted())
+    }
+}
+
 @Suite("Minimum Win — academic integrity")
 struct MinimumWinIntegrityTests {
 
@@ -103,7 +236,10 @@ struct MinimumWinIntegrityTests {
         // is traceable: it is either something the user wrote, or one of a fixed table of
         // lines that a human reviewed. Nothing in this module composes new instructions, so
         // there is no path by which it can start suggesting content for the work itself.
-        let reviewed = Set(allStageInstructions())
+        //
+        // "Reviewed" means the literal table above, not whatever the module currently returns.
+        // Asking the implementation what it says and then checking it said that is not a check.
+        let reviewed = Set(reviewedStageLines)
 
         let parent = makeTask(
             id: "paper",

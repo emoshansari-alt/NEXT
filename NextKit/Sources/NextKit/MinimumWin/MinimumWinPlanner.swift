@@ -82,6 +82,20 @@ public struct MinimumWinPlanner: Sendable {
         // rather than to invent a deadline to plan against.
         guard let deadline = task.deadline else { return .notNeeded(.noDeadline) }
 
+        // The same defence on the other half of the verdict. `unreachable` is a claim that the
+        // work does not fit the window, and that is a claim about two numbers; with no usable
+        // estimate the second one does not exist and the claim rests on nothing.
+        //
+        // This is not pedantry about inputs, because the ladder does not degrade gracefully
+        // without an estimate — it degrades silently. Stage lengths are shares of the estimate,
+        // so a missing one makes every share zero and every stage falls back to the floor. The
+        // user is then shown "You have 5 hours left. Here is what fits." above fifteen minutes
+        // of work: confident, specific, and assembled entirely out of a number NEXT does not
+        // have. Declining is the same answer `feasibility(of:now:)` gives, for the same reason.
+        guard Self.recordedMinutes(of: task) != nil else {
+            return .notNeeded(.unknownDuration)
+        }
+
         let minutesRemaining = Int(deadline.timeIntervalSince(now) / 60)
         guard minutesRemaining > 0 else { return .noTimeRemaining }
 
@@ -105,7 +119,13 @@ public struct MinimumWinPlanner: Sendable {
                     : .hereIsWhatFits(minutesRemaining: minutesRemaining),
                 best: best,
                 smallerRungs: Array(rungs.dropFirst()),
-                reassessAt: now.addingTimeInterval(Double(best.minutes) * 60)
+                // A time-boxed rung runs to the deadline, so there is no later moment at which
+                // anything is still open to decide. Offering none is the honest answer; the
+                // alternative — an arbitrary point inside the window — would interrupt the one
+                // stretch of work the plan just told the user to spend it on.
+                reassessAt: best.isTimeBoxed
+                    ? nil
+                    : now.addingTimeInterval(Double(best.minutes) * 60)
             )
         )
     }
@@ -190,18 +210,30 @@ public struct MinimumWinPlanner: Sendable {
     ///
     /// Empty when the task has no usable children — a child with a blank title and no next
     /// action names no work, so it is dropped rather than rendered as an empty rung.
+    ///
+    /// Restatements are folded away with `StepShrinker`'s own key, for the same reason the
+    /// ordering is borrowed rather than reinvented. Walking the identical children in the
+    /// identical order but keeping a duplicate Rescue drops would make the two screens
+    /// contradict each other about the very thing sharing the walk was meant to guarantee —
+    /// and here it would also overcharge the rung, since the repeat brings its minutes along.
     private func substepSteps(of task: TaskItem, among tasks: [TaskItem]) -> [MinimumWinStep] {
-        let children = StepShrinker.outstandingChildren(of: task, among: tasks)
-            .compactMap { child -> (task: TaskItem, text: String)? in
-                let text = StepShrinker.instruction(from: child.nextAction)
-                    ?? StepShrinker.instruction(from: child.title)
-                return text.map { (child, $0) }
-            }
+        var seen: Set<String> = []
+        var children: [(task: TaskItem, text: String)] = []
+
+        for child in StepShrinker.outstandingChildren(of: task, among: tasks) {
+            guard let text = StepShrinker.instruction(from: child.nextAction)
+                ?? StepShrinker.instruction(from: child.title)
+            else { continue }
+            guard seen.insert(StepShrinker.deduplicationKey(text)).inserted else { continue }
+            children.append((child, text))
+        }
+
         guard !children.isEmpty else { return [] }
 
         let allowance = allowancePerUntimedStep(
             among: children.map(\.task),
-            total: task.estimatedMinutes
+            total: task.estimatedMinutes,
+            alreadySpent: Self.settledChildMinutes(of: task, among: tasks)
         )
 
         return children.map { child in
@@ -217,21 +249,48 @@ public struct MinimumWinPlanner: Sendable {
 
     /// How long to budget for a substep the user never timed.
     ///
-    /// Whatever is left of the whole task's estimate once the timed substeps are accounted
-    /// for, shared equally. This invents no new information: the one duration in the system
-    /// came from the user, and this decides how it is divided. A step still gets the floor
-    /// when the division leaves nothing, because a rung of zero minutes is not an offer.
-    private func allowancePerUntimedStep(among children: [TaskItem], total: Int?) -> Int {
+    /// Whatever is left of the whole task's estimate once the timed substeps and the finished
+    /// ones are accounted for, shared equally. This invents no new information: the one
+    /// duration in the system came from the user, and this decides how it is divided. A step
+    /// still gets the floor when the division leaves nothing, because a rung of zero minutes
+    /// is not an offer.
+    ///
+    /// `alreadySpent` is the deduction that is easy to miss. `children` holds only what is
+    /// still outstanding, but the estimate it is being divided against covers the whole task,
+    /// finished parts included — so without it the time a completed substep used would be
+    /// handed out a second time to the steps that remain.
+    private func allowancePerUntimedStep(
+        among children: [TaskItem],
+        total: Int?,
+        alreadySpent: Int
+    ) -> Int {
         let untimed = children.count { Self.recordedMinutes(of: $0) == nil }
         guard untimed > 0 else { return weights.minimumStageMinutes }
 
         let accounted = children.compactMap(Self.recordedMinutes).reduce(0, +)
-        let pool = max(0, (total ?? 0) - accounted)
+        let pool = max(0, (total ?? 0) - accounted - alreadySpent)
 
         return max(
             weights.minimumStageMinutes,
             Int((Double(pool) / Double(untimed)).rounded())
         )
+    }
+
+    /// Minutes recorded against this task's children that are no longer outstanding.
+    ///
+    /// Completed and archived alike. Both are parts of the estimate that are done being
+    /// planned for: the first because the user finished it, the second because they decided
+    /// it is not happening. Either way the time is not available to be offered again.
+    ///
+    /// Clamped at zero by the caller rather than here, since an estimate the finished work has
+    /// already overrun is an ordinary thing — estimates are guesses — and not an error.
+    private static func settledChildMinutes(of task: TaskItem, among tasks: [TaskItem]) -> Int {
+        tasks
+            .filter {
+                $0.parentID == task.id && $0.id != task.id && !$0.status.isRecommendable
+            }
+            .compactMap(recordedMinutes)
+            .reduce(0, +)
     }
 
     /// A task's estimate, but only when it is a usable one.

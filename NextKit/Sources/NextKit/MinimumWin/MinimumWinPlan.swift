@@ -29,12 +29,18 @@ public struct MinimumWinPlan: Hashable, Sendable {
     /// Less ambitious alternatives, each smaller than the one before.
     public let smallerRungs: [MinimumWinRung]
 
-    /// When to stop and look at this again.
+    /// When to stop and look at this again, where that is a real thing to do.
     ///
     /// The end of the *top* rung, not the deadline. "Reassess" is the last item in the spec's
     /// worked example, and it means looking again once real progress exists — the situation at
     /// that point is genuinely different from the one being planned for now.
-    public let reassessAt: Date
+    ///
+    /// `nil` for a time-boxed rung, and that case is why this is optional at all. There the top
+    /// rung *is* the whole remaining window, so the end of it and the deadline are the same
+    /// instant. Reassessing needs something left to decide, and at the deadline there is
+    /// nothing: the work is due. Handing the user that instant and labelling it a reassessment
+    /// would be the app inventing a decision that no longer exists.
+    public let reassessAt: Date?
 
     /// The whole ladder, most ambitious first. Never empty.
     public var rungs: [MinimumWinRung] {
@@ -49,7 +55,7 @@ public struct MinimumWinPlan: Hashable, Sendable {
         framing: MinimumWinFraming,
         best: MinimumWinRung,
         smallerRungs: [MinimumWinRung],
-        reassessAt: Date
+        reassessAt: Date?
     ) {
         self.taskID = taskID
         self.taskTitle = taskTitle

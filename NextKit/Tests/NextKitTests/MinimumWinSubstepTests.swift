@@ -137,6 +137,71 @@ struct MinimumWinSubstepTests {
         #expect(plan.best.steps.map(\.hasRecordedDuration) == [false, true])
     }
 
+    @Test("time already spent on finished substeps is not handed out a second time")
+    func settledSubstepsAreDeductedBeforeSharingTheRest() {
+        // The estimate covers the whole assignment, finished parts included: 300 minutes, of
+        // which a completed step used 150 and an abandoned one accounts for 50. Only the
+        // remaining 100 is still unspoken for, so the two outstanding steps get 50 each.
+        //
+        // Sharing the full 300 instead would quietly inflate every remaining step — here to
+        // 150 apiece — and Minimum Win's whole promise is that what it offers fits the time
+        // left. A step budgeted at three times its share is that promise being wrong.
+        let all = [
+            paper(estimatedMinutes: 300, dueInHours: 4),
+            substep(
+                "done",
+                "Read the primary source",
+                minutes: 150,
+                status: .completed,
+                createdAtHours: -4
+            ),
+            substep(
+                "shelved",
+                "Chase the second source",
+                minutes: 50,
+                status: .archived,
+                createdAtHours: -3
+            ),
+            substep("b", "Take notes on what you have", createdAtHours: -2),
+            substep("c", "Draft the argument", createdAtHours: -1)
+        ]
+        guard let plan = planner.plan(for: all[0], among: all, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+        #expect(
+            plan.best.steps.map(\.text) == [
+                "Take notes on what you have.",
+                "Draft the argument."
+            ]
+        )
+        #expect(plan.best.steps.map(\.minutes) == [50, 50])
+        #expect(plan.best.steps.allSatisfy { !$0.hasRecordedDuration })
+        #expect(plan.best.minutes == 100)
+    }
+
+    @Test("finished work exceeding the estimate leaves a floor, never a negative share")
+    func settledSubstepsCannotDriveTheShareBelowTheFloor() {
+        // Estimates are the user's guess and finished work can overrun it. The subtraction
+        // must not turn that into a zero- or negative-length instruction.
+        let all = [
+            paper(estimatedMinutes: 60, dueInHours: 0.5),
+            substep(
+                "done",
+                "Read the primary source",
+                minutes: 200,
+                status: .completed,
+                createdAtHours: -3
+            ),
+            substep("b", "Draft the argument", createdAtHours: -1)
+        ]
+        guard let plan = planner.plan(for: all[0], among: all, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+        #expect(plan.best.steps.map(\.minutes) == [MinimumWinWeights.default.minimumStageMinutes])
+    }
+
     @Test("finished substeps are not offered as things still to do")
     func completedSubstepsAreSkipped() {
         let all = [
@@ -178,6 +243,71 @@ struct MinimumWinSubstepTests {
         #expect(
             plan.best.goal.text == "Open the library catalogue and search the reading list."
         )
+    }
+
+    @Test("two substeps saying the same thing become one rung, exactly as in Rescue")
+    func duplicateSubstepsAreCollapsed() {
+        // Rescue and Minimum Win walk the same decomposition, and a user looking at the same
+        // task on two screens must not be shown two different accounts of it. Rescue already
+        // folds a restated step away; Minimum Win walking the same children without doing the
+        // same would show "Find three sources." twice and bill eighty minutes for forty
+        // minutes of work — the rung would then be a promise about time that is simply wrong.
+        let all = [
+            paper(estimatedMinutes: 300, dueInHours: 4),
+            substep("a", "Find three sources", minutes: 40, createdAtHours: -2),
+            substep("b", "Find three sources", minutes: 40, createdAtHours: -1)
+        ]
+        guard let plan = planner.plan(for: all[0], among: all, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+        #expect(plan.best.steps.map(\.text) == ["Find three sources."])
+        #expect(plan.best.minutes == 40)
+        #expect(plan.best.goal.origin == .substep(TaskID("a")))
+    }
+
+    @Test("the two surfaces agree on the decomposition, restatements and all")
+    func agreesWithRescueOnWhatTheStepsAre() {
+        // Stated as the property rather than as a literal, because the thing that must hold is
+        // agreement between the surfaces, not any particular list.
+        let all = [
+            paper(estimatedMinutes: 300, dueInHours: 4),
+            substep("a", "Find three sources", minutes: 40, createdAtHours: -3),
+            substep("b", "find three sources.", minutes: 40, createdAtHours: -2),
+            substep("c", "Write the outline", minutes: 30, createdAtHours: -1)
+        ]
+        guard let plan = planner.plan(for: all[0], among: all, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+        let rescue = StepShrinker().steps(for: all[0], among: all)
+        #expect(plan.best.steps.map(\.text) == rescue.map(\.text))
+        #expect(plan.best.steps.map(\.text) == ["Find three sources.", "Write the outline."])
+    }
+
+    @Test("numbered substeps are distinct work, not restatements")
+    func numberedSubstepsSurvive() {
+        // The commonest shape a decomposition takes. Collapsing these would throw away most of
+        // the user's own recorded work, so the shared key keeps digits — and Minimum Win must
+        // inherit that, not re-derive a looser rule of its own.
+        let all = [
+            paper(estimatedMinutes: 300, dueInHours: 4),
+            substep("a", "Answer question 1", minutes: 20, createdAtHours: -3),
+            substep("b", "Answer question 2", minutes: 20, createdAtHours: -2),
+            substep("c", "Answer question 3", minutes: 20, createdAtHours: -1)
+        ]
+        guard let plan = planner.plan(for: all[0], among: all, now: .testReference).plan else {
+            Issue.record("expected a ladder")
+            return
+        }
+        #expect(
+            plan.best.steps.map(\.text) == [
+                "Answer question 1.",
+                "Answer question 2.",
+                "Answer question 3."
+            ]
+        )
+        #expect(plan.best.minutes == 60)
     }
 
     @Test("substeps of some other task are not borrowed")

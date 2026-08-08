@@ -107,7 +107,12 @@ public struct StepShrinker: Sendable {
     /// "Answer question 1", "Answer question 2" — are the commonest shape a decomposition
     /// takes, and a key that discarded the number would fold them into a single rung and drop
     /// the rest of the user's own recorded work on the floor.
-    private static func deduplicationKey(_ text: String) -> String {
+    ///
+    /// Shared with `MinimumWinPlanner`, which walks the same children in the same order. Two
+    /// screens describing one task have to agree about what is on it, and they can only be
+    /// relied on to agree if "the same step twice" means one thing in the codebase rather than
+    /// two implementations that currently happen to match.
+    static func deduplicationKey(_ text: String) -> String {
         text.lowercased()
             .split { !($0.isLetter || $0.isNumber) }
             .joined(separator: " ")
