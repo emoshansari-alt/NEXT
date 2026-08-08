@@ -1,0 +1,57 @@
+# ---- Swift / SwiftPM ----
+.build/
+.swiftpm/
+Package.resolved
+*.o
+*.obj
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+*.pdb
+*.exe
+
+# ---- Xcode ----
+# NextApp.xcodeproj is GENERATED from project.yml by XcodeGen.
+# It is intentionally not committed so it can never drift from the spec.
+*.xcodeproj/
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ---- Build / test output ----
+build/
+TestResults/
+*.xcresult/
+coverage/
+*.profraw
+*.profdata
+
+# ---- Secrets ----
+# No production secret may ever be committed. See PRIVACY.md and DECISIONS.md D-009.
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+Secrets.xcconfig
+.env
+.env.*
+
+# ---- OS noise ----
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ---- Editors / agents ----
+.vscode/
+.idea/
+.claude/
