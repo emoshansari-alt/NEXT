@@ -14,8 +14,10 @@ struct TaskDetailView: View {
 
     private static let durations: [Int?] = [nil, 5, 15, 30, 45, 60, 120]
 
+    // No NavigationStack of its own: this is pushed onto Everything's, and nesting one inside
+    // another breaks the back button and the toolbar placement.
     var body: some View {
-        NavigationStack {
+        Group {
             Form {
                 if let failure = model.failure {
                     Text(failure)
@@ -68,11 +70,9 @@ struct TaskDetailView: View {
             }
             .navigationTitle("Task")
             .navigationBarTitleDisplayMode(.inline)
+            // No Close button: this is a pushed screen, so the navigation bar's back button is
+            // the way out. Adding a second one would be two controls doing the same job.
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .accessibilityIdentifier("detail-close-button")
-                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { Task { await model.save() } }
                         .disabled(!model.canSave)

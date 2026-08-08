@@ -28,7 +28,6 @@ struct TodayView: View {
     @State private var showingCapture = false
     @State private var showingEverything = false
     @State private var showingRescue = false
-    @State private var detailTask: TaskItem?
 
     var body: some View {
         ZStack {
@@ -65,14 +64,8 @@ struct TodayView: View {
         .sheet(isPresented: $showingEverything, onDismiss: { Task { await model.load() } }) {
             EverythingView(
                 model: makeEverythingModel(),
-                onOpenTask: { task in
-                    showingEverything = false
-                    detailTask = task
-                }
+                makeDetailModel: makeDetailModel
             )
-        }
-        .sheet(item: $detailTask, onDismiss: { Task { await model.load() } }) { task in
-            TaskDetailView(model: makeDetailModel(task))
         }
         .sheet(isPresented: $showingRescue) {
             if let task = model.recommendation?.task {

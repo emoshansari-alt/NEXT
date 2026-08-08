@@ -9,9 +9,15 @@ import SwiftUI
 struct EverythingView: View {
 
     @State var model: EverythingViewModel
-    var onOpenTask: (TaskItem) -> Void = { _ in }
+
+    /// Builds Task Detail for a task. Detail is pushed from *inside* this screen rather than
+    /// presented back on Today: dismissing this sheet and presenting another in the same tick
+    /// makes SwiftUI swallow the second one, and a list pushing to its own detail is the more
+    /// natural shape regardless — you come back to the list you were in.
+    var makeDetailModel: (TaskItem) -> TaskDetailViewModel
 
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedTask: TaskItem?
 
     var body: some View {
         NavigationStack {
@@ -30,8 +36,16 @@ struct EverythingView: View {
                         .accessibilityIdentifier("everything-close-button")
                 }
             }
+            .navigationDestination(item: $selectedTask) { task in
+                TaskDetailView(model: makeDetailModel(task))
+            }
         }
         .task { await model.load() }
+        .onChange(of: selectedTask) { _, current in
+            // Detail can edit, complete or delete. Coming back to a stale list would show the
+            // user the state they just changed.
+            if current == nil { Task { await model.load() } }
+        }
     }
 
     private var empty: some View {
@@ -86,7 +100,7 @@ struct EverythingView: View {
 
     private func row(_ task: TaskItem) -> some View {
         Button {
-            onOpenTask(task)
+            selectedTask = task
         } label: {
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)

@@ -228,9 +228,10 @@ final class GoldenPathUITests: XCTestCase {
         row.tap()
 
         XCTAssertTrue(
-            app.buttons["detail-close-button"].waitForExistence(timeout: 5),
+            app.buttons["detail-save-button"].waitForExistence(timeout: 5),
             "tapping a task should open its detail"
         )
+        XCTAssertTrue(app.textFields["detail-title-field"].exists)
         XCTAssertTrue(app.buttons["detail-delete-button"].exists)
     }
 
