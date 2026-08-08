@@ -1,0 +1,84 @@
+name: CI
+
+# Verification tiers are defined in ARCHITECTURE.md §6 and DECISIONS.md D-001.
+# Tier 1 proves the NextKit core. Tier 2 proves the iOS app layer compiles and its
+# Simulator tests pass. Neither requires an Apple Developer Program membership —
+# Simulator builds are unsigned. Only Tier 3 (real devices, TestFlight, submission)
+# is gated, and that lives in RELEASE_GATED.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guardrails:
+    name: Guardrails — NextKit purity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce D-002 and D-007
+        run: bash scripts/lint-nextkit.sh
+
+  tier1:
+    name: Tier 1 — NextKit tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report toolchain
+        run: swift --version
+
+      - name: Build
+        run: swift build --package-path NextKit
+
+      - name: Test
+        run: swift test --package-path NextKit
+
+  tier2:
+    name: Tier 2 — iOS app (Simulator)
+    runs-on: macos-latest
+    needs: tier1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Does the app layer exist yet?
+        id: probe
+        run: |
+          if [ -f project.yml ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Deliberately loud rather than a silent green tick. A job that passes because there
+      # was nothing to do must never be mistakable for a job that passed because the app
+      # compiled. See TESTING.md — no claim may outrun its tier.
+      - name: Nothing to verify yet
+        if: steps.probe.outputs.exists == 'false'
+        run: |
+          echo "::notice title=Tier 2 skipped::project.yml does not exist yet, so the iOS app layer has not been created. NextApp and NextWidget remain UNVERIFIED. See RELEASE_GATED.md Gate A."
+
+      - name: Install XcodeGen
+        if: steps.probe.outputs.exists == 'true'
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        if: steps.probe.outputs.exists == 'true'
+        run: xcodegen generate
+
+      - name: Build and test on the iOS Simulator
+        if: steps.probe.outputs.exists == 'true'
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project NextApp.xcodeproj \
+            -scheme NextApp \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
