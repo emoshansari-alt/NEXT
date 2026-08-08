@@ -1,0 +1,105 @@
+# XcodeGen spec for the NEXT iPhone app.
+#
+# The .xcodeproj is GENERATED from this file and is gitignored (DECISIONS.md D-003).
+# A hand-authored project.pbxproj cannot be reviewed from the Windows development machine,
+# is merge-hostile, and drifts silently from intent. This is reviewable and reproducible:
+#
+#     xcodegen generate && open NextApp.xcodeproj
+#
+# CI runs exactly that on a macOS runner before building.
+
+name: NextApp
+
+options:
+  bundleIdPrefix: com.nextapp
+  deploymentTarget:
+    iOS: "17.0"          # DECISIONS.md D-004 — floor chosen for student-owned older hardware
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  NextKit:
+    path: NextKit
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # No signing anywhere: the app is only ever built for the Simulator until an Apple
+    # Developer Program membership exists (RELEASE_GATED.md Gate B).
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGN_IDENTITY: ""
+
+targets:
+
+  NextApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: NextApp/Sources
+    dependencies:
+      - package: NextKit
+        product: NextKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next
+        PRODUCT_NAME: NEXT
+        # The user-facing name is NEXT, but the Swift module keeps the target name so
+        # `@testable import NextApp` is predictable. Without this the module would be
+        # derived from PRODUCT_NAME instead.
+        PRODUCT_MODULE_NAME: NextApp
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"        # iPhone only — iPhone-first is settled
+        INFOPLIST_FILE: NextApp/Info.plist
+        # No app icon or launch asset catalogue yet — that is Phase 12 (visual polish).
+        # Referencing one before it exists would fail the build for no useful reason.
+    info:
+      path: NextApp/Info.plist
+      properties:
+        CFBundleDisplayName: NEXT
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: false
+        ITSAppUsesNonExemptEncryption: false
+
+  NextAppTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: NextApp/Tests
+    dependencies:
+      - target: NextApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+  NextAppUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: NextApp/UITests
+    dependencies:
+      - target: NextApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next.uitests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  NextApp:
+    build:
+      targets:
+        NextApp: all
+        NextAppTests: [test]
+        NextAppUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - NextAppTests
+        - NextAppUITests

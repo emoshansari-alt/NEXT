@@ -1,0 +1,201 @@
+import NextKit
+import SwiftUI
+
+/// The primary screen. One recommendation, one obvious action.
+///
+/// The dominant object on screen is the thing to do. There is no dashboard, no list competing
+/// for attention, and no metric tiles — PRODUCT_SPEC.md §4.2. Every layout decision here is in
+/// service of making the next action obvious.
+struct TodayView: View {
+
+    @State var model: TodayViewModel
+    @State private var showingRejectionReasons = false
+    @State private var showingExplanation = false
+
+    var body: some View {
+        ZStack {
+            Color(.systemBackground).ignoresSafeArea()
+
+            switch model.outcome {
+            case .recommended(let recommendation):
+                recommended(recommendation)
+            case .nothingToDo:
+                empty(
+                    headline: UnavailabilityCopy.emptyHeadline,
+                    detail: UnavailabilityCopy.emptyDetail
+                )
+            case .nothingAvailable(let reason):
+                empty(
+                    headline: UnavailabilityCopy.headline(for: reason),
+                    detail: UnavailabilityCopy.detail(for: reason)
+                )
+            }
+        }
+        .fullScreenCover(item: focusBinding) { task in
+            FocusView(
+                task: task,
+                onDone: { model.completeFocused() },
+                onStop: { model.stopFocus() }
+            )
+        }
+        .confirmationDialog(
+            "Why not this one?",
+            isPresented: $showingRejectionReasons,
+            titleVisibility: .visible
+        ) {
+            ForEach(RejectionReason.allCases, id: \.self) { reason in
+                Button(RejectionCopy.label(for: reason)) {
+                    model.rejectRecommended(reason: reason)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    // MARK: Recommendation
+
+    @ViewBuilder
+    private func recommended(_ recommendation: Recommendation) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
+            VStack(spacing: 12) {
+                Text("NEXT")
+                    .font(.footnote.weight(.semibold))
+                    .tracking(2)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+
+                Text(recommendation.task.title)
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Text(recommendation.actionText)
+                    .font(.largeTitle.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.6)
+
+                if !metaLine(for: recommendation).isEmpty {
+                    Text(metaLine(for: recommendation))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if recommendation.wasRecentlyRejected {
+                    // Never silently re-serve something the user passed on.
+                    Text("You passed on this earlier, but it is what is left.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(.horizontal, 28)
+            // Read as one unit rather than four fragments when swiping through with VoiceOver.
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(accessibilityLabel(for: recommendation))
+
+            Spacer(minLength: 0)
+
+            Button {
+                model.startRecommended()
+            } label: {
+                Text("START")
+                    .font(.headline)
+                    .tracking(1)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal, 28)
+            .accessibilityIdentifier("start-button")
+            .accessibilityHint("Opens Focus for this action.")
+
+            secondaryActions(recommendation)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+        }
+        .padding(.vertical, 32)
+    }
+
+    private func secondaryActions(_ recommendation: Recommendation) -> some View {
+        HStack(spacing: 24) {
+            Button("Not this") { showingRejectionReasons = true }
+                .accessibilityIdentifier("not-this-button")
+
+            Button("Why this?") { showingExplanation = true }
+                .accessibilityIdentifier("why-this-button")
+        }
+        .font(.subheadline)
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .alert(
+            "Why this?",
+            isPresented: $showingExplanation,
+            actions: { Button("OK", role: .cancel) {} },
+            message: { Text(recommendation.explanation.sentence) }
+        )
+    }
+
+    /// "Due Friday · ~20 min", assembled from whatever the task actually knows.
+    /// Uses a middle dot rather than colour or an icon to separate facts, because meaning
+    /// must never depend on colour alone.
+    private func metaLine(for recommendation: Recommendation) -> String {
+        var parts: [String] = []
+
+        if recommendation.task.deadline != nil {
+            parts.append(recommendation.explanation.sentence.replacingOccurrences(of: ".", with: ""))
+        }
+        if let minutes = recommendation.task.estimatedMinutes {
+            parts.append("~\(minutes) min")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func accessibilityLabel(for recommendation: Recommendation) -> String {
+        var parts = [recommendation.task.title, recommendation.actionText]
+        parts.append(recommendation.explanation.sentence)
+        if let minutes = recommendation.task.estimatedMinutes {
+            parts.append("About \(minutes) minutes.")
+        }
+        return parts.joined(separator: " ")
+    }
+
+    // MARK: Empty states
+
+    private func empty(headline: String, detail: String) -> some View {
+        VStack(spacing: 10) {
+            Text(headline)
+                .font(.title2.weight(.semibold))
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("empty-state")
+    }
+
+    // MARK: Focus presentation
+
+    private var focusBinding: Binding<TaskItem?> {
+        Binding(
+            get: { model.focused },
+            set: { if $0 == nil { model.stopFocus() } }
+        )
+    }
+}
+
+/// Labels for the five "Not this" reasons. Each is about circumstance, never about the user.
+enum RejectionCopy {
+    static func label(for reason: RejectionReason) -> String {
+        switch reason {
+        case .cantRightNow: "Can't do it right now"
+        case .missingWhatINeed: "Don't have what I need"
+        case .needSomethingShorter: "Need something shorter"
+        case .needLessEffort: "Need less effort"
+        case .other: "Something else"
+        }
+    }
+}
