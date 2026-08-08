@@ -13,6 +13,17 @@ import PackageDescription
 
 let package = Package(
     name: "NextKit",
+
+    // Required, not cosmetic. Without it SwiftPM assumes a very old Apple deployment target
+    // (macOS 10.13), where structured concurrency does not exist — so `withTaskGroup` in the
+    // storage contract fails to build on macOS while compiling fine on Windows, which has no
+    // such floor. iOS 17 is the app's deployment target (DECISIONS.md D-004); macOS is here
+    // only because the package is built there by CI and by Xcode.
+    platforms: [
+        .iOS(.v17),
+        .macOS(.v14)
+    ],
+
     products: [
         .library(name: "NextKit", targets: ["NextKit"]),
 
