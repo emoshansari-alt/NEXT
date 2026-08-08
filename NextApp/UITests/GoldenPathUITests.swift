@@ -36,14 +36,21 @@ final class GoldenPathUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
         app.buttons["start-button"].tap()
 
-        let focusAction = app.otherElements["focus-action"]
+        // Wait on the Done button rather than the action text. The action is a combined
+        // accessibility element, and which XCUIElementType a combined element surfaces as is
+        // not contractual — querying otherElements for it is brittle. Done is a real button
+        // with its own identifier, and its presence is what actually proves Focus opened.
+        let done = app.buttons["focus-done-button"]
         XCTAssertTrue(
-            focusAction.waitForExistence(timeout: 5),
+            done.waitForExistence(timeout: 5),
             "START should open Focus on the recommended action"
         )
 
-        let done = app.buttons["focus-done-button"]
-        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["focus-action"].exists,
+            "Focus should show the action to work on"
+        )
+
         done.tap()
 
         // Completion flows straight back into the loop: something new is offered.
