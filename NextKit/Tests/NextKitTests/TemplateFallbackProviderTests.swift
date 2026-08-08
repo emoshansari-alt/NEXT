@@ -163,6 +163,44 @@ struct TemplateFallbackExtractionTests {
         )
     }
 
+    @Test("a dump pasted as sentences is separated, not merged and edited")
+    func fullStopsSeparate() async throws {
+        // Pasting from Notes or a message is an ordinary way to capture, and it arrives
+        // punctuated. Without the full stop as a separator these two obligations become one
+        // task — and worse, the date parser then lifts "monday" out of the middle of it, so the
+        // user is shown a sentence they did not write with a word missing from it.
+        let validated = try await extract("Chem test monday. Email professor.")
+
+        #expect(validated.value.tasks.map(\.title) == ["Chem test", "Email professor."])
+        #expect(validated.value.tasks[0].deadline?.date == iso("2026-03-16T23:59:00Z"))
+        #expect(validated.value.tasks[1].deadline == nil)
+    }
+
+    @Test("a standing commitment does not manufacture a task named after a weekday")
+    func recurringWeekdayPairIsNotSplit() async throws {
+        // "practice mon and wed" is one commitment written the way students write them. Cut on
+        // the "and", the right-hand side is nothing but "wed" — a fragment the parser will not
+        // strip, because doing so would leave a nameless row — so it arrives as a task called
+        // "Wed" with no deadline, invented out of half a sentence.
+        //
+        // The conjunction is still in the title, because "mon" is the phrase that was read and
+        // turned into the deadline. One task the user can edit in place beats one task plus a
+        // phantom they have to hunt down and delete.
+        for text in ["practice mon and wed", "gym tuesday and thursday"] {
+            let validated = try await extract(text)
+            #expect(validated.value.tasks.count == 1, "\(text)")
+        }
+
+        #expect(
+            try await extract("practice mon and wed").value.tasks.map(\.title)
+                == ["Practice and wed"]
+        )
+        #expect(
+            try await extract("gym tuesday and thursday").value.tasks[0].deadline?.date
+                == iso("2026-03-17T23:59:00Z")
+        )
+    }
+
     @Test("empty input is refused rather than producing an empty capture")
     func emptyInputIsRefused() async throws {
         for text in ["", "   ", "\n\n", ",,,", " , , "] {
@@ -321,10 +359,17 @@ struct TemplateFallbackLimitsTests {
 
     @Test("it says up front which operations it can answer")
     func supportedOperationsAreHonest() {
+        // Stated by exclusion, because that is the actual product statement: four of the five,
+        // and not the one there is no honest deterministic answer to. Comparing the set to
+        // `[.extractTasks, .decompose, .nextAction, .simplify]` would be quoting the
+        // implementation's own literal back at it, which agrees with any change made to both.
         #expect(!fallback.supports(.estimateDuration))
-        #expect(
-            fallback.supportedOperations == [.extractTasks, .decompose, .nextAction, .simplify]
-        )
+
+        #expect(fallback.supports(.extractTasks))
+        #expect(fallback.supports(.decompose))
+        #expect(fallback.supports(.nextAction))
+        #expect(fallback.supports(.simplify))
+        #expect(fallback.supportedOperations.count == 4)
     }
 
     @Test("it is available with no network, no key and no consent")
@@ -386,6 +431,41 @@ struct BrainDumpSplitterTests {
         )
     }
 
+    @Test("a side that is nothing but a date is not a second task")
+    func dateOnlySideDoesNotSplit() {
+        // "practice mon and wed" is how a student writes a standing commitment, not two things.
+        // Cutting it leaves a right-hand side with no words of its own, and a fragment that is
+        // only a weekday cannot be given a name — so the split manufactures a task called "Wed"
+        // that the user never wrote and now has to delete.
+        #expect(
+            BrainDumpSplitter.fragments(in: "practice mon and wed") == ["practice mon and wed"]
+        )
+        #expect(
+            BrainDumpSplitter.fragments(in: "gym tuesday and thursday")
+                == ["gym tuesday and thursday"]
+        )
+        #expect(
+            BrainDumpSplitter.fragments(in: "monday and chem test friday")
+                == ["monday and chem test friday"]
+        )
+    }
+
+    @Test("a full stop between sentences separates; one inside a word or a marker does not")
+    func fullStopSeparates() {
+        #expect(
+            BrainDumpSplitter.fragments(in: "Chem test monday. Email professor.")
+                == ["Chem test monday", "Email professor."]
+        )
+        // A numbered marker, a chapter number and an initial all end in a full stop and none of
+        // them ends a sentence. Cutting at one produces a task called "1", which is exactly the
+        // kind of debris this splitter exists to avoid.
+        #expect(BrainDumpSplitter.fragments(in: "1. Book a practice room") == ["Book a practice room"])
+        #expect(BrainDumpSplitter.fragments(in: "read chapter 3. and take notes") == ["read chapter 3. and take notes"])
+        #expect(BrainDumpSplitter.fragments(in: "email Prof. Hale") == ["email Prof. Hale"])
+        #expect(BrainDumpSplitter.fragments(in: "find the J. K. Rowling essay") == ["find the J. K. Rowling essay"])
+        #expect(BrainDumpSplitter.fragments(in: "book a 1.5 hour room") == ["book a 1.5 hour room"])
+    }
+
     @Test("a chain of dated items splits all the way along")
     func chainedAndsSplit() {
         #expect(
@@ -394,10 +474,24 @@ struct BrainDumpSplitterTests {
         )
     }
 
-    @Test("splitting the same text twice gives the same fragments")
+    @Test("the spec's dump always splits into exactly these fragments")
     func splittingIsDeterministic() {
-        let text = "chem test monday, finish history slides friday, email professor"
-
-        #expect(BrainDumpSplitter.fragments(in: text) == BrainDumpSplitter.fragments(in: text))
+        // Determinism is pinned by naming the answer, not by comparing a pure function to
+        // itself. `fragments(in:) == fragments(in:)` holds for any implementation whatsoever,
+        // including one that returned nothing, so it could never have gone red.
+        //
+        // The dump is PRODUCT_SPEC.md §4.5, verbatim. Fragments, not titles: the date phrases
+        // are still in them, because removing those is `DatePhraseParser`'s job and not this
+        // type's.
+        #expect(
+            BrainDumpSplitter.fragments(
+                in: "chem test monday, finish history slides friday, email professor, practice at 6"
+            ) == [
+                "chem test monday",
+                "finish history slides friday",
+                "email professor",
+                "practice at 6"
+            ]
+        )
     }
 }

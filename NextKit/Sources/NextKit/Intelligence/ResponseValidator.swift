@@ -21,6 +21,16 @@ import Foundation
 /// on unasked. That is a completely different thing from a failure, and the two must never be
 /// conflated: a rejected response yields nothing, whereas an uncertain field yields good data
 /// plus a question for the user (PRODUCT_SPEC.md §4.6).
+///
+/// ## Uncertain is also not the same as inferred
+///
+/// `inferences` is the wider set, and the two are not interchangeable. Every deadline and every
+/// duration a provider supplies is an inference, however sure the provider was; only the
+/// unconvincing ones become confirmations. PRODUCT_SPEC.md §4.6 opens with "Every consequential
+/// AI inference is confirmable — deadlines especially" and narrows to ambiguity afterwards, so a
+/// module that recorded only the ambiguous ones would leave the app unable to satisfy the first
+/// sentence: a date read at 0.9 would reach the Today screen indistinguishable from one the user
+/// typed.
 public struct Validated<Value: Hashable & Sendable>: Hashable, Sendable {
 
     /// The trusted value.
@@ -30,9 +40,20 @@ public struct Validated<Value: Hashable & Sendable>: Hashable, Sendable {
     /// ordered by item and then by field so the confirmation screen is stable between runs.
     public let confirmations: [FieldConfirmation]
 
-    fileprivate init(value: Value, confirmations: [FieldConfirmation]) {
+    /// Fields no human supplied, ordered by item and then by field for the same reason.
+    ///
+    /// A superset of the fields named in `confirmations`, restricted to the ones a provider
+    /// invents rather than reads off the user's own words: deadlines and durations.
+    public let inferences: [InferredField]
+
+    fileprivate init(
+        value: Value,
+        confirmations: [FieldConfirmation],
+        inferences: [InferredField] = []
+    ) {
         self.value = value
         self.confirmations = confirmations
+        self.inferences = inferences
     }
 
     /// Whether anything here needs a human before it is acted on.
@@ -41,6 +62,14 @@ public struct Validated<Value: Hashable & Sendable>: Hashable, Sendable {
     /// The fields of one item awaiting confirmation.
     public func unconfirmedFields(ofItem index: Int) -> Set<ResponseField> {
         Set(confirmations.lazy.filter { $0.itemIndex == index }.map(\.field))
+    }
+
+    /// The fields of one item that came from a provider rather than from the user.
+    ///
+    /// Empty for a task whose only content is the title the user typed. Non-empty for every
+    /// deadline and duration, including the confident ones `unconfirmedFields(ofItem:)` omits.
+    public func inferredFields(ofItem index: Int) -> Set<ResponseField> {
+        Set(inferences.lazy.filter { $0.itemIndex == index }.map(\.field))
     }
 }
 
@@ -108,10 +137,21 @@ public struct ResponseValidator: Sendable {
 
         var tasks: [ProposedTask] = []
         var confirmations: [FieldConfirmation] = []
+        var inferences: [InferredField] = []
 
         for (index, item) in items.enumerated() {
             let task = try validateTask(item, at: index, now: now)
             tasks.append(task)
+
+            // A deadline or a duration is a reading of the user's text, never something they
+            // stated in a field, so it is declared here whatever the provider's confidence was.
+            // The title is not: it is the user's own words, carried through.
+            if task.deadline != nil {
+                inferences.append(InferredField(itemIndex: index, field: .deadline))
+            }
+            if task.duration != nil {
+                inferences.append(InferredField(itemIndex: index, field: .estimatedMinutes))
+            }
 
             // Field order here is the order the confirmation screen reads them in. It is fixed
             // rather than derived from a dictionary, because a screen that reshuffles its
@@ -143,7 +183,11 @@ public struct ResponseValidator: Sendable {
             }
         }
 
-        return Validated(value: TaskExtraction(tasks: tasks), confirmations: confirmations)
+        return Validated(
+            value: TaskExtraction(tasks: tasks),
+            confirmations: confirmations,
+            inferences: inferences
+        )
     }
 
     private func validateTask(
@@ -224,6 +268,7 @@ public struct ResponseValidator: Sendable {
 
         var steps: [ProposedAction] = []
         var confirmations: [FieldConfirmation] = []
+        var inferences: [InferredField] = []
 
         for (index, item) in items.enumerated() {
             let action = try validateAction(
@@ -235,6 +280,10 @@ public struct ResponseValidator: Sendable {
             )
             steps.append(action)
 
+            if action.estimatedMinutes != nil {
+                inferences.append(InferredField(itemIndex: index, field: .estimatedMinutes))
+            }
+
             if action.confidence.value < limits.confirmationThreshold {
                 confirmations.append(
                     FieldConfirmation(
@@ -244,7 +293,11 @@ public struct ResponseValidator: Sendable {
             }
         }
 
-        return Validated(value: Decomposition(steps: steps), confirmations: confirmations)
+        return Validated(
+            value: Decomposition(steps: steps),
+            confirmations: confirmations,
+            inferences: inferences
+        )
     }
 
     // MARK: - Single generated actions
@@ -290,7 +343,12 @@ public struct ResponseValidator: Sendable {
             ? [FieldConfirmation(itemIndex: 0, field: field, confidence: action.confidence)]
             : []
 
-        return Validated(value: action, confirmations: confirmations)
+        let inferences =
+            action.estimatedMinutes == nil
+            ? []
+            : [InferredField(itemIndex: 0, field: .estimatedMinutes)]
+
+        return Validated(value: action, confirmations: confirmations, inferences: inferences)
     }
 
     /// The shared rules for any piece of text NEXT would put in front of the user as an
@@ -336,9 +394,13 @@ public struct ResponseValidator: Sendable {
             ? [FieldConfirmation(itemIndex: 0, field: .minutes, confidence: confidence)]
             : []
 
+        // The whole of this response is a number a provider produced, so the whole of it is an
+        // inference — including the confident ones, which is exactly the case that would
+        // otherwise reach a `TaskItem` looking like the user's own estimate.
         return Validated(
             value: DurationEstimate(minutes: minutes, confidence: confidence),
-            confirmations: confirmations
+            confirmations: confirmations,
+            inferences: [InferredField(itemIndex: 0, field: .minutes)]
         )
     }
 

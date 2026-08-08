@@ -597,6 +597,140 @@ struct ResponseValidatorUncertaintyTests {
     }
 }
 
+@Suite("ResponseValidator — an inference is visible even when it is confident")
+struct ResponseValidatorInferenceTests {
+
+    // PRODUCT_SPEC.md §4.6 opens with "Every consequential AI inference is confirmable —
+    // deadlines especially". Asking about *low* confidence is the second, narrower sentence.
+    //
+    // `confirmations` answers "which fields is NEXT unsure about". It cannot answer "which
+    // fields did a provider make up", and those are different questions: a deadline read at 0.9
+    // is written into the task with no trace, so the Capture Confirmation screen has no way to
+    // distinguish it from a date the user typed by hand. `inferences` is the second answer, and
+    // it is populated regardless of how sure the provider was.
+
+    private let confidentDeadline = extractionJSON(
+        taskJSON(
+            title: "Chemistry worksheet",
+            deadline: "2026-03-13T23:59:00Z",
+            deadlineConfidence: 0.8
+        )
+    )
+
+    @Test("a confident deadline is written through, and still declared an inference")
+    func confidentDeadlineIsStillAnInference() throws {
+        let validated = try validateExtraction(confidentDeadline)
+
+        // Both halves matter. The first is the existing behaviour and is correct: 0.8 clears the
+        // bar, so NEXT does not interrupt. The second is what lets the confirmation screen say
+        // "Chemistry worksheet — Friday" rather than presenting a guess as a fact.
+        #expect(!validated.requiresConfirmation)
+        #expect(validated.inferredFields(ofItem: 0) == [.deadline])
+        #expect(
+            validated.taskItems(idProvider: SequentialIDs(), createdAt: .testReference)[0]
+                .deadline == iso("2026-03-13T23:59:00Z")
+        )
+    }
+
+    @Test("an uncertain deadline is both an inference and a question")
+    func uncertainDeadlineIsBoth() throws {
+        let validated = try validateExtraction(
+            extractionJSON(
+                taskJSON(deadline: "2026-03-13T23:59:00Z", deadlineConfidence: 0.4)
+            )
+        )
+
+        #expect(validated.unconfirmedFields(ofItem: 0) == [.deadline])
+        #expect(validated.inferredFields(ofItem: 0) == [.deadline])
+    }
+
+    @Test("a field the provider never supplied is not an inference")
+    func absentFieldsAreNotInferences() throws {
+        // The property that makes the set worth having: it says what a provider *did*, not what
+        // the type could have carried.
+        let validated = try validateExtraction(extractionJSON(taskJSON(title: "Email professor")))
+
+        #expect(validated.inferredFields(ofItem: 0).isEmpty)
+        #expect(validated.inferences.isEmpty)
+    }
+
+    @Test("a duration is an inference on the same terms as a deadline")
+    func durationsAreInferencesToo() throws {
+        let validated = try validateExtraction(
+            extractionJSON(taskJSON(estimatedMinutes: 30, durationConfidence: 0.95))
+        )
+
+        #expect(!validated.requiresConfirmation)
+        #expect(validated.inferredFields(ofItem: 0) == [.estimatedMinutes])
+    }
+
+    @Test("inferences name the item they belong to, in a fixed order")
+    func inferencesAreOrderedAndLocated() throws {
+        let validated = try validateExtraction(
+            extractionJSON(
+                taskJSON(title: "Email professor"),
+                taskJSON(
+                    title: "Chemistry worksheet",
+                    deadline: "2026-03-13T23:59:00Z",
+                    estimatedMinutes: 30,
+                    deadlineConfidence: 0.9,
+                    durationConfidence: 0.9
+                )
+            )
+        )
+
+        #expect(
+            validated.inferences.map { "\($0.itemIndex):\($0.field.rawValue)" }
+                == ["1:deadline", "1:estimatedMinutes"]
+        )
+        #expect(validated.inferredFields(ofItem: 0).isEmpty)
+    }
+
+    @Test("a standalone duration estimate is entirely an inference")
+    func standaloneDurationIsAnInference() throws {
+        let validated = try testValidator.validate(
+            decodeDuration("{ \"estimatedMinutes\": 25, \"confidence\": 0.9 }")
+        )
+
+        #expect(!validated.requiresConfirmation)
+        #expect(validated.inferredFields(ofItem: 0) == [.minutes])
+    }
+
+    @Test("a step's estimate is an inference; a step with no estimate carries none")
+    func stepEstimatesAreInferences() throws {
+        let validated = try testValidator.validate(
+            decodeDecomposition(
+                decompositionJSON(
+                    stepJSON(text: "Open the assignment instructions."),
+                    stepJSON(text: "Find one source.", estimatedMinutes: 10)
+                )
+            )
+        )
+
+        #expect(validated.inferredFields(ofItem: 0).isEmpty)
+        #expect(validated.inferredFields(ofItem: 1) == [.estimatedMinutes])
+    }
+
+    @Test("the deterministic fallback declares its own readings as inferences")
+    func fallbackDeadlinesAreDeclared() async throws {
+        // "tomorrow" is read at 0.9 — above the bar, so it is written and nothing is asked. It
+        // is still NEXT's reading of the sentence rather than a date the user chose, and the app
+        // has to be able to tell.
+        let validated = try await TemplateFallbackProvider().extractTasks(
+            TaskExtractionRequest(
+                text: "finish slides tomorrow", now: .testReference, timeZone: testTimeZone
+            )
+        )
+
+        #expect(!validated.requiresConfirmation)
+        #expect(validated.inferredFields(ofItem: 0) == [.deadline])
+        #expect(
+            validated.taskItems(idProvider: SequentialIDs(), createdAt: .testReference)[0]
+                .deadline == iso("2026-03-11T23:59:00Z")
+        )
+    }
+}
+
 @Suite("ResponseValidator — failure is wholesale")
 struct ResponseValidatorWholesaleTests {
 
@@ -791,7 +925,10 @@ struct ResponseValidatorToneTests {
         for text in [
             "Work with your ADHD, not against it.",
             "This is executive dysfunction talking.",
-            "Your brain needs a smaller target."
+            "Your brain can't hold a task this big.",
+            "Your brain is not wired for long sessions.",
+            "Given your diagnosis, try a shorter session.",
+            "Since you have been diagnosed, start smaller."
         ] {
             #expect(
                 throws: ValidationFailure.unacceptableTone(.step, itemIndex: 0),
@@ -801,6 +938,27 @@ struct ResponseValidatorToneTests {
                     decodeDecomposition(decompositionJSON(stepJSON(text: text)))
                 )
             }
+        }
+    }
+
+    @Test("coursework vocabulary is not mistaken for NEXT diagnosing the user")
+    func clinicalSubjectMatterIsNotClinicalTone() throws {
+        // The screen judges what NEXT is *saying about the user*, not what the user is studying.
+        // NEXT's audience is undergraduates, and psychology and neuroscience students are
+        // squarely in it: a step that names a diagnostic manual or a brain stem is ordinary
+        // coursework. Rejecting one is not a small cost either — failure is wholesale, so a
+        // single such step throws away the entire decomposition and drops the user to the
+        // generic ladder for a task NEXT actually understood.
+        for text in [
+            "Read the diagnostic criteria section.",
+            "Open the neuroscience notes on your brain stem.",
+            "Summarise the diagnostic interview transcript.",
+            "Label the brain diagram."
+        ] {
+            let validated = try testValidator.validate(
+                decodeDecomposition(decompositionJSON(stepJSON(text: text)))
+            )
+            #expect(validated.value.steps[0].text == text, "rejected: \(text)")
         }
     }
 

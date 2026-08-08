@@ -88,6 +88,14 @@ public struct ValidationLimits: Hashable, Sendable {
     /// second-person judgement and explicit diagnosis of the *user*; it is a last line of
     /// defence, not a content filter. It is applied only to text NEXT would be *saying* — never
     /// to a task title, which is the user's own words about their own work.
+    ///
+    /// Every entry must be a phrase that can only be NEXT talking about the person reading it.
+    /// A word stem cannot be, and a stem here is a bug rather than extra safety: "diagnos"
+    /// rejects "Read the diagnostic criteria section." and a bare "your brain" rejects "Open the
+    /// neuroscience notes on your brain stem." Both are ordinary undergraduate coursework, and
+    /// because failure is wholesale, one of them discards the entire decomposition and drops the
+    /// user to the generic ladder for a task NEXT had understood perfectly well. A screen that
+    /// fires on the user's own subject matter costs more than it protects.
     public var forbiddenInGeneratedText: [String]
 
     public init(
@@ -152,8 +160,17 @@ public struct ValidationLimits: Hashable, Sendable {
             "your condition",
             "your disorder",
             "your symptoms",
-            "your brain",
-            "diagnos"
+            "you have been diagnosed",
+            "your diagnosis",
+            "diagnose yourself",
+
+            // Second-person claims about how the reader's mind works. Narrow on purpose: the
+            // bare phrase "your brain" belongs to a neuroscience reading list at least as often
+            // as to a lecture about the user.
+            "your brain can't",
+            "your brain cannot",
+            "your brain isn't wired",
+            "your brain is not wired"
         ]
     )
 }

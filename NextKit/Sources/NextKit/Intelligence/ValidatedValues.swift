@@ -127,6 +127,35 @@ public struct DurationEstimate: Hashable, Sendable {
     }
 }
 
+/// A field a provider produced rather than the user.
+///
+/// The companion to `FieldConfirmation`, and it exists because the two answer different
+/// questions. A confirmation says *NEXT is not sure about this*. An inference says *nobody typed
+/// this* — and a date read at 0.9 is every bit as much NEXT's reading of a sentence as one read
+/// at 0.4, even though only the second gets asked about.
+///
+/// PRODUCT_SPEC.md §4.6 opens with "Every consequential AI inference is confirmable — deadlines
+/// especially", and only then narrows to ambiguous ones. Without this, the Capture Confirmation
+/// screen has no way to tell a confident inferred deadline from a date the user chose by hand,
+/// so it can only offer both or neither. Which of the two a screen shows is an app-layer
+/// decision; being *able* to tell is this module's job.
+///
+/// Carries no value, for the same reason `FieldConfirmation` does not: the proposal is still on
+/// the validated response at `itemIndex`, and copying it would create two places for it to
+/// disagree.
+public struct InferredField: Hashable, Sendable {
+
+    /// Which item of the response, or `0` for a response that is a single value.
+    public let itemIndex: Int
+
+    public let field: ResponseField
+
+    public init(itemIndex: Int, field: ResponseField) {
+        self.itemIndex = itemIndex
+        self.field = field
+    }
+}
+
 /// A field whose value is valid but not certain enough to act on unasked.
 ///
 /// This type is the whole distinction the module turns on. A low confidence is **not** a

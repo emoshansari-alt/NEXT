@@ -203,11 +203,28 @@ struct DatePhraseDeterminismTests {
             == iso("2026-03-11T10:59:00Z"))
     }
 
-    @Test("reading the same text twice gives the same answer")
+    @Test("every part of a reading is fixed: the title, the instant and the confidence")
     func repeatedReadsAgree() {
-        for text in ["chem test monday", "practice at 6", "slides tomorrow"] {
-            #expect(read(text) == read(text))
-        }
+        // `read(text) == read(text)` is true of any pure function, including one that returned
+        // the same wrong answer twice, so it could never have gone red. Determinism is pinned by
+        // writing the answer down instead — all three fields, because a reading that got the
+        // date right and quietly kept "monday" in the title would still be wrong.
+        let weekday = read("chem test monday")
+        #expect(weekday.remainingText == "chem test")
+        #expect(weekday.date == iso("2026-03-16T23:59:00Z"))
+        #expect(weekday.confidence == 0.7)
+
+        let relativeDay = read("slides tomorrow")
+        #expect(relativeDay.remainingText == "slides")
+        #expect(relativeDay.date == iso("2026-03-11T23:59:00Z"))
+        #expect(relativeDay.confidence == 0.9)
+
+        // Nothing recognised: the text comes back untouched and no confidence is offered,
+        // because there is no reading to be confident about.
+        let noPhrase = read("practice at 6")
+        #expect(noPhrase.remainingText == "practice at 6")
+        #expect(noPhrase.date == nil)
+        #expect(noPhrase.confidence == nil)
     }
 
     @Test("a preposition in front of the date goes with it")

@@ -73,7 +73,7 @@ public enum DatePhraseParser {
     // MARK: - Reading
 
     public static func read(_ text: String, now: Date, timeZone: TimeZone) -> Reading {
-        let words = text.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        let words = split(text)
         guard !words.isEmpty else {
             return Reading(remainingText: text, date: nil, confidence: nil)
         }
@@ -86,6 +86,42 @@ public enum DatePhraseParser {
             return Reading(remainingText: text, date: nil, confidence: nil)
         }
 
+        // A fragment that was *only* a date leaves nothing to call the task. Better a task named
+        // "monday" than a task named nothing at all, so the reading is abandoned rather than
+        // producing a nameless row.
+        let title = residue(of: match, in: words)
+        guard !title.isEmpty else {
+            return Reading(remainingText: text, date: nil, confidence: nil)
+        }
+
+        return Reading(remainingText: title, date: date, confidence: match.phrase.confidence)
+    }
+
+    /// What a fragment would still say once its date phrase had been taken out of it, or `nil`
+    /// if there was no phrase to take.
+    ///
+    /// The companion question to `mentionsDate`, and the more useful of the two: knowing that
+    /// "wed" contains a date says nothing about whether it also contains a *task*, and the
+    /// answer here — an empty string — says that it does not. Needs no `now`, because it is a
+    /// question about the words rather than about the calendar.
+    ///
+    /// This is exactly the text `read` would keep as the title, produced by the same code, so a
+    /// caller can decide in advance whether a reading would leave anything behind.
+    public static func datePhraseResidue(_ text: String) -> String? {
+        let words = split(text)
+        guard let match = firstPhrase(in: words) else { return nil }
+        return residue(of: match, in: words)
+    }
+
+    /// Whether a piece of text contains any phrase this parser recognises.
+    ///
+    /// Needs no `now`: it asks whether a date phrase is *present*, not what it resolves to.
+    public static func mentionsDate(_ text: String) -> Bool {
+        datePhraseResidue(text) != nil
+    }
+
+    /// The fragment with the matched phrase — and the preposition that introduced it — removed.
+    private static func residue(of match: Match, in words: [String]) -> String {
         // A preposition only belongs to the phrase if the phrase follows it.
         var start = match.range.lowerBound
         if start > 0, prepositions.contains(normalise(words[start - 1])) {
@@ -94,27 +130,12 @@ public enum DatePhraseParser {
 
         var remaining = words
         remaining.removeSubrange(start..<match.range.upperBound)
-        let title = remaining.joined(separator: " ")
+        return remaining.joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // A fragment that was *only* a date leaves nothing to call the task. Better a task named
-        // "monday" than a task named nothing at all, so the reading is abandoned rather than
-        // producing a nameless row.
-        guard !title.isEmpty else {
-            return Reading(remainingText: text, date: nil, confidence: nil)
-        }
-
-        return Reading(remainingText: title, date: date, confidence: match.phrase.confidence)
     }
 
-    /// Whether a piece of text contains any phrase this parser recognises.
-    ///
-    /// Needs no `now`: it asks whether a date phrase is *present*, not what it resolves to.
-    /// `BrainDumpSplitter` uses it to decide whether an "and" is joining two obligations or two
-    /// halves of one phrase, which is a question about vocabulary rather than about the calendar.
-    public static func mentionsDate(_ text: String) -> Bool {
-        let words = text.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
-        return firstPhrase(in: words) != nil
+    private static func split(_ text: String) -> [String] {
+        text.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
     }
 
     // MARK: - Phrases

@@ -131,10 +131,25 @@ struct MockFailureModeTests {
         }
     }
 
-    @Test("there are exactly eight, and each one is reachable")
+    @Test("there are exactly eight, and they are these eight, in this order")
     func eightModesExist() {
-        #expect(IntelligenceFailureMode.allCases.count == 8)
-        #expect(Set(IntelligenceFailureMode.allCases.map(\.rawValue)).count == 8)
+        // Written out rather than counted. A `Set(…).count == 8` on a `String` enum with eight
+        // distinctly named cases is guaranteed by the compiler and cannot report anything: it
+        // would still pass if a mode were renamed, reordered, or swapped for a different one.
+        // The names are the contract — `IntelligenceFailureMode` is `Codable`, and the order is
+        // documented as "roughly how early it fails" — so both are stated.
+        #expect(
+            IntelligenceFailureMode.allCases.map(\.rawValue) == [
+                "timeout",
+                "malformedJSON",
+                "emptyResponse",
+                "impossibleDate",
+                "unreasonableDuration",
+                "missingRequiredField",
+                "invalidEnum",
+                "partialResponse"
+            ]
+        )
     }
 }
 
@@ -292,11 +307,26 @@ struct MockScriptingTests {
         }
     }
 
-    @Test("the mock claims every operation, because that is what a test seam is for")
-    func supportsEverything() {
-        #expect(
-            MockIntelligenceProvider().supportedOperations
-                == Set(IntelligenceOperation.allCases)
+    @Test("the mock claims every operation, including the one the fallback declines")
+    func supportsEverything() async throws {
+        // Named one at a time rather than compared against `Set(IntelligenceOperation.allCases)`,
+        // which is the expression the property is implemented with — a comparison of an
+        // expression to itself agrees no matter what either side means.
+        let mock = MockIntelligenceProvider(scripts: MockIntelligenceProvider.workingScripts)
+
+        #expect(mock.supports(.extractTasks))
+        #expect(mock.supports(.decompose))
+        #expect(mock.supports(.nextAction))
+        #expect(mock.supports(.simplify))
+        #expect(mock.supportedOperations.count == 5)
+
+        // `estimateDuration` is the one `TemplateFallbackProvider` refuses, so the mock is the
+        // only seam that can drive the app's duration path at all. A claim it could not honour
+        // would be worse than no claim, so the claim is checked against an actual answer.
+        #expect(mock.supports(.estimateDuration))
+        let estimate = try await mock.estimateDuration(
+            DurationEstimateRequest(title: "History essay")
         )
+        #expect(estimate.value.minutes == 30)
     }
 }
