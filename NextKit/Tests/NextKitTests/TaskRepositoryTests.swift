@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import NextKit
+import NextKitTestSupport
 
 // The storage seam from ARCHITECTURE.md §3 and D-006.
 //

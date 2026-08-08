@@ -71,6 +71,10 @@ targets:
       - path: NextApp/Tests
     dependencies:
       - target: NextApp
+      # The storage contract, shared with Tier 1 rather than re-derived here. This is what
+      # lets the SwiftData store be held to the identical promises as the in-memory one.
+      - package: NextKit
+        product: NextKitTestSupport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nextapp.next.tests

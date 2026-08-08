@@ -4,9 +4,17 @@ import Testing
 @testable import NextApp
 import NextKit
 
-// Tier 2 unit tests. These run on the iOS Simulator and cover the app layer's own logic —
-// the wiring between the engine and the screen. Engine behaviour itself is covered at
+// Tier 2 unit tests. These run on the iOS Simulator and cover the app layer's own logic — the
+// wiring between the store, the engine and the screen. Engine behaviour itself is covered at
 // Tier 1 in NextKit and is not re-tested here.
+//
+// The view model is driven through a real `InMemoryTaskRepository` rather than a stub, so these
+// exercise the same seam the SwiftData store implements.
+
+/// A clock pinned to one instant, so deadline behaviour can be asserted exactly.
+private struct FixedTimeSource: TimeSource {
+    let now: Date
+}
 
 @MainActor
 @Suite("TodayViewModel")
@@ -28,75 +36,126 @@ struct TodayViewModelTests {
         )
     }
 
+    /// A loaded view model over a store seeded with exactly these tasks.
+    ///
+    /// Seeding before `load()` matters: an empty store makes the view model plant sample tasks,
+    /// which is correct behaviour today but would silently replace the fixture.
+    private func loaded(_ tasks: [TaskItem]) async throws -> TodayViewModel {
+        let repository = InMemoryTaskRepository()
+        for task in tasks { try await repository.upsert(task) }
+
+        let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
+        await model.load()
+        return model
+    }
+
     @Test("recommends the most urgent task on launch")
-    func recommendsOnLaunch() throws {
-        let model = TodayViewModel(
-            tasks: [task("later", deadlineHours: 72), task("sooner", deadlineHours: 4)],
-            now: now
-        )
+    func recommendsOnLaunch() async throws {
+        let model = try await loaded([task("later", deadlineHours: 72), task("sooner", deadlineHours: 4)])
 
         #expect(try #require(model.recommendation).task.id == TaskID("sooner"))
     }
 
-    @Test("with no tasks it reports nothing to do rather than crashing")
-    func emptyStateIsHandled() {
-        let model = TodayViewModel(tasks: [], now: now)
+    @Test("an empty store is seeded so a first run is not a dead end")
+    func emptyStoreIsSeeded() async throws {
+        // Temporary behaviour: capture does not exist yet. This test is the tripwire that makes
+        // sure the seeding is deliberately removed rather than quietly forgotten in Phase 5.
+        let repository = InMemoryTaskRepository()
+        let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
 
-        #expect(model.outcome == .nothingToDo)
-        #expect(model.recommendation == nil)
+        await model.load()
+
+        #expect(model.recommendation != nil)
+        #expect(try await repository.fetchAll().isEmpty == false)
     }
 
     @Test("START opens Focus on the recommended task")
-    func startOpensFocus() throws {
-        let model = TodayViewModel(tasks: [task("only", deadlineHours: 4)], now: now)
+    func startOpensFocus() async throws {
+        let model = try await loaded([task("only", deadlineHours: 4)])
 
-        model.startRecommended()
+        await model.startRecommended()
 
         #expect(try #require(model.focused).id == TaskID("only"))
     }
 
-    @Test("completing the focused task closes Focus and recommends the next thing")
-    func completingAdvancesTheLoop() throws {
-        // This is the core loop: START, DONE, NEXT.
-        let model = TodayViewModel(
-            tasks: [task("first", deadlineHours: 2), task("second", deadlineHours: 6)],
-            now: now
-        )
-        model.startRecommended()
+    @Test("starting a task is written to the store, not held only on screen")
+    func startingPersists() async throws {
+        let repository = InMemoryTaskRepository()
+        try await repository.upsert(task("only", deadlineHours: 4))
+        let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
+        await model.load()
 
-        model.completeFocused(now: now)
+        await model.startRecommended()
+
+        let stored = try #require(try await repository.fetch(id: TaskID("only")))
+        #expect(stored.updatedAt == now)
+        #expect(stored.rejectionsSupersededAt == now)
+    }
+
+    @Test("completing the focused task closes Focus and recommends the next thing")
+    func completingAdvancesTheLoop() async throws {
+        // The core loop: START, DONE, NEXT.
+        let model = try await loaded([task("first", deadlineHours: 2), task("second", deadlineHours: 6)])
+        await model.startRecommended()
+
+        await model.completeFocused()
 
         #expect(model.focused == nil)
         #expect(try #require(model.recommendation).task.id == TaskID("second"))
     }
 
-    @Test("completing the last task leaves an explained empty state, not a blank screen")
-    func completingTheLastTaskExplainsItself() {
-        let model = TodayViewModel(tasks: [task("only", deadlineHours: 2)], now: now)
-        model.startRecommended()
+    @Test("completion survives in the store, not just in the view")
+    func completionPersists() async throws {
+        let repository = InMemoryTaskRepository()
+        try await repository.upsert(task("only", deadlineHours: 2))
+        let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
+        await model.load()
+        await model.startRecommended()
 
-        model.completeFocused(now: now)
+        await model.completeFocused()
+
+        let stored = try #require(try await repository.fetch(id: TaskID("only")))
+        #expect(stored.status == .completed)
+        #expect(stored.completedAt == now)
+    }
+
+    @Test("completing the last task leaves an explained empty state, not a blank screen")
+    func completingTheLastTaskExplainsItself() async throws {
+        let model = try await loaded([task("only", deadlineHours: 2)])
+        await model.startRecommended()
+
+        await model.completeFocused()
 
         #expect(model.outcome == .nothingAvailable(.noActiveTasks))
     }
 
     @Test("rejecting a recommendation moves on to something else")
-    func rejectingAdvances() throws {
-        let model = TodayViewModel(
-            tasks: [task("rejected", deadlineHours: 2), task("other", deadlineHours: 3)],
-            now: now
-        )
+    func rejectingAdvances() async throws {
+        let model = try await loaded([task("rejected", deadlineHours: 2), task("other", deadlineHours: 3)])
 
-        model.rejectRecommended(reason: .cantRightNow, now: now)
+        await model.rejectRecommended(reason: .cantRightNow)
 
         #expect(try #require(model.recommendation).task.id == TaskID("other"))
     }
 
-    @Test("a rejected task is still offered when it is the only one left, and is flagged")
-    func soleRejectedTaskIsFlagged() throws {
-        let model = TodayViewModel(tasks: [task("only", deadlineHours: 2)], now: now)
+    @Test("a rejection is recorded in the store as history")
+    func rejectionPersists() async throws {
+        let repository = InMemoryTaskRepository()
+        try await repository.upsert(task("only", deadlineHours: 2))
+        let model = TodayViewModel(repository: repository, timeSource: FixedTimeSource(now: now))
+        await model.load()
 
-        model.rejectRecommended(reason: .cantRightNow, now: now)
+        await model.rejectRecommended(reason: .needSomethingShorter)
+
+        let stored = try #require(try await repository.fetch(id: TaskID("only")))
+        #expect(stored.rejections.map(\.reason) == [.needSomethingShorter])
+    }
+
+    @Test("a rejected task is still offered when it is the only one left, and is flagged")
+    func soleRejectedTaskIsFlagged() async throws {
+        let model = try await loaded([task("only", deadlineHours: 2)])
+
+        await model.rejectRecommended(reason: .cantRightNow)
 
         let recommendation = try #require(model.recommendation)
         #expect(recommendation.task.id == TaskID("only"))
@@ -104,15 +163,39 @@ struct TodayViewModelTests {
     }
 
     @Test("stopping Focus does not complete the task")
-    func stoppingDoesNotComplete() throws {
-        let model = TodayViewModel(tasks: [task("only", deadlineHours: 2)], now: now)
-        model.startRecommended()
+    func stoppingDoesNotComplete() async throws {
+        let model = try await loaded([task("only", deadlineHours: 2)])
+        await model.startRecommended()
 
         model.stopFocus()
 
         #expect(model.focused == nil)
         #expect(try #require(model.recommendation).task.id == TaskID("only"))
     }
+
+    @Test("a store that cannot be read says so instead of showing an empty screen")
+    func storeFailureIsSurfaced() async {
+        // A student who cannot see that their tasks failed to load will assume they are gone.
+        let model = TodayViewModel(
+            repository: FailingTaskRepository(),
+            timeSource: FixedTimeSource(now: now)
+        )
+
+        await model.load()
+
+        #expect(model.storeFailure != nil)
+    }
+}
+
+/// A store where everything fails, for the unhappy path.
+private struct FailingTaskRepository: TaskRepository {
+    struct Failure: Error {}
+
+    func fetchAll() async throws -> [TaskItem] { throw Failure() }
+    func fetch(id: TaskID) async throws -> TaskItem? { throw Failure() }
+    func fetch(status: TaskStatus) async throws -> [TaskItem] { throw Failure() }
+    func upsert(_ task: TaskItem) async throws { throw Failure() }
+    func delete(id: TaskID) async throws { throw Failure() }
 }
 
 @Suite("Copy tone")

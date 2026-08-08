@@ -9,6 +9,10 @@ import SwiftUI
 struct TodayView: View {
 
     @State var model: TodayViewModel
+
+    /// Set when the app is running on a throwaway store. Shown, never hidden.
+    var storeIsEphemeral: Bool = false
+
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
 
@@ -16,25 +20,32 @@ struct TodayView: View {
         ZStack {
             Color(.systemBackground).ignoresSafeArea()
 
-            switch model.outcome {
-            case .recommended(let recommendation):
-                recommended(recommendation)
-            case .nothingToDo:
-                empty(
-                    headline: UnavailabilityCopy.emptyHeadline,
-                    detail: UnavailabilityCopy.emptyDetail
-                )
-            case .nothingAvailable(let reason):
-                empty(
-                    headline: UnavailabilityCopy.headline(for: reason),
-                    detail: UnavailabilityCopy.detail(for: reason)
-                )
+            VStack(spacing: 0) {
+                if let warning = warningText {
+                    banner(warning)
+                }
+
+                switch model.outcome {
+                case .recommended(let recommendation):
+                    recommended(recommendation)
+                case .nothingToDo:
+                    empty(
+                        headline: UnavailabilityCopy.emptyHeadline,
+                        detail: UnavailabilityCopy.emptyDetail
+                    )
+                case .nothingAvailable(let reason):
+                    empty(
+                        headline: UnavailabilityCopy.headline(for: reason),
+                        detail: UnavailabilityCopy.detail(for: reason)
+                    )
+                }
             }
         }
+        .task { await model.load() }
         .fullScreenCover(item: focusBinding) { task in
             FocusView(
                 task: task,
-                onDone: { model.completeFocused() },
+                onDone: { Task { await model.completeFocused() } },
                 onStop: { model.stopFocus() }
             )
         }
@@ -45,11 +56,32 @@ struct TodayView: View {
         ) {
             ForEach(RejectionReason.allCases, id: \.self) { reason in
                 Button(RejectionCopy.label(for: reason)) {
-                    model.rejectRecommended(reason: reason)
+                    Task { await model.rejectRecommended(reason: reason) }
                 }
             }
             Button("Cancel", role: .cancel) {}
         }
+    }
+
+    // MARK: Warnings
+
+    /// Storage problems are stated plainly and never dressed up. A student who cannot see that
+    /// their work is not being saved will assume it is.
+    private var warningText: String? {
+        if let failure = model.storeFailure { return failure }
+        if storeIsEphemeral { return "Saving is unavailable. Anything you do now will not be kept." }
+        return nil
+    }
+
+    private func banner(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 20)
+            .background(Color(.secondarySystemBackground))
+            .accessibilityIdentifier("store-warning")
     }
 
     // MARK: Recommendation
@@ -98,7 +130,7 @@ struct TodayView: View {
             Spacer(minLength: 0)
 
             Button {
-                model.startRecommended()
+                Task { await model.startRecommended() }
             } label: {
                 Text("START")
                     .font(.headline)
@@ -137,14 +169,16 @@ struct TodayView: View {
         )
     }
 
-    /// "Due Friday · ~20 min", assembled from whatever the task actually knows.
-    /// Uses a middle dot rather than colour or an icon to separate facts, because meaning
-    /// must never depend on colour alone.
+    /// "Due in 2 days · ~20 min", assembled from whatever the task actually knows.
+    /// Uses a middle dot rather than colour or an icon to separate facts, because meaning must
+    /// never depend on colour alone.
     private func metaLine(for recommendation: Recommendation) -> String {
         var parts: [String] = []
 
         if recommendation.task.deadline != nil {
-            parts.append(recommendation.explanation.sentence.replacingOccurrences(of: ".", with: ""))
+            parts.append(
+                recommendation.explanation.sentence.replacingOccurrences(of: ".", with: "")
+            )
         }
         if let minutes = recommendation.task.estimatedMinutes {
             parts.append("~\(minutes) min")
@@ -165,12 +199,14 @@ struct TodayView: View {
 
     private func empty(headline: String, detail: String) -> some View {
         VStack(spacing: 10) {
+            Spacer()
             Text(headline)
                 .font(.title2.weight(.semibold))
             Text(detail)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            Spacer()
         }
         .padding(.horizontal, 40)
         .accessibilityElement(children: .combine)
