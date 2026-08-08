@@ -48,26 +48,23 @@ struct CaptureView: View {
 
     private var writing: some View {
         VStack(spacing: 16) {
-            TextEditor(text: $model.text)
-                .font(.body)
-                .scrollContentBackground(.hidden)
-                .padding(12)
-                .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
-                .frame(minHeight: 160)
-                .focused($isFieldFocused)
-                .accessibilityIdentifier("capture-text-field")
-                .accessibilityLabel("What is on your mind")
-                .overlay(alignment: .topLeading) {
-                    if model.text.isEmpty {
-                        Text("Everything on your mind. One line each, or all in one go.")
-                            .font(.body)
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 17)
-                            .padding(.vertical, 20)
-                            .allowsHitTesting(false)
-                            .accessibilityHidden(true)
-                    }
-                }
+            // A vertical-axis TextField rather than a TextEditor. It grows the same way, but it
+            // has a real prompt instead of an overlaid fake one, and it takes keyboard input
+            // reliably under UI automation — a TextEditor here silently swallowed typed text,
+            // which left the save button disabled and the whole suite red.
+            TextField(
+                "What is on your mind",
+                text: $model.text,
+                prompt: Text("Everything on your mind. One line each, or all in one go."),
+                axis: .vertical
+            )
+            .font(.body)
+            .lineLimit(5...12)
+            .textInputAutocapitalization(.sentences)
+            .padding(12)
+            .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
+            .focused($isFieldFocused)
+            .accessibilityIdentifier("capture-text-field")
 
             if let failure = model.failure {
                 Text(failure)

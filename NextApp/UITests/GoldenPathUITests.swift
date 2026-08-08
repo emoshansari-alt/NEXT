@@ -34,13 +34,19 @@ final class GoldenPathUITests: XCTestCase {
         XCTAssertTrue(add.waitForExistence(timeout: 10), "a first run must offer a way to add")
         add.tap()
 
-        let field = app.textViews["capture-text-field"]
+        let field = app.textFields["capture-text-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText(text)
 
+        // Assert the text actually landed before acting on it. Without this, a field that
+        // silently ignores input leaves the save button disabled, the tap does nothing, and the
+        // failure surfaces several assertions later pointing at the wrong thing.
+        XCTAssertEqual(field.value as? String, text, "the field should hold what was typed")
+
         let saveSingle = app.buttons["capture-save-single-button"]
         XCTAssertTrue(saveSingle.waitForExistence(timeout: 5))
+        XCTAssertTrue(saveSingle.isEnabled, "save should be enabled once there is text")
         saveSingle.tap()
 
         let done = app.buttons["capture-done-button"]
@@ -55,7 +61,7 @@ final class GoldenPathUITests: XCTestCase {
         // an empty first run with no way forward is a dead end.
         let app = launch()
 
-        XCTAssertTrue(app.otherElements["empty-state"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["empty-state"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["empty-add-button"].exists)
         XCTAssertFalse(app.buttons["start-button"].exists, "nothing should be recommended yet")
     }
@@ -76,7 +82,7 @@ final class GoldenPathUITests: XCTestCase {
 
         app.buttons["empty-add-button"].tap()
 
-        let field = app.textViews["capture-text-field"]
+        let field = app.textFields["capture-text-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("chem test monday, email professor, finish history slides friday")
@@ -85,7 +91,7 @@ final class GoldenPathUITests: XCTestCase {
 
         // Confirmation is not optional. Nothing has been written at this point.
         XCTAssertTrue(
-            app.otherElements["capture-confirmation"].waitForExistence(timeout: 10),
+            app.descendants(matching: .any)["capture-confirmation"].waitForExistence(timeout: 10),
             "extraction must land on confirmation, not save straight away"
         )
 
@@ -122,7 +128,7 @@ final class GoldenPathUITests: XCTestCase {
         // That was the only task, so completion should land on the explained empty state rather
         // than a blank screen.
         XCTAssertTrue(
-            app.otherElements["empty-state"].waitForExistence(timeout: 5),
+            app.descendants(matching: .any)["empty-state"].waitForExistence(timeout: 5),
             "completing the last task should say so, not show nothing"
         )
     }
