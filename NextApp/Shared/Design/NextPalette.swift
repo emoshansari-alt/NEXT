@@ -14,10 +14,10 @@ import SwiftUI
 enum NextPalette {
 
     /// The surface the card rests on. Never holds text.
-    static let desk = dynamic(light: 0xDAD6CD, dark: 0x101114)
+    static let desk = dynamic(light: 0xDAD6CD, dark: 0x0B0C0F)
 
     /// The card itself. Everything readable sits on this.
-    static let card = dynamic(light: 0xFDFCFA, dark: 0x1E2024)
+    static let card = dynamic(light: 0xFDFCFA, dark: 0x24272D)
 
     /// Primary text.
     static let ink = dynamic(light: 0x1C1A17, dark: 0xF2F1EE)
@@ -38,7 +38,7 @@ enum NextPalette {
     static let marker = dynamic(light: 0xE0A800, dark: 0xD8A93A)
 
     /// Hairlines and the card's own edge.
-    static let edge = dynamic(light: 0xD8D3C9, dark: 0x33363C)
+    static let edge = dynamic(light: 0xD8D3C9, dark: 0x393D45)
 
     /// Where something has gone wrong. Distinct from `biro` so a warning never reads as an action.
     static let warning = dynamic(light: 0x9A3412, dark: 0xF2A88A)

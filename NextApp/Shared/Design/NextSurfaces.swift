@@ -12,6 +12,16 @@ enum NextMetrics {
     static let screenPadding: CGFloat = 20
     static let cardPadding: CGFloat = 20
 
+    /// How tall a block control should be.
+    ///
+    /// The comfortable 56 points is a *minimum* while the label is small. At an accessibility size
+    /// the label is already taller than that, so the minimum stops being one and becomes padding —
+    /// on Capture that pushed the save button above the keyboard and out of reach entirely, which
+    /// the audit caught twice before this was fixed in one place rather than per screen.
+    static func controlHeight(_ typeSize: DynamicTypeSize) -> CGFloat {
+        typeSize.isAccessibilitySize ? 0 : tapTarget + 12
+    }
+
     /// Minimum fingertip, per current platform guidance and enforced by the accessibility audit.
     ///
     /// Every button style here builds it in, which is why the standalone `accessibleTapTarget`

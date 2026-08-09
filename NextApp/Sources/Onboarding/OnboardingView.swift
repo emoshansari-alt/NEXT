@@ -57,8 +57,6 @@ struct OnboardingView: View {
             // Always available. Three screens is short, but nobody should be made to sit
             // through an introduction to reach an app they have already decided to use.
             Button("Skip") { onFinish() }
-                .font(.subheadline)
-                .buttonStyle(.plain)
                 .buttonStyle(.quietText)
                 .padding(.top, 10)
                 .padding(.bottom, 24)

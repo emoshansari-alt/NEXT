@@ -63,24 +63,23 @@ final class AccessibilityUITests: XCTestCase {
         done.tap()
     }
 
+    /// The checks NEXT is held to now.
+    ///
+    /// Contrast and Dynamic Type are absent here and tracked separately rather than quietly
+    /// dropped — see `testContrastAndDynamicTypeAreStillOutstanding` and `DECISIONS.md` D-021.
+    private static let enforced: XCUIAccessibilityAuditType = [
+        .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
+    ]
+
     /// Audits whatever is currently on screen and reports **every** issue, with the element.
     ///
     /// The default behaviour throws on the first problem with a message like "Hit area is too
     /// small" and nothing about which control — the detail lives in the result bundle, which
     /// cannot be opened on the Windows development machine. Collecting the issues here instead
-    /// turns one CI round into the whole list, which is the same reason the UI suite dumps
-    /// `debugDescription` rather than guessing across ten-minute round trips.
+    /// turns one CI round into the whole list.
     ///
     /// The handler returns `true` for every issue, meaning "handled" — so the audit itself does
     /// not throw and this method decides the verdict, having recorded all of them.
-    /// The checks NEXT is held to now.
-    ///
-    /// Contrast and Dynamic Type are deliberately absent, and tracked separately below rather
-    /// than quietly dropped — see `auditColourAndType` and `DECISIONS.md` D-021.
-    private static let enforced: XCUIAccessibilityAuditType = [
-        .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
-    ]
-
     private func audit(
         _ app: XCUIApplication,
         _ screen: String,

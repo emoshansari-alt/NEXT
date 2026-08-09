@@ -14,12 +14,15 @@ import SwiftUI
 struct PrimaryBlockStyle: ButtonStyle {
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(NextType.control)
             .foregroundStyle(NextPalette.onBiro)
-            .frame(maxWidth: .infinity, minHeight: NextMetrics.tapTarget + 12)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: NextMetrics.controlHeight(typeSize))
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
@@ -38,12 +41,15 @@ struct PrimaryBlockStyle: ButtonStyle {
 struct OutlinedBlockStyle: ButtonStyle {
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(NextType.control)
             .foregroundStyle(NextPalette.ink)
-            .frame(maxWidth: .infinity, minHeight: NextMetrics.tapTarget + 12)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: NextMetrics.controlHeight(typeSize))
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
@@ -68,6 +74,8 @@ struct QuietTextStyle: ButtonStyle {
         configuration.label
             .font(NextType.controlSecondary)
             .foregroundStyle(NextPalette.inkSecondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
             .overlay(alignment: .bottom) {
                 if underlined {
                     Rectangle()
@@ -104,6 +112,7 @@ struct ChipStyle: ButtonStyle {
         configuration.label
             .font(NextType.controlSecondary)
             .foregroundStyle(NextPalette.ink)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(minWidth: NextMetrics.tapTarget, minHeight: NextMetrics.tapTarget)
             .padding(.horizontal, 10)
             .background(
