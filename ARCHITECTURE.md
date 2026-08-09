@@ -40,6 +40,7 @@ This yields three benefits at once:
 │                     RescuePath, TimeBudget, RescueFraming,   │
 │                     RescueStep, RescueStepOrigin,            │
 │                     RescueResponse, RescueOutcome            │
+│   Focus/            FocusSession, FocusTarget               │
 │   MinimumWin/       MinimumWinPlanner                        │
 │   Monetisation/     NextTier, EntitlementState, Resolver,    │
 │                     FeatureGate, PremiumCapability,          │
@@ -231,6 +232,21 @@ abstraction layer beyond what SwiftUI already provides.
 
 The point of the protocol wrappers is that view models remain testable on the simulator without
 real notification permission, real purchases, or real hardware.
+
+### What crosses between screens is a value, not a task
+
+Rescue and Minimum Win both answer with a deliberately *smaller* action than the task it came
+from. Handing a screen a bare `TaskItem` cannot express that — a task can only describe itself —
+and the result was a real defect: a rescued step was computed, displayed, and then dropped, so
+"Do that" opened Focus on the mountain the user had just said was too much.
+
+`FocusTarget` (in `NextKit`, not in a view) carries the task, the action, where the action came
+from, and whether it is reduced. Everything that follows from that — which task to resolve, which
+words to show, and whether finishing completes anything — is a rule with a Tier 1 test rather
+than a convention a view is trusted to honour. See D-018.
+
+The general shape is worth reusing: when a screen's answer is *narrower* than its input, the
+narrowing belongs in a value that the next screen cannot widen again by accident.
 
 ---
 

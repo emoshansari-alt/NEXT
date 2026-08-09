@@ -47,7 +47,7 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 516 tests in 96 suites, 516 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 531 tests in 97 suites, 531 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
@@ -58,7 +58,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
 | Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
 | Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks |
-| Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language |
+| Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language, which action Focus is pointed at and what finishing it means |
 | Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone |
 | Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
 | Everything | date bucketing into sections, ordering, partitioning |
@@ -98,6 +98,12 @@ per-receipt revocation filter, returning `.offerUpgrade` for an unknown entitlem
 the bound on billing-retry grace. `scratchpad/mutate.py` in that session applied each in turn and
 restored it; the same shape is worth repeating for any rule added here.
 
+`FocusTarget` was mutation-tested the same way and for the same reason. Five, all caught: making
+a reduced action complete its task, re-deriving a deliberately withheld parent title from the
+task, focusing the first task in the list instead of the one the rescue named, treating a
+Minimum Win rung as not reduced, and using a blank recorded next action verbatim. Every one of
+these is a defect that renders correctly on screen, which is exactly why they are worth pinning.
+
 This is not ceremony. An adversarial review round found four tests that could never fail,
 including the academic-integrity guard, which built its "approved copy" table by calling the
 same function it was checking. Inserting an invitation to submit another student's work left
@@ -106,16 +112,33 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` ·
-run [31286116920](https://github.com/emoshansari-alt/NEXT/actions/runs/31286116920)
+run [31290672207](https://github.com/emoshansari-alt/NEXT/actions/runs/31290672207)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 66 tests in 15 suites, passed (1 known issue — see below) |
-| `NextAppUITests` (XCTest, real Simulator) | 13 tests, passed |
+| `NextAppTests` (swift-testing) | 97 tests in 22 suites, passed (2 known issues — see below) |
+| `NextAppUITests` (XCTest, real Simulator) | 20 tests, passed |
 | `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
 
-### The one known issue: App Groups need signing
+### Two known issues, and both are the same answer
+
+**App Groups need signing**, so the widget cannot read what the app writes. **Local StoreKit
+testing needs signing**, so no purchase can be exercised. Both were found by asserting the thing
+and letting CI answer, both are recorded with evidence in `RELEASE_GATED.md` (B1a and B4a), and
+both are marked `withKnownIssue` so they start running for free the day signing exists.
+
+The pattern is worth carrying forward, and is written down as D-017: an entitlement-scoped Apple
+facility should be assumed Tier 3 until measured. Two of the three capabilities D-001 expected to
+come free at Tier 2 turned out to need signing.
+
+Alongside each, a test pins the *degradation* rather than only the gap: the widget's writes are
+no-ops and its reads are `nil`, and the store's catalogue is empty, nothing is falsely claimed as
+owned, and buying throws instead of silently doing nothing. Those are the branches that actually
+run today, and they are the ones that matter — a feature that cannot reach Apple must never
+become a problem the user sees.
+
+### The App Group finding in detail
 
 A Tier 2 test asserted the widget's shared container resolves. It does not:
 `containerURL(forSecurityApplicationGroupIdentifier:)` returns `nil` in an unsigned Simulator
@@ -169,11 +192,13 @@ sources were not the problem. It was found by moving test files out one at a tim
 build recovered. If that error appears with no location, bisect by removing files rather than
 reading the message — it has nothing more to tell you. The helper is now `mark(_:)`.
 
-### The storage contract is shared, not restated
+### The contracts are shared, not restated
 
 `verifyRepositoryContract(_:)` lives in the **`NextKitTestSupport` library**, not in a test
 target. Tier 1 runs it against `InMemoryTaskRepository`; Tier 2 runs *the identical function*
 against SwiftData. Neither re-derives the rules, so they cannot drift.
+`verifyPurchaseServiceContract(now:_:)` is built the same way — a stub at Tier 1, real StoreKit
+at Tier 2, where it currently cannot run and says so.
 
 It was moved there because the earlier version could not do this: it lived in `NextKitTests`,
 which `NextAppTests` cannot import, so the claim that it bound both implementations was untrue.
@@ -187,23 +212,27 @@ Without it the suite would share the simulator's real database and the golden-pa
 completes a task — would consume its own fixtures until nothing was left to recommend. A test
 whose result depends on how many times it has run before is not a test.
 
+One test adds `-ui-seed-unreachable`, which seeds a single task due in forty-five minutes with a
+three-hour estimate. It does nothing unless `-ui-testing` is also present. Minimum Win needs a
+deadline that is close but *not* passed together with an estimate that does not fit, and Task
+Detail's date picker defaults to the current instant — leaving no window at all. Driving a
+`DatePicker` to a specific future time through XCUITest is fiddly and flaky, and a flaky test of
+a real flow is worth less than an honest fixture for it.
+
 ### Not yet written
 
 Required by the product spec and **not** yet covered. Tracked honestly rather than implied away:
 
 - the `friction` ranking factor still contributes an explicit zero
-- onboarding, Everything, Task Detail, Settings, capture and capture confirmation — the screens
-  do not exist yet, so neither do their tests
-- the Focus timer
-- persistence across relaunch (needs SwiftData, which needs the app-layer store)
-- notification scheduling logic
-- StoreKit entitlement logic
+- **persistence across relaunch.** The UI target gets a fresh in-memory store per launch, so the
+  create → terminate → relaunch → verify cycle needs a different arrangement than the one the
+  suite currently uses. This is the oldest outstanding gap in this file.
+- **notification delivery.** The plan is verified at Tier 1; nothing asserts anything arrives.
+- **a real purchase**, and the receipt mapping behind it — `RELEASE_GATED.md` B4a
+- **the widget's rendered content**, which needs a shared container — B1a
 - the automated accessibility audit
-- integration tests spanning capture → confirmation → persistence
-
-### Never compiled
-
-`NextWidget` does not exist. It remains **UNVERIFIED** until Tier 2 builds it.
+- daily replanning across a day boundary
+- notification actions, and opening a task from a notification
 
 ---
 

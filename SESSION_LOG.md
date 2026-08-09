@@ -5,6 +5,131 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-09 — Session 9: StoreKit, and three flows that were built but unreachable
+
+**Objective.** Phase 10 (StoreKit), then close the three core-product gaps the last three
+sessions had been carrying.
+
+### Result
+
+**Tier 1: 531 tests / 97 suites. Tier 2: 97 unit / 22 suites (2 known issues) + 20 UI tests.**
+Green — run [31290672207](https://github.com/emoshansari-alt/NEXT/actions/runs/31290672207).
+
+Two Apple facilities were measured and both turned out to need signing. Neither was assumed.
+
+### Part one — monetisation, gating nothing
+
+The whole stack exists: `NextKit/Monetisation/` owns every rule — tier resolution, entitlement
+records and their resolver, the capability gate, the product catalogue, the `PurchaseService`
+protocol — and `NextApp/Monetisation/` owns the one file that imports StoreKit, the transaction
+listener, and the paywall.
+
+**Nothing is behind it** (D-015, owner's decision). `FeatureGate.oneDotZero` lists every
+capability NEXT has as free, and a tripwire test fails if that changes without the NEXT+ boundary
+decision being made first. Taking a working feature away to manufacture a paid tier is not
+something this product does.
+
+**The paywall ships complete and unreachable.** NEXT+ unlocks nothing, so selling it would be
+selling nothing. It is finished, Tier 2 verified behind the `-storekit-testing` launch argument,
+and a UI test asserts a normal build has no way to it. `RELEASE_CHECKLIST.md` blocks release on
+deciding the boundary or stripping the screen.
+
+Three entitlement rules that could each have gone the other way, and are pinned by mutation-tested
+cases: a declined card keeps access while Apple retries it, **bounded** so a stuck flag cannot
+become a free subscription; revocation is honoured **per receipt**, so refunding a subscription
+cannot take away a lifetime purchase; and `.unknown` is not `.free`, so a subscriber whose
+entitlement has not loaded is never shown a paywall for what they already own.
+
+### The StoreKit answer, and a pattern worth carrying
+
+**Local StoreKit testing does not work in an unsigned Simulator build.** Both documented routes
+were measured. `SKTestSession` with the configuration in the test bundle: the file is found — a
+diagnostic run confirmed the exact path — the session is created, and then every operation fails
+with `SKInternalErrorDomain` Code 3, *including `clearTransactions()`*. The scheme's own StoreKit
+configuration, verified by CI to actually be present in the generated scheme: same empty
+catalogue.
+
+An error deleting transactions cannot be caused by a file it never reads. That one detail is what
+turned a guess into a conclusion, and it is why the diagnostic was worth a CI round.
+
+Recorded as `RELEASE_GATED.md` B4a and as **D-017, which corrects D-001**: local StoreKit belongs
+to Tier 3. Two of the three capabilities D-001 expected to come free at Tier 2 turned out to need
+signing, so the entry names the pattern rather than just the instance — **an entitlement-scoped
+Apple facility should be assumed Tier 3 until measured.**
+
+### Part two — the three flows
+
+Each was already correct in `NextKit` and either unreachable or dropped in the app.
+
+**A task cannot describe a smaller version of itself**, which is why passing `TaskItem` to Focus
+was the root defect: Rescue would shrink "History essay" to "Open the assignment instructions.",
+the user would tap "Do that", and Focus would open on the essay. `FocusTarget` carries the task,
+the action, its origin, and whether it is reduced.
+
+Two propagation rules are load-bearing, and both are the kind of defect that renders perfectly:
+
+- **The task comes from the response, not the screen.** Rescue's "I don't have enough time" path
+  re-ranks and can legitimately answer about a *different* task.
+- **A withheld title stays withheld.** "It's too much" does not name the task on purpose; Focus
+  re-deriving it from the task would undo the only thing that path does.
+
+**A reduced action never completes its task** (D-018). The button reads "Done with this step" and
+does that. Whether a finished step should also become a child task is left open rather than
+guessed at — recording a step later is additive, whereas wrongly completing a task destroys work.
+
+**Minimum Win finally has a caller.** Offered on Today when the recommendation's own
+`deadlineFeasibility` is unreachable, so the ladder cannot contradict the screen that led to it,
+and never offered for work that comfortably fits.
+
+**"I'm stuck" is reachable from inside Focus** (`PRODUCT_SPEC.md` §4.9), and the smaller step
+replaces the action in place. The timer returns to the chooser, because a length chosen for the
+bigger piece of work does not apply to this one.
+
+### What the tests caught that reasoning did not
+
+A Tier 2 test failed asserting a rescued step differs from what Today was showing. It was **the
+test that was wrong**, not the code: the fixture recorded "Write the whole thing." as a next
+action, and `StepShrinker` deliberately puts a recorded next action at the head of the ladder —
+the user wrote it, and nothing inferred from a keyword read of a title beats that.
+
+The real behaviour is now tested and named rather than hidden behind a friendlier fixture: **a
+user who records a large next action and then says "It's too much" gets their own sentence back.**
+Overriding it would mean NEXT deciding a user's own words are wrong on the strength of a template.
+That is a product decision, not a bug fix, and there is no evidence yet about which way it should
+go.
+
+One prediction was also wrong in the other direction: `.fullScreenCover(item:)` was expected not
+to refresh when the item changes but keeps its identity. It does refresh — the loop UI test
+passes. Measuring beat guessing again.
+
+### Known limitations
+
+- **Persistence across relaunch is still untested.** The UI target gets a fresh in-memory store
+  per launch. This is now the oldest outstanding gap in `TESTING.md`.
+- Notification **delivery** has still never been observed — only the plan is verified.
+- No real purchase has ever been exercised (B4a); the widget's content is still unverifiable (B1a).
+- No notification actions, and no deep link from a notification.
+- Daily replanning has no day-boundary behaviour.
+- An empty-but-successful entitlement set reads as the free tier (**D-019**) — harmless while
+  nothing is gated, and a prerequisite of the boundary decision rather than a follow-up to it.
+- `friction` is still an explicit zero.
+
+### Exact next action
+
+**Relaunch persistence at Tier 2.** It is the oldest gap, it is release-blocking in
+`RELEASE_CHECKLIST.md`, and it needs a different arrangement than the suite currently has: the UI
+target deliberately swaps in an in-memory store, so the create → terminate → relaunch → verify
+cycle needs a launch mode that keeps a *real* store in a throwaway location, cleaned between
+runs rather than replaced per launch.
+
+Then, in order: **daily replanning** across a day boundary (§4.13, the last unbuilt behaviour in
+the 1.0 list), **notification actions and the notification deep link**, and the **accessibility
+audit** — which is release-blocking and has never been run.
+
+Phase 12 visual assets follow **D-014**: Claude design tooling first, Higgsfield as fallback.
+
+---
+
 ## 2026-08-09 — Session 8: widget, deep links, and the App Group answer
 
 **Objective.** Build the widget, and find out whether an App Group actually works unsigned
