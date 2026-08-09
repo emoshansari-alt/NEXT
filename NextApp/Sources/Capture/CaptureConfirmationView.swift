@@ -110,10 +110,13 @@ struct CaptureConfirmationView: View {
 
                 Spacer()
 
+                // Was a caption-height text button: about fourteen points tall, which is what the
+                // audit reported as an unattributed "Hit area is too small". `quietText` carries
+                // the 44-point guarantee, which is why the app has a style for this at all
+                // rather than each screen inventing one.
                 Button("Clear") { model.setDeadline(nil, forProposal: proposal.id) }
-                    .font(.caption)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(NextPalette.inkSecondary)
+                    .buttonStyle(.quietText)
+                    .accessibilityIdentifier("deadline-clear-button")
             }
         } else {
             HStack {
@@ -153,7 +156,14 @@ struct CaptureConfirmationView: View {
             }
         }
         .padding(20)
-        .background(.bar)
+        // The palette's own surface, not the system's `.bar` material.
+        //
+        // "Edit" failed contrast as NEXT's ink on that material, which is the same finding D-021
+        // records for a section header rendered against the navigation bar: a material has no
+        // colour the palette can be measured against, so any text NEXT draws on one is
+        // unverifiable by construction. `card` is a real value, and `NextPaletteTests` already
+        // proves both ink tokens against it.
+        .background(NextPalette.card)
         .announcesFailure(model.failure)
     }
 }

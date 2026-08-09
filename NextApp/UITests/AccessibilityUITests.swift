@@ -37,7 +37,30 @@ final class AccessibilityUITests: XCTestCase {
     private func skipOnboarding(_ app: XCUIApplication) {
         let skip = app.buttons["onboarding-skip-button"]
         XCTAssertTrue(skip.waitForExistence(timeout: 15))
+
+        // Waits for hittable, and confirms onboarding actually left. Existing is not the same as
+        // being tappable — a lesson this suite has already recorded — and a tap that lands before
+        // the view is ready is swallowed silently, surfacing 100 seconds later as "empty-add-button
+        // does not exist" with onboarding still on screen. That is what it did on a loaded runner
+        // once the suite grew long enough for this to run last.
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"), object: skip
+        )
+        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed)
         skip.tap()
+
+        let gone = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: skip
+        )
+        if XCTWaiter().wait(for: [gone], timeout: 10) != .completed {
+            // One retry rather than a longer timeout: the failure mode is a dropped tap, and
+            // waiting longer for a tap that never registered only makes the report slower.
+            skip.tap()
+            XCTAssertEqual(
+                XCTWaiter().wait(for: [gone], timeout: 10), .completed,
+                "onboarding should be gone after Skip"
+            )
+        }
     }
 
     private func captureOneTask(_ app: XCUIApplication, text: String = "Finish the history essay") {
