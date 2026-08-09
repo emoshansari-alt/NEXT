@@ -44,7 +44,7 @@ struct RankingOverdueDecayTests {
     }
 
     @Test("an hour late is still, to any useful precision, as urgent as it gets")
-    func anHourLateIsEffectivelyUnchanged() {
+    func anHourLateIsEffectivelyUnchanged() throws {
         // The decay is measured in days, so it must be invisible over an hour. A curve steep
         // enough to matter overnight would reorder the screen while the user slept.
         let justLate = makeTask(id: "late", deadline: .hoursFromReference(-1))
@@ -52,9 +52,13 @@ struct RankingOverdueDecayTests {
         let breakdown = engine.score(
             justLate, among: [justLate], context: RankingContext(now: .testReference)
         )
-        let urgency = try? #require(breakdown.factors[.deadlineUrgency])
+        // `try #require`, not `try? #require ... ?? 0`. The earlier form let a missing factor
+        // score zero and still read as a meaningful assertion — it would have failed, but for
+        // the wrong reason and with a misleading message. A factor is guaranteed present
+        // (`ScoreBreakdown.factors`), so its absence is a broken invariant, not a low value.
+        let urgency = try #require(breakdown.factors[.deadlineUrgency])
 
-        #expect((urgency ?? 0) > weights.deadlineUrgency * 0.99)
+        #expect(urgency > weights.deadlineUrgency * 0.99)
     }
 
     @Test("lateness stops growing louder the longer it goes on")

@@ -120,6 +120,61 @@ struct RankingDeterminismTests {
         #expect(try #require(otherOrder.recommendation).task.id == older.id)
     }
 
+    // The tie-break has three tiers — nearer deadline, then earlier creation, then lower
+    // identifier — and only the middle one was pinned. The two below cover the first tier,
+    // which is the one a user would actually notice: it decides which of two long-abandoned
+    // pieces of work the screen offers.
+    //
+    // In both, the identifier is chosen so the *last* tier would give the opposite answer.
+    // Without that, deleting the deadline tier would leave the suite green.
+
+    @Test("when scores tie, the sooner deadline wins before the identifier does")
+    func tiesBreakBySoonerDeadline() throws {
+        // Both deadlines are beyond `urgencyHorizon`, so both contribute nothing and the two
+        // tasks tie at zero — which is what makes this a tie-break rather than a ranking. Of
+        // two things that are not pressing yet, the one due first is the one to offer.
+        let later = makeTask(id: "a-later", deadline: .daysFromReference(60))
+        let sooner = makeTask(id: "z-sooner", deadline: .daysFromReference(30))
+
+        let oneOrder = engine.recommend(from: [later, sooner], context: context)
+        let otherOrder = engine.recommend(from: [sooner, later], context: context)
+
+        #expect(try #require(oneOrder.recommendation).task.id == sooner.id)
+        #expect(try #require(otherOrder.recommendation).task.id == sooner.id)
+    }
+
+    @Test("two tasks equally far past the floor are ordered by the older deadline")
+    func equallyLateTasksAreOrderedByTheOlderDeadline() throws {
+        // The same tier seen from the other side of "now", and the consequence is worth pinning
+        // rather than discovering. Both are far past `overdueHorizon`, so both sit on the floor
+        // and score identically: two months late and twenty months late are the same number to
+        // the engine (D-020). The rule is *earliest deadline first* — it is not re-read as
+        // "closest to now" once a deadline has passed — so the oldest one comes first.
+        let ancient = makeTask(id: "z-ancient", deadline: .daysFromReference(-600))
+        let late = makeTask(id: "a-late", deadline: .daysFromReference(-60))
+
+        let oneOrder = engine.recommend(from: [ancient, late], context: context)
+        let otherOrder = engine.recommend(from: [late, ancient], context: context)
+
+        #expect(try #require(oneOrder.recommendation).task.id == ancient.id)
+        #expect(try #require(otherOrder.recommendation).task.id == ancient.id)
+    }
+
+    @Test("when scores tie, a dated task comes before an undated one")
+    func undatedTasksSortLast() throws {
+        // A deadline beyond the urgency horizon contributes nothing, so it ties with undated
+        // work at zero. The deadline is still information the user gave us, and the task that
+        // has one is the one with something to say about when it matters.
+        let undated = makeTask(id: "a-someday")
+        let distant = makeTask(id: "z-far-future", deadline: .daysFromReference(60))
+
+        let oneOrder = engine.recommend(from: [undated, distant], context: context)
+        let otherOrder = engine.recommend(from: [distant, undated], context: context)
+
+        #expect(try #require(oneOrder.recommendation).task.id == distant.id)
+        #expect(try #require(otherOrder.recommendation).task.id == distant.id)
+    }
+
     @Test("the same input always produces the same recommendation")
     func rankingIsReproducible() {
         let tasks = [

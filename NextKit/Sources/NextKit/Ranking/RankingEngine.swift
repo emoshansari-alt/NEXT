@@ -337,7 +337,12 @@ public struct RankingEngine: Sendable {
         let delta = lhs.score.total - rhs.score.total
         if abs(delta) > 1e-9 { return delta > 0 }
 
-        // Equal scores: the nearer deadline first, undated last.
+        // Equal scores: the earliest deadline first, undated last.
+        //
+        // *Earliest*, not "nearest to now" — the comparison is not re-read once a deadline has
+        // passed. For work still ahead those are the same thing; for two tasks already late it
+        // means the older deadline comes first, which is pinned by a test so the consequence is
+        // recorded rather than rediscovered.
         switch (lhs.task.deadline, rhs.task.deadline) {
         case let (left?, right?) where left != right:
             return left < right

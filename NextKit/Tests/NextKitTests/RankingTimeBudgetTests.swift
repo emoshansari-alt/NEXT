@@ -94,6 +94,39 @@ struct RankingTimeBudgetTests {
         #expect(score.factors[.contextualFit] == 0)
     }
 
+    @Test("an unestimated task scores no contextual fit, even inside a stated window")
+    func contextualFitIsZeroWithoutAnEstimate() {
+        // The other half of `contextualFitIsZeroWithoutABudget`: that one holds the estimate
+        // and removes the budget, this one holds the budget and removes the estimate. Both
+        // ends of the same guard, so neither can be dropped unnoticed.
+        let unestimated = makeTask(id: "unknown", estimatedMinutes: nil)
+
+        let score = engine.score(unestimated, among: [unestimated], context: context(minutes: 30))
+
+        #expect(score.factors[.contextualFit] == 0)
+    }
+
+    @Test("inside a stated window, work of known length is preferred to work of unknown length")
+    func statingAWindowPrefersAKnownLength() throws {
+        // The consequence of the two tests above, and a product decision rather than a fallout
+        // — D-025. An unestimated task survives the filter as "might fit" and is then outscored
+        // by anything that is known to fit, because the whole point of stating a window is to
+        // be given something that fits inside it. NEXT can promise that of the estimated task
+        // and cannot promise it of the other.
+        //
+        // Deliberately confined to a stated window. Today never asks for one, so on the screen
+        // that matters most this factor is zero for everything and an unestimated task is not
+        // disadvantaged at all.
+        let unestimated = makeTask(id: "a-unknown", estimatedMinutes: nil)
+        let estimated = makeTask(id: "z-known", estimatedMinutes: 30)
+
+        let outcome = engine.recommend(from: [unestimated, estimated], context: context(minutes: 30))
+
+        // The identifiers are the wrong way round on purpose: with contextual fit removed the
+        // two tie on every factor and the tie-break hands it to "a-unknown".
+        #expect(try #require(outcome.recommendation).task.id == estimated.id)
+    }
+
     @Test("between two tasks that both fit, the more urgent one still wins")
     func urgencyStillDominatesWithinTheWindow() throws {
         let urgent = makeTask(
