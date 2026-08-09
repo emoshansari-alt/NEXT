@@ -11,6 +11,9 @@ struct CaptureView: View {
 
     @State var model: CaptureViewModel
     @Environment(\.dismiss) private var dismiss
+
+    /// Drives the one place this screen has to bend at accessibility sizes — see `actionHeight`.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @FocusState private var isFieldFocused: Bool
 
     var body: some View {
@@ -77,6 +80,17 @@ struct CaptureView: View {
         .onAppear { isFieldFocused = true }
     }
 
+    /// The floor under the primary button, which is dropped once the text sets its own.
+    ///
+    /// 52 points is a comfortable target when the label is small. At an accessibility size the
+    /// label is already taller than that, so the floor stops being a minimum and becomes dead
+    /// space — and this bar sits above the keyboard on the one screen the user types on. The
+    /// audit caught the consequence: at the largest size the save button stopped being reachable
+    /// at all, which is `PRODUCT_SPEC.md` §11's "without destroying key screens" failing outright.
+    private var actionHeight: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 0 : 52
+    }
+
     private var actions: some View {
         VStack(spacing: 10) {
             if let failure = model.failure {
@@ -92,11 +106,13 @@ struct CaptureView: View {
             } label: {
                 if model.isExtracting {
                     ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .frame(maxWidth: .infinity, minHeight: actionHeight)
                 } else {
                     Text("Sort this out")
                         .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, minHeight: actionHeight)
                 }
             }
             .buttonStyle(.borderedProminent)

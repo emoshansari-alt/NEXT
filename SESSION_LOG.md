@@ -5,6 +5,118 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-09 — Session 10: the release-blocking gaps, and four decisions taken rather than deferred
+
+**Objective.** Work down the remaining 1.0 list autonomously: relaunch persistence, daily
+replanning, the notification deep link, the accessibility audit, and the last stubbed factor.
+
+### Result
+
+**Tier 1: 549 tests / 100 suites.** Tier 2: 34 UI tests across six suites.
+
+Four decisions were made and written down rather than escalated — D-018, D-020, D-021, D-022.
+Three of them closed questions that had been carried for several sessions.
+
+### Relaunch persistence — the oldest gap, closed
+
+Carried since Session 3. The suite structurally could not answer it: `-ui-testing` swaps in a
+fresh in-memory container per launch, so "relaunch and verify" passed regardless of what the
+persistence layer did.
+
+`-ui-store-name` now puts a real SwiftData store on disk in a throwaway location, with
+`-ui-reset-store` clearing it on a test's first launch only. The full cycle runs: create,
+terminate, relaunch, verify, edit, terminate, relaunch, verify the edit, complete, terminate,
+relaunch, verify it is filed rather than deleted.
+
+**Three of its assertions passed for the wrong reason first.** An Everything row is a `Button`
+carrying its own accessibility label, so the title inside it is not a separate element — a lesson
+already in `TESTING.md` that I did not apply to my own test. Searching `staticTexts` for the title
+matched *Today*, behind the sheet, showing the same title. It only came apart when the task was
+completed and Today fell back to its empty state. **The mutation-testing rule applies to UI tests
+too:** a green assertion that never looked at the screen it names is exactly what that rule exists
+to catch.
+
+### Daily replanning — the Session 1 question, answered (D-020)
+
+§4.13 asks that a new day reassess what matters now. The thing standing in the way was the open
+question Session 1 recorded and explicitly said not to resolve silently: overdue contributed a
+flat full weight with no decay, so a task three months late scored what it scored an hour late and
+pinned to Today permanently.
+
+That is a defect against P4 and P5, not a tuning preference — a screen showing the same
+unachievable thing every morning for a term is punishment however neutrally worded, and an app
+whose one recommendation never changes has stopped recommending. Both deadline factors now fade
+across fourteen days to a floor of a quarter, through **one shared curve**, because lateness is a
+single idea and two curves that could drift apart would make behaviour past a deadline impossible
+to reason about. The floor is not zero: the work is still outstanding.
+
+### The notification deep link — a half-built feature finished
+
+Reminders have carried a task identifier since Session 7 and nothing ever read it back, so tapping
+"Chemistry worksheet is due tomorrow" opened the app and showed whatever Today happened to be
+recommending. `ScheduledReminder` now owns the payload key, the payload and the destination, so
+the scheduler and the handler cannot drift; `DeepLinkInbox` parks the tap because a cold launch
+from the lock screen delivers before Today exists.
+
+Notification **actions** were decided out of 1.0: §8 specifies categories, contextual permission
+and real controls, and does not ask for them.
+
+### The accessibility audit — run for the first time, and split honestly (D-021)
+
+P8 calls an accessibility defect in a core flow a release blocker, and nothing had ever checked.
+The first run failed on all ten core screens.
+
+The console gives the fault but not the control, and the detail lives in an xcresult bundle that
+cannot be opened from Windows — so the audit was changed to report each issue's identifier, label
+and frame. One diagnostic round produced the whole list, and it was **not** what I predicted.
+
+Fixed, because they are NEXT's: **eight controls below 44 × 44**, every one a plain text button
+whose hit area was a line of text tall — "Everything" measured 73 × 18. They read correctly as
+quiet secondary actions and were genuinely hard to hit one-handed, and "I'm stuck" is used
+precisely when someone is already having a bad time. Plus **three clipped labels**, including
+Rescue's own question, which at larger type sizes was cut off — on that screen the question
+becoming unreadable is the whole screen failing.
+
+Not fixed: contrast and Dynamic Type are overwhelmingly the system tint on `.bordered` buttons,
+the standard `.secondary` colour, and navigation-bar buttons SwiftUI does not scale at all.
+Choosing a palette that clears 4.5:1 in both appearances is Phase 12. They sit under a **strict**
+`XCTExpectFailure`, so the day the palette lands the test fails for *not* failing and whoever did
+that work is told to come and enforce it.
+
+### `friction` — the last stub, decided (D-022)
+
+Every candidate signal is already counted or actively wrong. A missing first step is
+`startability`; recent refusals are `rejectionPenalty`; a refusal's *reason* would outlive the
+cooldown and permanently demote a task on one tap, which is the shape D-020 had just been written
+to remove. The most tempting signal is the worst: "started and still outstanding" describes a task
+in progress exactly as well as an abandoned one, so it would push the user off work they began a
+minute ago.
+
+It stays zero, present in every breakdown, with tests sweeping the shapes that might plausibly
+have earned a penalty — so implementing it later means deleting tests that say why it was zero.
+
+### Known limitations
+
+- Contrast and Dynamic Type do not pass; tracked, not silently excluded (D-021).
+- Notification **delivery** has still never been observed — B5.
+- No real purchase has ever been exercised (B4a); the widget's content is unverifiable (B1a).
+- The Rescue ladder does not advance between visits: `stepsAlreadyRevealed` is caller-held and
+  every caller passes zero, so asking twice gives the same first rung. Related to D-018.
+- A user who records a large next action and then says "It's too much" gets their own sentence
+  back — `StepShrinker` puts a recorded next action first on purpose.
+
+### Exact next action
+
+**Phase 12 — visual design.** It is now the largest remaining block and it owns three checklist
+items at once: the palette (which makes the D-021 expectation fail and get removed), the app icon,
+and typography. Per **D-014** the order is Claude's own design tooling first, Higgsfield only for
+what that cannot do; check whether a `/design` skill exists before assuming it does not.
+
+Then: the schema-migration round-trip test, which is the last unticked engineering item that needs
+no device and no palette.
+
+---
+
 ## 2026-08-09 — Session 9: StoreKit, and three flows that were built but unreachable
 
 **Objective.** Phase 10 (StoreKit), then close the three core-product gaps the last three

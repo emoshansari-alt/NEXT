@@ -149,6 +149,7 @@ struct RescueView: View {
 
             Button("Something else") { reset() }
                 .font(.subheadline)
+                .accessibleTapTarget()
                 .padding(.top, 14)
                 .accessibilityIdentifier("rescue-back-button")
         }
@@ -166,6 +167,7 @@ struct RescueView: View {
                 .multilineTextAlignment(.center)
             Spacer()
             Button("Something else") { reset() }
+                .accessibleTapTarget()
                 .accessibilityIdentifier("rescue-back-button")
         }
         .padding(24)
