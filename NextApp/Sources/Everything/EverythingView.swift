@@ -113,6 +113,9 @@ struct EverythingView: View {
                 // a section header a screen reader announces as just "Overdue" is less useful
                 // than one that says how much is in it.
                 Text("\(title) · \(tasks.count)")
+                    // Wraps rather than clips. A section header that loses its count is a header
+                    // that has stopped doing the one thing it was given a count for.
+                    .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel("\(title), \(tasks.count) task\(tasks.count == 1 ? "" : "s")")
             }
         }

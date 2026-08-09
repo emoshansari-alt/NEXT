@@ -72,6 +72,11 @@ struct RescueView: View {
                     choose(option)
                 } label: {
                     Text(option.prompt)
+                        .multilineTextAlignment(.center)
+                        // The four paths are the whole screen. A prompt that clips is a choice the
+                        // user cannot read, so the button grows instead — 52 is a floor, not a
+                        // ceiling.
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(.bordered)
@@ -96,6 +101,8 @@ struct RescueView: View {
                     resolve()
                 } label: {
                     Text(option.label)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(.bordered)
