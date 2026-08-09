@@ -65,10 +65,15 @@ final class AccessibilityUITests: XCTestCase {
 
     /// The checks NEXT is held to now.
     ///
-    /// Contrast and Dynamic Type are absent here and tracked separately rather than quietly
-    /// dropped — see `testContrastAndDynamicTypeAreStillOutstanding` and `DECISIONS.md` D-021.
+    /// **Contrast is enforced** as of the Index Card palette (D-023): every token pair is chosen
+    /// to clear 4.5:1 and `NextPaletteTests` holds the values themselves to it, so the screens
+    /// built from them should clear it too. This is the check D-021 could only track.
+    ///
+    /// Dynamic Type remains tracked rather than enforced — see
+    /// `testDynamicTypeIsStillPartiallyUnsupported`.
     private static let enforced: XCUIAccessibilityAuditType = [
-        .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
+        .contrast, .hitRegion, .textClipped, .elementDetection,
+        .sufficientElementDescription, .trait
     ]
 
     /// Audits whatever is currently on screen and reports **every** issue, with the element.
@@ -227,28 +232,25 @@ final class AccessibilityUITests: XCTestCase {
 
     // MARK: Contrast and Dynamic Type — tracked, not yet enforced
 
-    func testContrastAndDynamicTypeAreStillOutstanding() {
-        // These are the two categories the first audit run found that NEXT does not yet meet, and
-        // they are recorded here rather than silently excluded.
+    func testDynamicTypeIsStillPartiallyUnsupported() {
+        // What is left after the palette landed, and it is not NEXT's to fix: the elements the
+        // audit reports here are navigation-bar buttons — "Cancel", "Done", "Close" — which
+        // SwiftUI does not scale with Dynamic Type at all. An app cannot make them scale.
         //
-        // Most of what fails is not NEXT's own styling: the system tint on `.bordered` buttons,
-        // `.secondary` label colour, and navigation-bar buttons that do not scale with Dynamic
-        // Type at all. Choosing a palette that clears 4.5:1 across light and dark is Phase 12
-        // (`PRODUCT_SPEC.md` §10), which has not happened — the app currently ships system
-        // defaults on purpose, and repainting it now would be inventing a visual design in order
-        // to pass a test.
-        //
-        // `XCTExpectFailure` is strict, so the day the palette lands this test fails for *not*
-        // failing, and whoever does that work is told to come here and enforce it. That is the
-        // same device `withKnownIssue` provides for the App Group and StoreKit findings.
-        XCTExpectFailure("contrast and Dynamic Type are Phase 12 work — DECISIONS.md D-021")
+        // `XCTExpectFailure` is strict, so if Apple ever makes them scale, or if the last of these
+        // is designed out of the app, this test fails for *not* failing and the expectation gets
+        // removed. That is the same device `withKnownIssue` provides for the App Group and
+        // StoreKit findings: the reminder lives in the suite rather than in somebody's memory.
+        XCTExpectFailure("navigation-bar buttons do not scale with Dynamic Type — DECISIONS.md D-021")
 
         let app = launch()
         skipOnboarding(app)
         captureOneTask(app)
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
+        app.buttons["everything-button"].tap()
+        XCTAssertTrue(app.buttons["everything-close-button"].waitForExistence(timeout: 5))
 
-        audit(app, "Today, recommending", for: [.contrast, .dynamicType])
+        audit(app, "Everything's navigation bar", for: [.dynamicType])
     }
 
     // MARK: The largest Dynamic Type
