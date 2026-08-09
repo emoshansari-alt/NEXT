@@ -1,0 +1,97 @@
+{
+  "identifier" : "9C7B2E10-4F3A-4A7E-9B21-5D0C6A8E1F44",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "59.99",
+      "familyShareable" : false,
+      "internalID" : "6741000003",
+      "localizations" : [
+        {
+          "description" : "NEXT+, bought once.",
+          "displayName" : "NEXT+ Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.nextapp.next.plus.lifetime",
+      "referenceName" : "NEXT+ Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : true,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "6741000100",
+      "localizations" : [
+
+      ],
+      "name" : "NEXT+",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "24.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6741000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "NEXT+, billed once a year.",
+              "displayName" : "NEXT+ Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.nextapp.next.plus.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "NEXT+ Annual",
+          "subscriptionGroupID" : "6741000100",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6741000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "NEXT+, billed monthly.",
+              "displayName" : "NEXT+ Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.nextapp.next.plus.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "NEXT+ Monthly",
+          "subscriptionGroupID" : "6741000100",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

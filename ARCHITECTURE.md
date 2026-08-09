@@ -41,6 +41,9 @@ This yields three benefits at once:
 │                     RescueStep, RescueStepOrigin,            │
 │                     RescueResponse, RescueOutcome            │
 │   MinimumWin/       MinimumWinPlanner                        │
+│   Monetisation/     NextTier, EntitlementState, Resolver,    │
+│                     FeatureGate, PremiumCapability,          │
+│                     NextPlusProducts, PurchaseService        │
 │   Intelligence/     IntelligenceProvider, request/response   │
 │                     DTOs, ResponseValidator, MockProvider,   │
 │                     TemplateFallbackProvider                 │
@@ -70,6 +73,7 @@ Non-determinism is injected, never reached for directly. This is what makes the 
 | Identifiers | `IDProvider` | `UUIDProvider` | `SequentialIDProvider` |
 | Intelligence | `IntelligenceProvider` | on-device / cloud | `MockIntelligenceProvider` |
 | Storage | `TaskRepository` | SwiftData-backed | `InMemoryTaskRepository` |
+| Purchases | `PurchaseService` | `StoreKitPurchaseService` | a stub, per test |
 
 **Rule:** no call to `Date()`, `UUID()`, or `Task.sleep` anywhere in `NextKit`. A lint check
 enforces this. Ranking must be a pure function of `(tasks, context, weights, now)`.
@@ -88,7 +92,8 @@ pins this by naming `Swift.Clock` unqualified.
 Both storage and time are pinned by shared, reusable checks rather than by assertions that only
 exist in one place: `verifyRepositoryContract(_:)` runs the whole `TaskRepository` contract
 against any implementation, so `NextApp`'s Tier 2 target can point it at the SwiftData store and
-get the identical promises verified.
+get the identical promises verified. `verifyPurchaseServiceContract(now:_:)` does the same for
+purchases — a stub at Tier 1, real StoreKit under a test session at Tier 2.
 
 ---
 

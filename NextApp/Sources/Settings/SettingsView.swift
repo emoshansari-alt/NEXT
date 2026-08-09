@@ -24,6 +24,7 @@ struct SettingsView: View {
                 remindersSection
                 dailySection
                 intelligenceSection
+                nextPlusSection
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -130,6 +131,26 @@ struct SettingsView: View {
                 and only the text for that one request would be sent — never your whole list.
                 """
             )
+        }
+    }
+
+    /// The way in to NEXT+, when there is one.
+    ///
+    /// Absent from a normal build, because NEXT+ unlocks nothing today and a row offering to sell
+    /// it would be offering something that does not exist. The screen behind it is complete and
+    /// tested — see `MonetisationAvailability`. Pushed rather than presented: a sheet raised from
+    /// inside a sheet is the presentation bug `TESTING.md` records.
+    @ViewBuilder
+    private var nextPlusSection: some View {
+        if MonetisationAvailability.isPaywallReachable {
+            Section {
+                NavigationLink {
+                    PaywallView(model: PaywallViewModel())
+                } label: {
+                    Text("NEXT+")
+                }
+                .accessibilityIdentifier("settings-next-plus")
+            }
         }
     }
 

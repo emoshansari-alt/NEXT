@@ -24,6 +24,12 @@ struct NEXTApp: App {
     private let repository: any TaskRepository
     private let onboarding: OnboardingState
 
+    /// Finishes transactions that arrive from outside a purchase — renewals, an Ask to Buy
+    /// approval that lands days later, a purchase made on another device. An unfinished
+    /// transaction is re-delivered indefinitely, so this has to run for the life of the app and
+    /// not only while a paywall is on screen.
+    private let transactions = StoreKitTransactionListener()
+
     /// True when the disk store could not be opened and the app is running on a throwaway
     /// in-memory one.
     private let storeIsEphemeral: Bool
@@ -45,6 +51,9 @@ struct NEXTApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(onboarding: onboarding) { today }
+                // Started here rather than in `init` so it is unambiguously on the main actor.
+                // Starting twice is a no-op, which is what makes that safe.
+                .task { transactions.start() }
         }
     }
 

@@ -39,7 +39,14 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] "I'm stuck" reachable from inside Focus (currently Today only)
 - [ ] Notification delivery observed, deep link, and actions
 - [ ] Widget with working deep link
-- [ ] Paywall — invoked only by intent
+- [ ] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
+      in a normal build** (D-015): NEXT+ unlocks nothing, so there is nothing to sell.
+- [ ] **Decide the NEXT+ capability boundary, or strip the paywall — release blocking.**
+      D-015 ships the machinery with `FeatureGate.oneDotZero` gating nothing. Either record the
+      boundary as a decision entry and make the paywall reachable, or remove the screen. Shipping
+      it reachable without that decision would put something on sale that grants nothing.
+- [ ] Final NEXT+ pricing and purchase-option mix decided and justified (D-016 — the three
+      products in the `.storekit` file are test fixtures, not a commitment)
 
 ### Engineering
 
@@ -117,7 +124,8 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] Title, subtitle, description, keywords drafted
 - [ ] Privacy policy text drafted
 - [ ] Support contact decided
-- [ ] StoreKit product structure defined in a `.storekit` file
+- [x] StoreKit product structure defined in a `.storekit` file — `NextApp/NEXT.storekit`,
+      three provisional products, identifiers guarded by `scripts/lint-storekit.sh` (D-016)
 - [ ] App Store Connect configuration steps written out for later execution
 - [ ] Versioning and build-number strategy defined
 

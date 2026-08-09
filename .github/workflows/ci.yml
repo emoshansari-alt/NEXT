@@ -25,6 +25,11 @@ jobs:
       - name: Enforce D-002 and D-007
         run: bash scripts/lint-nextkit.sh
 
+      # A product identifier typo compiles, passes every test that uses the Swift constant, and
+      # only shows up when a real purchase fails to resolve.
+      - name: Enforce the NEXT+ product catalogue
+        run: bash scripts/lint-storekit.sh
+
   tier1:
     name: Tier 1 — NextKit tests
     runs-on: macos-latest

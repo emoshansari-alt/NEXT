@@ -116,6 +116,15 @@ targets:
     platform: iOS
     sources:
       - path: NextApp/Tests
+      # The StoreKit configuration is a resource of the *test bundle*, not of the app.
+      #
+      # SKTestSession loads it by name from the test bundle and needs no scheme setting and no
+      # signing, which is why it was chosen over the scheme's StoreKit Configuration option —
+      # that option is an Xcode scheme feature whose behaviour under `xcodebuild` was unknown,
+      # and this route sidesteps the question entirely. It also keeps the file out of the app,
+      # so nothing about a shipping build changes.
+      - path: NextApp/NEXT.storekit
+        buildPhase: resources
     dependencies:
       - target: NextApp
       # The storage contract, shared with Tier 1 rather than re-derived here. This is what

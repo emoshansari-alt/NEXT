@@ -250,6 +250,107 @@ append-only; this entry is the correction.
 
 ---
 
+## D-015 — The monetisation machinery ships complete and gates nothing
+
+**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **Revisit before release**
+
+**Context.** Phase 10 is StoreKit. `PRODUCT_SPEC.md` §12 names NEXT+ as advanced brain dumps,
+enhanced decomposition, advanced Rescue, Minimum Win intelligence and adaptive replanning — and
+several of those are already built, already free, and in Minimum Win's case not yet reachable
+from the UI at all. Building the paywall therefore forces a question the spec does not answer:
+what does NEXT+ actually gate in 1.0?
+
+**Decision.** Build all of it — entitlement model, `PurchaseService` seam, StoreKit
+implementation, `.storekit` configuration, paywall — and **gate nothing**. Every capability NEXT
+has today stays free. `FeatureGate.oneDotZero` lists each capability explicitly as `.free`, and
+`FeatureGateTests.oneDotZeroGatesNothing` is the tripwire that makes changing that deliberate.
+
+**The paywall ships unreachable.** In a normal build there is no way to it. NEXT+ unlocks
+nothing, so a purchase would buy nothing, and selling that is misrepresentation regardless of
+what App Review would tolerate. The screen is finished and Tier 2 verified behind the
+`-storekit-testing` launch argument, which the test targets pass — the same device
+`PRODUCT_SPEC.md` §4 already sanctions for debug surfaces excluded from production builds. A UI
+test asserts a normal launch cannot reach it, and a second drives the real screen behind the flag,
+so "unreachable" is a verified claim rather than an intention.
+
+**Reasoning.** Three things were true at once and only this shape satisfies all of them. The
+machinery is real work that should not be left half-built until pricing is settled. Taking a
+working free feature away to manufacture a paid tier is not something this product does — a
+student who relies on Rescue today should not lose it because a pricing page was written. And a
+purchasable subscription that grants nothing is a lie, however carefully worded.
+
+**Rejected alternatives.** Gating the intelligence-heavy features now — matches §12 literally,
+but removes capabilities people already have. Defining NEXT+ as cloud intelligence only —
+coherent, but the cloud provider does not exist (D-005 defers it to Phase 8), so it would gate
+nothing either while sounding like it gated something. Leaving the paywall unwritten until the
+boundary exists — leaves an unverified surface to be discovered late, which is exactly the
+position the widget was in before Phase 9.
+
+**Consequence.** The NEXT+ boundary is a pre-release decision that has not been made.
+`RELEASE_CHECKLIST.md` carries a blocking item: decide it and record it here, or strip the
+paywall before submission. Making the screen reachable is one line in
+`MonetisationAvailability` plus that decision — in that order, not the reverse.
+
+**Where things live.** `NextKit/Monetisation/` owns `NextTier`, `EntitlementStatus`,
+`EntitlementRecord`, `EntitlementResolver`, `EntitlementState`, `PremiumCapability`,
+`FeatureGate`, `ProductID`, `NextPlusProducts`, `PurchasableProduct`, `PurchaseOutcome`,
+`PurchaseError` and the `PurchaseService` protocol — every rule, proven at Tier 1 on Windows.
+`NextApp/Monetisation/` owns `StoreKitPurchaseService`, which is the only file in the project
+that imports StoreKit, plus the transaction listener, the paywall and its copy. The split is the
+same one `TaskRepository` and `IntelligenceProvider` already use, and
+`verifyPurchaseServiceContract(now:_:)` holds the stub and the real store to identical promises.
+
+**Three entitlement rules worth stating, because each could reasonably have gone the other way.**
+A declined card keeps access while Apple retries it, bounded by `billingRetryGrace` — cutting off
+a paying student over a bank hiccup is the punishment P4 and P5 forbid, and an unbounded version
+would turn a stuck flag into a free subscription. Revocation is honoured **per receipt**, so
+refunding a subscription cannot take away a lifetime purchase. And `EntitlementStatus.unknown` is
+not `.free`: before the store answers, a gated capability resolves to `.undetermined` and the
+paywall is never shown, because "not known" and "not entitled" are different facts and collapsing
+them is how a subscriber gets asked to buy what they already own.
+
+---
+
+## D-016 — NEXT+ products and prices are provisional; the candidate list is not a commitment
+
+**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **Verify before release**
+
+**Decision.** The local `.storekit` configuration defines three products — NEXT+ Monthly at
+US$2.99, NEXT+ Annual at US$24.99, and NEXT+ Lifetime at US$59.99 as a one-off — with Annual as
+the option NEXT recommends.
+
+**They exist to exercise the three distinct entitlement paths**: a short renewing period, a long
+renewing period, and a purchase that never expires. Their existence is **not** a decision that
+all three will ship, nor that these are the prices. Final pricing, the mix of purchase options,
+and the NEXT+ capability boundary are all pre-release product decisions that remain open
+(`PRODUCT_SPEC.md` §12: prices require explicit justification before being set).
+
+Nothing in the app reads these numbers. The paywall renders `Product.displayPrice`, the store's
+own localised string, so changing a price is a store-side change and never a code one. The
+recommended option is marked "Recommended" with no percentage saved — computing a saving across
+localised prices and currencies is arithmetic that will eventually be wrong for somebody.
+
+**The NEXT+ candidate list is a list of candidates.** Enhanced or cloud-powered intelligence,
+more sophisticated automatic replanning, richer brain-dump processing, advanced decomposition,
+cross-device or iCloud functionality, richer widgets, further personalisation, and premium
+automation are ideas recorded so they are not lost. **None is a requirement, none justifies
+expanding scope, and none may be built merely because it appears here.** They are deliberately
+absent from `PremiumCapability`, which names only capabilities NEXT actually has — naming a
+feature in the enum is how it starts being treated as a commitment.
+
+**A constraint that must be designed for before launch.** A Lifetime purchase does **not** imply
+unlimited lifetime access to per-request cloud AI. If NEXT ever incurs meaningful recurring
+model costs, the economics of that are a separate design problem — one that has to be solved
+before a lifetime product is sold, not after. This interacts directly with D-005 and D-009, both
+of which defer the cloud provider question to Phase 8.
+
+**Enforcement.** `scripts/lint-storekit.sh` fails the build if `NextPlusProducts` and
+`NextApp/NEXT.storekit` declare different identifiers. A typo in a product identifier compiles,
+passes every test that uses the Swift constant, and surfaces only when a real purchase fails to
+resolve. The check has been verified against a deliberate typo probe.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open
