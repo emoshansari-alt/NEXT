@@ -87,6 +87,13 @@ struct NEXTApp: App {
     /// not only while a paywall is on screen.
     private let transactions = StoreKitTransactionListener()
 
+    /// Where a tapped notification is parked until Today is ready to act on it.
+    private let inbox = DeepLinkInbox()
+
+    /// Turns a tapped reminder into a destination. Held for the life of the app because
+    /// `UNUserNotificationCenter` keeps only a weak reference to its delegate.
+    private let notifications: NotificationRouter
+
     /// True when the disk store could not be opened and the app is running on a throwaway
     /// in-memory one.
     private let storeIsEphemeral: Bool
@@ -108,6 +115,9 @@ struct NEXTApp: App {
 
         onboarding = OnboardingState()
         if Self.isUITesting { onboarding.reset() }
+
+        notifications = NotificationRouter(inbox: inbox)
+        notifications.start()
     }
 
     var body: some Scene {
@@ -137,7 +147,8 @@ struct NEXTApp: App {
             makeDetailModel: { task in
                 TaskDetailViewModel(task: task, repository: repository)
             },
-            makeSettingsModel: { SettingsViewModel(repository: repository) }
+            makeSettingsModel: { SettingsViewModel(repository: repository) },
+            inbox: inbox
         )
     }
 

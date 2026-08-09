@@ -39,12 +39,31 @@ final class FocusFlowUITests: XCTestCase {
 
         let save = app.buttons["capture-save-single-button"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
-        XCTAssertTrue(save.isHittable)
+        waitUntilHittable(save)
         save.tap()
 
         let done = app.buttons["capture-done-button"]
         XCTAssertTrue(done.waitForExistence(timeout: 8))
         done.tap()
+    }
+
+
+    /// Waits until a control is actually tappable, rather than glancing at it once.
+    ///
+    /// Existing is not the same as being hittable: the capture buttons sit above the keyboard,
+    /// and on a loaded runner the layout can settle a moment after the control appears. A tap on
+    /// a covered control fails silently and surfaces as an unrelated assertion further down.
+    private func waitUntilHittable(
+        _ element: XCUIElement,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let predicate = NSPredicate(format: "isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
+
+        XCTAssertEqual(result, .completed, "control never became tappable", file: file, line: line)
     }
 
     /// The text Focus is currently showing as the thing to do.

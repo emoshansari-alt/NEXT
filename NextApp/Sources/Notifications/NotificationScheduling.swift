@@ -49,7 +49,9 @@ struct SystemNotificationScheduler: NotificationScheduling {
             let content = UNMutableNotificationContent()
             content.title = reminder.title
             content.body = reminder.body
-            content.userInfo = reminder.taskID.map { ["taskID": $0.rawValue] } ?? [:]
+            // Built by the reminder itself, so the key cannot drift from the one
+            // NotificationRouter reads back.
+            content.userInfo = reminder.userInfo
 
             let interval = reminder.fireAt.timeIntervalSinceNow
             guard interval > 0 else { continue }

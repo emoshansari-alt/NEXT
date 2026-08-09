@@ -51,7 +51,7 @@ final class PersistenceUITests: XCTestCase {
 
         let save = app.buttons["capture-save-single-button"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
-        XCTAssertTrue(save.isHittable)
+        waitUntilHittable(save)
         save.tap()
 
         let done = app.buttons["capture-done-button"]
@@ -121,11 +121,16 @@ final class PersistenceUITests: XCTestCase {
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         save.tap()
 
-        // Saving writes to the store and then pops back to the list. Terminating before that has
-        // happened would kill the app mid-write and test nothing but a race.
+        // Saving does *not* dismiss the detail — it is a pushed screen whose way out is the back
+        // button, and assuming otherwise is what this test got wrong first time round. So the
+        // write is given time, and the app shown to be responsive, by navigating back and landing
+        // on Everything before the app is killed.
+        let back = app.navigationBars.buttons.element(boundBy: 0)
+        XCTAssertTrue(back.waitForExistence(timeout: 5), "the pushed detail should have a way back")
+        back.tap()
         XCTAssertTrue(
-            app.buttons["settings-button"].waitForExistence(timeout: 10),
-            "saving should return to Everything"
+            app.buttons["everything-close-button"].waitForExistence(timeout: 10),
+            "going back should land on Everything"
         )
         app.terminate()
 
@@ -225,6 +230,25 @@ final class PersistenceUITests: XCTestCase {
                 """
             )
         }
+    }
+
+
+    /// Waits until a control is actually tappable, rather than glancing at it once.
+    ///
+    /// Existing is not the same as being hittable: the capture buttons sit above the keyboard,
+    /// and on a loaded runner the layout can settle a moment after the control appears. A tap on
+    /// a covered control fails silently and surfaces as an unrelated assertion further down.
+    private func waitUntilHittable(
+        _ element: XCUIElement,
+        timeout: TimeInterval = 10,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let predicate = NSPredicate(format: "isHittable == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
+
+        XCTAssertEqual(result, .completed, "control never became tappable", file: file, line: line)
     }
 
     /// Waits for a field to actually hold `expected`, then asserts it.

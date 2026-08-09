@@ -26,6 +26,13 @@ struct TodayView: View {
     /// Builds Settings, reached from Everything.
     var makeSettingsModel: () -> SettingsViewModel
 
+    /// Where a tapped notification is left. `nil` in tests that do not exercise it.
+    ///
+    /// Parked rather than delivered directly because a notification can arrive before this screen
+    /// exists — a cold launch from the lock screen is exactly that — so there may be nothing
+    /// listening at the moment iOS hands the tap over.
+    var inbox: DeepLinkInbox?
+
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
     @State private var showingCapture = false
@@ -64,6 +71,12 @@ struct TodayView: View {
             // because a URL nearly matched would be worse than doing nothing.
             guard let link = DeepLink(url: url) else { return }
             Task { await model.open(link) }
+        }
+        // A notification tapped while the app was not running lands here, once. Taken rather than
+        // read, so it cannot be acted on twice if this view is rebuilt.
+        .task { await openPendingLink() }
+        .onChange(of: inbox?.pending) { _, _ in
+            Task { await openPendingLink() }
         }
         .sheet(
             item: Binding(
@@ -352,6 +365,16 @@ struct TodayView: View {
     }
 
     // MARK: Focus presentation
+
+    /// Acts on a parked notification tap, if there is one.
+    ///
+    /// Routed through the identical `model.open` the widget's URLs use, so a reminder and a widget
+    /// arrive by one path — including the handling of a link to a task that has since been
+    /// deleted, which leaves the user on Today rather than erroring.
+    private func openPendingLink() async {
+        guard let link = inbox?.take() else { return }
+        await model.open(link)
+    }
 
     private var focusBinding: Binding<FocusTarget?> {
         Binding(
