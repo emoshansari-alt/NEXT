@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Two invariants that hold across every shipped target, and that nothing else was checking.
+# Four invariants that hold across every shipped target, and that nothing else was checking.
 #
 #   No force unwraps.  RELEASE_CHECKLIST.md and ARCHITECTURE.md §10 both require it. The rule
 #                      already held when this script was written — zero `!`, `try!` and `as!`
@@ -13,6 +13,15 @@
 #                      that task text does not leave the device. URLSession comes from Foundation
 #                      and needs no new import, so adding one would have passed every check that
 #                      existed. This makes the claim mechanical instead of a matter of reading.
+#
+#   No logging.        PRIVACY.md promises no analytics and no crash report carrying task text.
+#                      NEXT keeps the stronger version of that promise — it logs nothing at all,
+#                      so the question of what a log line contains cannot arise. A
+#                      `print(task.title)` left behind after debugging would put a student's
+#                      coursework in the device console, and would look innocent in a diff.
+#
+#   No secret.         D-009. Deliberately narrow patterns: `WorkKind.tokens(in:)` splits a title
+#                      into words and must not be mistaken for a credential.
 #
 # What this does NOT prove, and the checklist must not claim it does:
 #   - StoreKit talks to Apple through an out-of-process daemon. That is Apple's traffic, it is
@@ -111,6 +120,49 @@ for symbol in "${NETWORK_SYMBOLS[@]}"; do
     fi
 done
 
+# --- Nothing is logged --------------------------------------------------------
+#
+# `PRIVACY.md` promises no analytics and no crash report containing task text. The strongest
+# form of that promise is the one NEXT already keeps: it logs nothing at all, so the question of
+# what a log line contains cannot arise. A single `print(task.title)` added during debugging and
+# left behind is exactly how that promise breaks, and it would break it into the device console
+# where a student's coursework is readable by anything attached to the phone.
+LOGGING_CALLS=(
+    'print\('
+    'debugPrint\('
+    'NSLog\('
+    'os_log\('
+    'Logger\('
+    'dump\('
+)
+
+for call in "${LOGGING_CALLS[@]}"; do
+    hits=$(grep -rnE "(^|[^A-Za-z0-9_.])${call}" --include='*.swift' "${SHIPPED[@]}" 2>/dev/null \
+        | strip_comments)
+    if [ -n "$hits" ]; then
+        report no-logging "NEXT writes nothing to the log. Found: ${call%\\(}" "$hits"
+    fi
+done
+
+# --- No secret in the client --------------------------------------------------
+#
+# D-009. Narrow on purpose: these are the shapes a real credential takes, not every use of the
+# word "token" — `WorkKind.tokens(in:)` splits a title into words and must not trip this.
+SECRET_PATTERNS=(
+    '\bapi[_-]?[Kk]ey\b'
+    '\bsecretKey\b'
+    '"Bearer '
+    '"sk-[A-Za-z0-9]'
+    '\bAuthorization"'
+)
+
+for pattern in "${SECRET_PATTERNS[@]}"; do
+    hits=$(grep -rnE "$pattern" --include='*.swift' "${SHIPPED[@]}" 2>/dev/null | strip_comments)
+    if [ -n "$hits" ]; then
+        report D-009 "No production secret ships in the client. Found: $pattern" "$hits"
+    fi
+done
+
 # --- No third-party dependency ------------------------------------------------
 #
 # D-010. Also the "no unnecessary SDKs" line on the release checklist: a package added here is
@@ -121,7 +173,7 @@ if [ -n "$hits" ]; then
 fi
 
 if [ "$failed" -eq 0 ]; then
-    echo "OK — no force unwraps, no networking symbol, no external dependency in shipped code."
+    echo "OK — shipped code has no force unwrap, no networking symbol, no log call, no secret, and no external dependency."
 fi
 
 exit "$failed"

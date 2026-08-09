@@ -14,7 +14,7 @@ work the remaining release-candidate list down — starting with the schema-migr
 
 **Tier 1: 559 tests / 100 suites.** Tier 2: run cited below.
 
-Fifteen checklist boxes moved. More usefully, **an audit of every unticked box found eighteen
+Twenty checklist boxes moved. More usefully, **an audit of every unticked box found eighteen
 real gaps**, of which the most valuable were not the ones the checklist named.
 
 ### The standing rule (D-024)
@@ -123,6 +123,22 @@ equals what it started as" only means something if that write can change the sto
 companion test drives a *successful* decomposition through the same path and asserts the parent
 really is rewritten. Without it both tests would pass against plumbing that silently did nothing.
 
+### The privacy section closed itself once someone looked
+
+Five unticked boxes, and four of them were already true — nothing had checked. There is no
+analytics SDK, no third-party dependency, no credential, and **not one logging call in shipped
+code**: no `print`, `NSLog`, `os_log`, `Logger` or `dump` anywhere. So the lint bans logging
+outright rather than trying to detect task text in a log line. That is stricter than the promise
+in `PRIVACY.md`, deliberately: the realistic failure is not a considered decision to log a task
+title, it is a `print(task.title)` added while debugging and left behind, which looks innocent in
+a diff.
+
+`PRIVACY.md` itself was a session-7 document describing an intended design. It now describes the
+code, including two flows it had never mentioned — a reminder's payload carries the task
+identifier it is about, and the widget reads a rendered snapshot from a shared container. Both
+put task text somewhere other than the main store, and a data-flow document that omits them is
+not a data-flow document.
+
 ### The offline box could never have been ticked
 
 `TESTING.md` asked for the golden path "with the network disabled". No tier can run that: there
@@ -155,8 +171,10 @@ see. The narrower sentence is the true one.
 the narrative, and bring the owner two or three distinct presentation directions with real
 mockups. That is the only remaining item that stops for approval, and it is now the largest one.
 
-Alongside it, and needing nobody: `PRIVACY.md` and the four privacy boxes, cold-start
-measurement, and VoiceOver traversal order.
+Alongside it, and needing nobody: cold-start measurement, VoiceOver traversal order, and the
+typography pass — about eighteen places across nine screens still name a system text style
+directly rather than a `NextType` token, which is why that box was narrowed from a tick rather
+than left as one.
 
 ---
 

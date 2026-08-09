@@ -86,15 +86,22 @@ lists printed, and it returned to passing when the typo was removed.
 `scripts/lint-shipped-code.sh` covers **all four shipped roots** — `NextKit/Sources`,
 `NextApp/Sources`, `NextApp/Shared`, `NextWidget/Sources` — which the other two do not: both are
 scoped to `NextKit`. It bans force unwraps, force tries and force casts; every networking symbol;
-and any external package dependency (D-010). Both of the first two invariants already held when
-it was written, so it is not a cleanup — it is what stops the next one, and it is what turns
-"NEXT makes no network request" from something a reader has to verify into something the build
-does.
+every logging call; the shapes a credential takes (D-009); and any external package dependency
+(D-010). Every one of those invariants already held when it was written, so it is not a cleanup —
+it is what stops the next one, and it is what turns four release-checklist claims from things a
+reader has to verify into things the build does.
 
-Verified against a deliberate violation probe: a file with a `URLSession`, an `x!`, an `as!` and
-a `try!` was caught on all four, and the probe's `!isEmpty`, `!=` and `"URGENT!!!"` string
-literal were correctly left alone. Both halves matter — a lint that fires on `!=` gets disabled
-within a week.
+The logging rule is deliberately stricter than the promise it protects. `PRIVACY.md` forbids task
+text in a log; NEXT logs *nothing*, so the question of what a log line contains cannot arise. The
+realistic failure is not a considered decision to log task text — it is a `print(task.title)`
+added while debugging and left behind, which looks innocent in a diff.
+
+Verified against two deliberate violation probes. The first: a file with a `URLSession`, an `x!`,
+an `as!` and a `try!` was caught on all four, while the probe's `!isEmpty`, `!=` and
+`"URGENT!!!"` string literal were correctly left alone. The second: a `print`, an `NSLog`, an
+`apiKey` and a `"Bearer "` literal were all caught, while `tokens(in:)`, `sprint` and `footprint`
+were not. Both halves matter every time — a lint that fires on `!=` or on the word "sprint" gets
+disabled within a week.
 
 Its one known limitation is stated in its own header rather than papered over: the body lines of
 a multi-line `"""` literal are not stripped, so a `!` inside one would be a false positive. There

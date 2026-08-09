@@ -127,11 +127,22 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Privacy and security
 
-- [ ] Data flows documented and current in `PRIVACY.md`
-- [ ] No production secret in the binary or repository
-- [ ] No task text in analytics, logs, or crash metadata
-- [ ] AI requests carry minimum necessary context only
-- [ ] Cloud AI consent flow implemented, informed, and revocable
+- [x] Data flows documented and current in `PRIVACY.md` — brought up to date against the code
+      rather than the intended design, including the two flows added since it was written: a
+      reminder's payload carries the task identifier it is about, and the widget reads a rendered
+      snapshot from a shared container
+- [x] No production secret in the binary or repository — there is none to ship, since nothing
+      authenticates to anything, and CI fails on the shapes a credential takes
+- [x] No task text in analytics, logs, or crash metadata — no analytics SDK exists (D-011), and
+      NEXT keeps the stronger promise: **it logs nothing at all**, CI-enforced. That failure
+      messages carry no task text is separately tested at Tier 1 (`IntelligencePrivacyTests`)
+- [x] AI requests carry minimum necessary context only — Tier 1: no request type can hold a task
+      identifier or a collection of anything, the rejection history never leaves, and extraction
+      sends the typed text with no surrounding state
+- [x] Cloud AI consent flow implemented, informed, and revocable — the switch exists, defaults
+      off, is revocable, and its footer says plainly that nothing is sent today rather than
+      implying a feature. Built before any cloud provider on purpose, so one cannot be added
+      later without a consent gate already in front of it
 
 ### Performance
 
@@ -142,7 +153,9 @@ see `RELEASE_GATED.md` Gate B.
 - [x] No synchronous AI call at launch — no `IntelligenceProvider` is constructed anywhere in the
       launch graph, and both call sites are user-initiated and async
 - [ ] Cold start measured and acceptable
-- [ ] No unnecessary SDKs or oversized assets
+- [x] No unnecessary SDKs or oversized assets — zero third-party runtime dependencies (D-010,
+      CI-enforced), and the entire shipped asset catalogue is one 1024 × 1024 app icon at 8.8 kB,
+      generated from the palette's own hex values by a script rather than drawn
 
 ### Visual
 
