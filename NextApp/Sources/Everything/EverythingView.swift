@@ -45,6 +45,7 @@ struct EverythingView: View {
             // to an element. The desk belongs to the card screens; these are native, wearing
             // NEXT's type and ink.
             .listRowBackgroundIsCard()
+            .announcesFailure(model.storeFailure)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

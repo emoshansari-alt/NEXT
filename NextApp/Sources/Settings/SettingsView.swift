@@ -30,6 +30,10 @@ struct SettingsView: View {
             // Native background, deliberately — see the note in EverythingView. Rows are still
             // the card stock, so the palette's contrast guarantees apply to what is rendered.
             .listRowBackgroundIsCard()
+            // The notice sits in a Section *above* the toggle the user just flipped, so VoiceOver
+            // has already passed it by the time it appears — and the toggle stays visually on
+            // while the system quietly refuses. Without this, a refused permission is silent.
+            .announcesFailure(model.notice)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

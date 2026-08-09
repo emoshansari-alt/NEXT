@@ -14,6 +14,8 @@ struct OnboardingView: View {
 
     let onFinish: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var page = 0
 
     private struct Panel: Identifiable {
@@ -40,7 +42,10 @@ struct OnboardingView: View {
 
             Button {
                 if page < panels.count - 1 {
-                    withAnimation { page += 1 }
+                    // The page still turns with Reduce Motion on; it just does not slide. This
+                    // is the first screen a user ever sees, and a full-width horizontal slide is
+                    // precisely the movement the setting exists to remove.
+                    withAnimation(reduceMotion ? nil : .default) { page += 1 }
                 } else {
                     onFinish()
                 }

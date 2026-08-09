@@ -15,6 +15,7 @@ struct PrimaryBlockStyle: ButtonStyle {
 
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -31,8 +32,11 @@ struct PrimaryBlockStyle: ButtonStyle {
             )
             // Presses in rather than fading. On a direction built from a physical object, a
             // control that recedes under the finger is the only touch feedback that makes sense.
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(NextMotion.press, value: configuration.isPressed)
+            //
+            // Under Reduce Motion the movement is removed rather than slowed — the still
+            // equivalent is the opacity change, which carries the same information without
+            // anything travelling. Animating a scale more gently is still a scale.
+            .pressFeedback(configuration.isPressed, reduceMotion: reduceMotion)
     }
 }
 
@@ -41,6 +45,7 @@ struct OutlinedBlockStyle: ButtonStyle {
 
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -55,8 +60,25 @@ struct OutlinedBlockStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: NextMetrics.controlRadius, style: .continuous)
                     .strokeBorder(NextPalette.ink.opacity(0.35), lineWidth: 1.5)
             )
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(NextMotion.press, value: configuration.isPressed)
+            .pressFeedback(configuration.isPressed, reduceMotion: reduceMotion)
+    }
+}
+
+private extension View {
+
+    /// The one press treatment both block styles use, with its Reduce Motion equivalent.
+    ///
+    /// Written once rather than twice because the two styles differing here is exactly the kind
+    /// of drift nobody notices: a button that presses in and a button that does not, on the same
+    /// screen, reads as a bug in one of them.
+    @ViewBuilder
+    func pressFeedback(_ isPressed: Bool, reduceMotion: Bool) -> some View {
+        if reduceMotion {
+            opacity(isPressed ? 0.7 : 1)
+        } else {
+            scaleEffect(isPressed ? 0.985 : 1)
+                .animation(NextMotion.press, value: isPressed)
+        }
     }
 }
 

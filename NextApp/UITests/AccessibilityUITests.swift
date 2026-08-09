@@ -172,6 +172,32 @@ final class AccessibilityUITests: XCTestCase {
         audit(app, "Capture")
     }
 
+    func testCaptureConfirmationPassesTheAudit() {
+        // The audit stopped at the writing stage, which meant it never reached the app's only
+        // state-carrying symbol: the include/exclude circle beside each extracted task, whose
+        // meaning is entirely in whether it is filled. `sufficientElementDescription` is exactly
+        // the check for that, and this screen was the one place it was not being run.
+        let app = launch()
+        skipOnboarding(app)
+        app.buttons["empty-add-button"].tap()
+
+        let field = app.textFields["capture-text-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Chem test monday. Email professor.")
+
+        let extract = app.buttons["capture-extract-button"]
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"), object: extract
+        )
+        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 10), .completed)
+        extract.tap()
+
+        XCTAssertTrue(app.buttons["confirmation-accept-button"].waitForExistence(timeout: 10))
+
+        audit(app, "Capture Confirmation")
+    }
+
     func testTodayWithARecommendationPassesTheAudit() {
         // The screen that matters most: it is the one a user sees every time they open NEXT.
         let app = launch()

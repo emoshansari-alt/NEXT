@@ -28,6 +28,19 @@ struct NEXTApp: App {
     /// flaky test of a real flow is worse than an honest fixture for it.
     static let seedUnreachableArgument = "-ui-seed-unreachable"
 
+    /// Opens whatever Today is recommending as though a notification or the widget had been
+    /// tapped, so the deep-link sheet can be reached from a UI test.
+    ///
+    /// Scaffolding, and gated on `-ui-testing` like the rest. It exists because that sheet is
+    /// otherwise only reachable through a real `next://` URL, and the only way to deliver one to
+    /// the app under XCUITest is to drive Safari — which is slow, flaky in CI, and would be
+    /// testing Safari's address bar as much as NEXT. The same trade the unreachable-deadline
+    /// seed above already makes: an honest fixture beats a flaky test of the real path.
+    ///
+    /// What it does *not* fake is the thing under test. The sheet, its wrapper and its Close
+    /// button are the real ones; only the tap that opens it is simulated.
+    static let openRecommendedArgument = "-ui-open-recommended"
+
     /// Followed by a name, this puts the UI-testing store on **disk** instead of in memory, in a
     /// throwaway location of its own.
     ///
@@ -50,6 +63,10 @@ struct NEXTApp: App {
 
     private static var shouldSeedUnreachable: Bool {
         isUITesting && ProcessInfo.processInfo.arguments.contains(seedUnreachableArgument)
+    }
+
+    private static var shouldOpenRecommended: Bool {
+        isUITesting && ProcessInfo.processInfo.arguments.contains(openRecommendedArgument)
     }
 
     /// Where a named UI-testing store lives, or `nil` for the ordinary in-memory one.
@@ -144,6 +161,7 @@ struct NEXTApp: App {
                 onStoreChanged: { await Self.rescheduleReminders(repository: repository) }
             ),
             storeIsEphemeral: storeIsEphemeral,
+            opensRecommendedOnLaunch: Self.shouldOpenRecommended,
             // Built on demand so each visit starts fresh rather than from whatever the last one
             // was abandoned mid-way through.
             makeCaptureModel: { CaptureViewModel(repository: repository) },

@@ -13,6 +13,10 @@ struct TodayView: View {
     /// Set when the app is running on a throwaway store. Shown, never hidden.
     var storeIsEphemeral: Bool = false
 
+    /// UI-test scaffolding: opens the recommendation as a linked task once, as a tapped
+    /// notification would. See `NEXTApp.openRecommendedArgument` for why it exists.
+    var opensRecommendedOnLaunch: Bool = false
+
     /// Builds the capture screen's model. Injected so tests can supply an in-memory store and a
     /// fixed clock instead of the app's real ones.
     var makeCaptureModel: () -> CaptureViewModel
@@ -32,6 +36,8 @@ struct TodayView: View {
     /// exists — a cold launch from the lock screen is exactly that — so there may be nothing
     /// listening at the moment iOS hands the tap over.
     var inbox: DeepLinkInbox?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var showingRejectionReasons = false
     @State private var showingExplanation = false
@@ -65,7 +71,14 @@ struct TodayView: View {
                 }
             }
         }
-        .task { await model.load() }
+        // "Anything you do now will not be kept" is the single most important sentence this app
+        // can say, and it appears at the very top of the screen — the one place VoiceOver has
+        // already moved past by the time a store failure surfaces mid-session.
+        .announcesFailure(warningText)
+        .task {
+            await model.load()
+            await openRecommendedIfAsked()
+        }
         .onOpenURL { url in
             // Unrecognised links are ignored rather than guessed at — opening the wrong task
             // because a URL nearly matched would be worse than doing nothing.
@@ -87,6 +100,20 @@ struct TodayView: View {
         ) { task in
             NavigationStack {
                 TaskDetailView(model: makeDetailModel(task))
+                    // Task Detail deliberately carries no Close button of its own, because it is
+                    // normally *pushed* from Everything and the back button is the way out. Here
+                    // it is the root of its own stack, so there is no back button — and a task
+                    // opened from a tapped reminder or the widget could only be left by swiping
+                    // the sheet down. A swipe is not an acceptable only way out of a screen.
+                    //
+                    // The control belongs to this wrapper rather than to Task Detail, so the
+                    // pushed presentation does not grow a second, contradictory exit.
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { model.closeLinkedTask() }
+                                .accessibilityIdentifier("linked-task-close-button")
+                        }
+                    }
             }
         }
         // Every sheet reloads on dismiss. Any of them can change the store, and Today showing a
@@ -204,6 +231,11 @@ struct TodayView: View {
                     .fill(NextPalette.marker)
                     .frame(width: 44, height: 3)
                     .padding(.top, 2)
+                    // Declared rather than left to a modifier interaction. A bare `Shape` is
+                    // already absent from the accessibility tree, and the `.combine` below would
+                    // absorb it in any case — but both of those are things that could change
+                    // without anyone connecting the change to this stripe.
+                    .accessibilityHidden(true)
 
                 if !metaLine(for: recommendation).isEmpty {
                     Text(metaLine(for: recommendation))
@@ -214,17 +246,18 @@ struct TodayView: View {
 
                 if recommendation.wasRecentlyRejected {
                     // Never silently re-serve something the user passed on.
-                    Text("You passed on this earlier, but it is what is left.")
+                    Text(Self.recentlyRejectedNotice)
                         .font(NextType.meta)
                         .foregroundStyle(NextPalette.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("recently-rejected-notice")
                 }
 
                 if recommendation.deadlineFeasibility.suggestsMinimumWin {
                     // A fact, not a warning and not a telling-off. The user already knows they
                     // are short of time; what they do not know is that there is still a version
                     // of this worth doing (PRODUCT_SPEC.md §4.12).
-                    Text("There is not enough time left to finish this.")
+                    Text(Self.minimumWinNotice)
                         .font(NextType.meta)
                         .foregroundStyle(NextPalette.warning)
                         .fixedSize(horizontal: false, vertical: true)
@@ -236,6 +269,10 @@ struct TodayView: View {
             // Read as one unit rather than six fragments when swiping through with VoiceOver.
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel(for: recommendation))
+            // On the combined element rather than on any child, deliberately: the label above is
+            // the whole card's content, so a test watching this identifier sees the screen change
+            // when the recommendation does.
+            .accessibilityIdentifier("recommendation-card")
             // The single animated moment in the app: this card leaves, the next rises.
             .id(recommendation.task.id)
             .cardTransition()
@@ -255,7 +292,10 @@ struct TodayView: View {
                 .padding(.bottom, 8)
         }
         .padding(.vertical, 28)
-        .animation(NextMotion.cardChange, value: recommendation.task.id)
+        // The reduce-aware curve, not the static spring. `cardTransition()` above already
+        // substitutes a cross-fade for the movement; without this the timing would still be a
+        // spring, so the card would fade with a bounce nobody asked for.
+        .animation(NextMotion.cardChange(reduceMotion: reduceMotion), value: recommendation.task.id)
     }
 
     private func secondaryActions(_ recommendation: Recommendation) -> some View {
@@ -318,11 +358,24 @@ struct TodayView: View {
         return parts.joined(separator: " · ")
     }
 
+    /// Said once each, so the screen and the spoken label cannot drift apart.
+    static let recentlyRejectedNotice = "You passed on this earlier, but it is what is left."
+    static let minimumWinNotice = "There is not enough time left to finish this."
+
     private func accessibilityLabel(for recommendation: Recommendation) -> String {
         var parts = [recommendation.task.title, recommendation.actionText]
         parts.append(recommendation.explanation.sentence)
         if let minutes = recommendation.task.estimatedMinutes {
             parts.append("About \(minutes) minutes.")
+        }
+        // The card is read as one element, so anything not named here is not merely quieter —
+        // it is inaudible. Both of these are the screen explaining itself, which is exactly the
+        // part a sighted user gets for free and a VoiceOver user only gets if it is said.
+        if recommendation.wasRecentlyRejected {
+            parts.append(Self.recentlyRejectedNotice)
+        }
+        if recommendation.deadlineFeasibility.suggestsMinimumWin {
+            parts.append(Self.minimumWinNotice)
         }
         return parts.joined(separator: " ")
     }
@@ -386,6 +439,14 @@ struct TodayView: View {
     private func openPendingLink() async {
         guard let link = inbox?.take() else { return }
         await model.open(link)
+    }
+
+    /// Goes through the same `open(_:)` a tapped reminder does, so the sheet under test is the
+    /// real one. Does nothing outside UI testing — `opensRecommendedOnLaunch` is only ever true
+    /// when `NEXTApp` was launched with both `-ui-testing` and `-ui-open-recommended`.
+    private func openRecommendedIfAsked() async {
+        guard opensRecommendedOnLaunch, let id = model.recommendation?.task.id else { return }
+        await model.open(.task(id))
     }
 
     private var focusBinding: Binding<FocusTarget?> {

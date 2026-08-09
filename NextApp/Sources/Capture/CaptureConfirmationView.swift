@@ -147,5 +147,6 @@ struct CaptureConfirmationView: View {
         }
         .padding(20)
         .background(.bar)
+        .announcesFailure(model.failure)
     }
 }

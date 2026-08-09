@@ -48,6 +48,9 @@ struct TaskDetailView: View {
                         } label: {
                             if model.isBreakingDown {
                                 ProgressView()
+                                    // Same reason as Capture's spinner: while this is on screen
+                                    // it is the button's entire label.
+                                    .accessibilityLabel("Breaking it down")
                             } else {
                                 Text("Break it down")
                             }
@@ -97,10 +100,13 @@ struct TaskDetailView: View {
             // to an element. The desk belongs to the card screens; these are native, wearing
             // NEXT's type and ink.
             .listRowBackgroundIsCard()
+            .announcesFailure(model.failure)
             .navigationTitle("Task")
             .navigationBarTitleDisplayMode(.inline)
             // No Close button: this is a pushed screen, so the navigation bar's back button is
-            // the way out. Adding a second one would be two controls doing the same job.
+            // the way out. Adding a second one would be two controls doing the same job. When
+            // this screen is instead presented as a sheet — the deep-link route — the wrapper in
+            // `TodayView` supplies the exit, because there is no back button there.
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { Task { await model.save() } }

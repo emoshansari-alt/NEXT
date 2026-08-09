@@ -33,6 +33,7 @@ struct PaywallView: View {
             productsSection
             restoreSection
         }
+        .announcesFailure(model.notice)
         .navigationTitle(NextPlusCopy.title)
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }

@@ -107,6 +107,10 @@ struct CaptureView: View {
                 if model.isExtracting {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: actionHeight)
+                        // The spinner replaces the button's whole label, so without this the
+                        // control loses its name for exactly as long as it is working — which is
+                        // when someone is most likely to check what they just pressed.
+                        .accessibilityLabel("Sorting this out")
                 } else {
                     Text("Sort this out")
                         .multilineTextAlignment(.center)
@@ -130,6 +134,10 @@ struct CaptureView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .background(.bar)
+        // This bar is the bottom safe-area inset, so the failure text below the button the user
+        // just pressed is the last thing in traversal order. Speaking it is the difference
+        // between "that did not save" and silence.
+        .announcesFailure(model.failure)
     }
 
     // MARK: Saved

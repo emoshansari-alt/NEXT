@@ -77,6 +77,29 @@ final class GoldenPathUITests: XCTestCase {
         justStart.tap()
     }
 
+    /// Adds a second task from Today, which enters through `add-button` rather than the empty
+    /// state's own `empty-add-button`.
+    private func captureAnother(_ app: XCUIApplication, text: String) {
+        let add = app.buttons["add-button"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+
+        let field = app.textFields["capture-text-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText(text)
+        expectValue(text, in: field, timeout: 10)
+
+        let saveSingle = app.buttons["capture-save-single-button"]
+        XCTAssertTrue(saveSingle.waitForExistence(timeout: 5))
+        XCTAssertTrue(saveSingle.isHittable)
+        saveSingle.tap()
+
+        let done = app.buttons["capture-done-button"]
+        XCTAssertTrue(done.waitForExistence(timeout: 8))
+        done.tap()
+    }
+
     /// Captures one task by the manual route and returns with Today showing a recommendation.
     @discardableResult
     private func captureOneTask(_ app: XCUIApplication, text: String) -> XCUIApplication {
@@ -296,6 +319,71 @@ final class GoldenPathUITests: XCTestCase {
             XCTAssertTrue(button.exists, "\(identifier) should be present")
             XCTAssertTrue(button.isHittable, "\(identifier) should be reachable by tap")
         }
+    }
+
+    func testNotThisReplacesTheRecommendation() {
+        // "Not this" was reachable and never actually pressed by any test — the confirmation
+        // dialog and its five reasons had never been opened. This is the product's second most
+        // important interaction after START, and the whole of it is that the screen changes.
+        let app = launchPastOnboarding()
+        captureOneTask(app, text: "Email Professor Adeyemi")
+        captureAnother(app, text: "Read chapter four")
+
+        // Matched across every element type rather than as `otherElements`: a combined
+        // accessibility element's reported type depends on what SwiftUI folded into it, and a
+        // test that fails because the card became a `staticText` would be reporting nothing.
+        let card = app.descendants(matching: .any)["recommendation-card"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        let firstRecommendation = card.label
+        XCTAssertFalse(firstRecommendation.isEmpty, "the card should be describing something")
+
+        app.buttons["not-this-button"].tap()
+
+        let reason = app.buttons["Can't do it right now"]
+        XCTAssertTrue(reason.waitForExistence(timeout: 5), "the dialog should offer its reasons")
+        reason.tap()
+
+        // Polled rather than asserted immediately: the recommendation is recalculated from a
+        // fresh read of the store, so the card is not repainted in the same tick as the tap.
+        let changed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label != %@", firstRecommendation), object: card
+        )
+        XCTAssertEqual(
+            XCTWaiter().wait(for: [changed], timeout: 10), .completed,
+            "rejecting the recommendation should offer the other task, not re-serve the same one"
+        )
+    }
+
+    func testATaskOpenedByLinkCanBeClosedWithoutASwipe() {
+        // The deep-link sheet presents Task Detail as the root of its own stack, so it has no
+        // back button — and Task Detail deliberately carries no Close button of its own. Until
+        // this was fixed, a task opened from a tapped reminder or the widget could only be left
+        // by swiping the sheet down, which is the one thing "no essential action is gesture-only"
+        // forbids.
+        //
+        // Seeded rather than captured, because the link is opened from Today's first load: the
+        // sheet has to have something to open. `-ui-seed-unreachable` is the existing fixture
+        // that puts one real task in the store before the first read.
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-ui-seed-unreachable", "-ui-open-recommended"]
+        app.launch()
+
+        let skip = app.buttons["onboarding-skip-button"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 10))
+        skip.tap()
+
+        let close = app.buttons["linked-task-close-button"]
+        XCTAssertTrue(
+            close.waitForExistence(timeout: 15),
+            "a task opened by link must offer a way out that is not a gesture"
+        )
+        XCTAssertTrue(close.isHittable)
+        close.tap()
+
+        XCTAssertTrue(
+            app.buttons["start-button"].waitForExistence(timeout: 10),
+            "closing the linked task should return to Today"
+        )
     }
 
     func testEverythingShowsWhatWasCaptured() {
