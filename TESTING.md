@@ -47,12 +47,12 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 546 tests in 99 suites, 546 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 549 tests in 100 suites, 549 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
 |---|---|
-| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility, the decay of lateness past a deadline |
+| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility, the decay of lateness past a deadline, friction's decided zero |
 | Model | task state transitions and their refusals |
 | Persistence | the `TaskRepository` contract, run against the in-memory implementation |
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
@@ -112,13 +112,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` ·
-run [31290672207](https://github.com/emoshansari-alt/NEXT/actions/runs/31290672207)
+run [31296600849](https://github.com/emoshansari-alt/NEXT/actions/runs/31296600849)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 97 tests in 22 suites, passed (2 known issues — see below) |
-| `NextAppUITests` (XCTest, real Simulator) | 20 tests, passed |
+| `NextAppTests` (swift-testing) | 103 tests in 24 suites, passed (2 known issues — see below) |
+| `NextAppUITests` (XCTest, real Simulator) | 34 tests in 6 suites, passed |
 | `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
 
 ### Two known issues, and both are the same answer
@@ -204,6 +204,31 @@ It was moved there because the earlier version could not do this: it lived in `N
 which `NextAppTests` cannot import, so the claim that it bound both implementations was untrue.
 It throws rather than using `#expect`, because importing `Testing` would restrict the target to
 test bundles and defeat the purpose.
+
+### The accessibility audit
+
+`AccessibilityUITests` runs `performAccessibilityAudit()` over every core screen, plus Today and
+Focus at accessibility XXXL. It enforces `hitRegion`, `textClipped`, `elementDetection`,
+`sufficientElementDescription` and `trait`. **Contrast and Dynamic Type are asserted under a
+strict `XCTExpectFailure`** — they do not pass, they are Phase 12's to fix, and the strictness
+means the test will fail the day they start passing so the expectation gets removed (D-021).
+
+The audit reports each issue's identifier, label and frame rather than only the fault, because the
+element-level detail otherwise lives in an xcresult bundle that cannot be opened from Windows.
+That change turned an unactionable "Hit area is too small" into a list of eight named controls in
+one CI round.
+
+Its first run found issues on all ten core screens. Eleven were fixed: eight controls below
+44 × 44 — every one a plain text button whose hit area was a line of text tall — and three clipped
+labels. **Two of the remaining failures were regressions the audit itself caught**: giving a
+button room to wrap, to stop it clipping at the default size, made Capture's action bar taller
+than the space above the keyboard at accessibility XXXL, so the save button stopped being
+reachable. That is a defect invisible at the size a developer looks at, introduced while fixing a
+different accessibility defect, and found within one run.
+
+**A green audit is not a claim that NEXT is accessible.** VoiceOver gesture traversal, rotor
+behaviour, real Dynamic Type rendering and haptics need hardware — `RELEASE_GATED.md` B5. It is
+the smaller, true claim that the automatable checks pass.
 
 ### Persistence across relaunch — closed
 

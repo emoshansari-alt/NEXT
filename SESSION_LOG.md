@@ -12,7 +12,8 @@ replanning, the notification deep link, the accessibility audit, and the last st
 
 ### Result
 
-**Tier 1: 549 tests / 100 suites.** Tier 2: 34 UI tests across six suites.
+**Tier 1: 549 tests / 100 suites. Tier 2: 103 unit / 24 suites (2 known issues) + 34 UI tests.**
+Green — run [31296600849](https://github.com/emoshansari-alt/NEXT/actions/runs/31296600849).
 
 Four decisions were made and written down rather than escalated — D-018, D-020, D-021, D-022.
 Three of them closed questions that had been carried for several sessions.
@@ -94,6 +95,22 @@ minute ago.
 
 It stays zero, present in every breakdown, with tests sweeping the shapes that might plausibly
 have earned a penalty — so implementing it later means deleting tests that say why it was zero.
+
+### The audit caught a defect I introduced while fixing another one
+
+Worth recording plainly. Giving Capture's "just save it as one task" button room to wrap — the fix
+for it clipping at the default size — made the bottom action bar taller. That bar sits above the
+keyboard on the one screen the user types on, and at accessibility XXXL the save button stopped
+being reachable at all. `testTodaySurvivesTheLargestAccessibilitySize` had passed in the audit's
+first run and failed in the next.
+
+The 52-point floor under the primary button was the dead weight: a sensible target when the label
+is small, and pure padding once the label is already taller than it. It is now dropped at
+accessibility sizes.
+
+Two things follow. A layout fix at one type size can break another, and only a test that actually
+runs at that size will say so. And the audit earned its keep inside a single session — not by
+finding the original defects, but by catching the one introduced while repairing them.
 
 ### Known limitations
 

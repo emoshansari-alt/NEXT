@@ -56,8 +56,8 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Engineering
 
-- [ ] `NextKit` has no forbidden import (CI-enforced)
-- [ ] No `Date()` or `UUID()` in `NextKit` (CI-enforced)
+- [x] `NextKit` has no forbidden import (CI-enforced)
+- [x] No `Date()` or `UUID()` in `NextKit` (CI-enforced)
 - [x] All scoring constants live in `ScoringWeights`
 - [x] No stubbed ranking factor — `friction` is a decided zero (D-022)
 - [ ] No force unwraps outside tests
@@ -67,12 +67,12 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Testing — see `TESTING.md` for what each tier proves
 
-- [ ] All Tier 1 unit tests pass
+- [x] All Tier 1 unit tests pass — 549 in 100 suites
 - [ ] Every ranking edge case in `PRODUCT_SPEC.md` §5 covered
 - [ ] All eight AI failure-injection cases covered, none crash or corrupt data
 - [ ] Recommendation loop test passes
-- [ ] Tier 2 integration tests pass
-- [ ] Tier 2 golden-path UI test passes
+- [x] Tier 2 integration tests pass — 103 in 24 suites
+- [x] Tier 2 golden-path UI test passes
 - [ ] Offline test passes
 - [x] Persistence survives the full create/terminate/relaunch/modify/complete cycle —
       Tier 2, run 31293153742, against a real on-disk store
@@ -80,16 +80,16 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Accessibility — release blocking
 
-- [ ] Every meaningful control has a useful label
+- [x] Every meaningful control has a useful label — audit-enforced
 - [ ] VoiceOver traversal order is logical on every core screen
 - [ ] Dynamic Type works at the largest accessibility sizes without breaking layout
 - [ ] Reduce Motion respected
 - [ ] Contrast adequate throughout
-- [ ] No meaning conveyed by colour alone
+- [x] No meaning conveyed by colour alone — completion is spoken, not only struck through
 - [ ] No essential action is gesture-only
 - [x] Touch targets meet current platform guidance — audit-enforced (D-021)
 - [ ] Errors announced accessibly
-- [ ] Timer state accessible
+- [x] Timer state accessible — spoken, not left to the digits
 - [ ] Decorative images hidden from assistive technology
 - [x] Loading states understandable
 - [ ] Contrast and Dynamic Type — tracked under a strict expected failure until the
