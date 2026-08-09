@@ -740,6 +740,43 @@ thing it is a proposal for and nothing else.
 
 ---
 
+## D-025 — Inside a stated time window, work of known length is preferred to work of unknown length
+
+**Date:** 2026-08-09 · **Status:** Accepted
+
+**Context.** An audit of `PRODUCT_SPEC.md` §5's edge cases found "missing duration estimate"
+covered on the filter side and untested on the scoring side. The two halves disagree in a way
+nobody had written down: `TaskItem.fits(withinMinutes:)` treats an unknown duration as **might
+fit**, so an unestimated task survives stage 1c — and then `contextualFitSignal` returns zero for
+it, so it loses the whole contextual-fit weight to any estimated rival at stage 2. Unestimated
+work is admitted and then systematically outranked.
+
+**Decision.** That is the correct behaviour, and it is now a decision with tests rather than a
+consequence of two guards written separately.
+
+Stating a window is the user asking for something that **fits inside it**. NEXT can promise that
+of a task with an estimate and cannot promise it of one without. Admitting the unestimated task
+is right — hiding most of what a student captures would be worse — and preferring the one that is
+known to fit is also right. The alternative, scoring an unknown duration as a perfect fit, would
+mean recommending a three-hour essay to someone who said they had twenty minutes, on the strength
+of nobody having estimated it.
+
+**Deliberately confined to a stated window.** Today never asks for one, so on the screen that
+matters most `contextualFit` is zero for every task and an unestimated task is not disadvantaged
+at all. The only place this applies is Rescue's "I don't have enough time" path, which is exactly
+where the promise is being made.
+
+**What is pinned.** That an unestimated task scores no contextual fit inside a window, that an
+estimated task therefore wins a head-to-head against an otherwise identical unestimated one, and
+— from the other end of the same guard — that a task *with* an estimate scores no contextual fit
+when no window was stated. Both mutation-tested.
+
+**Not decided here.** Whether NEXT should ask for an estimate at that moment rather than quietly
+ranking the task lower. That is a capture-flow question with no evidence behind it yet, and the
+current behaviour is not a dead end: the user can add an estimate in Task Detail.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

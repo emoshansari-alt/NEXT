@@ -100,6 +100,27 @@ final class AccessibilityUITests: XCTestCase {
     ///
     /// The handler returns `true` for every issue, meaning "handled" — so the audit itself does
     /// not throw and this method decides the verdict, having recorded all of them.
+    /// Whether an element belongs to the raised system keyboard rather than to NEXT.
+    ///
+    /// Two conditions, and both are needed. The element must overlap the keyboard — compared by
+    /// frame, because the keyboard is not in the app's element tree and there is no ancestry to
+    /// walk — **and** it must carry no accessibility identifier.
+    ///
+    /// The second condition is what keeps this from weakening the check it sits inside. Capture's
+    /// action bar is deliberately right above the keyboard, so a frame test alone would exempt
+    /// the two controls that a previous round found unreachable at accessibility sizes. Every
+    /// control NEXT draws carries an identifier; an unidentified element overlapping the keyboard
+    /// is the keyboard's. An unlabelled element anywhere else still fails, which is the whole
+    /// point of `sufficientElementDescription`.
+    private func isInsideTheKeyboard(_ element: XCUIElement, of app: XCUIApplication) -> Bool {
+        guard element.identifier.isEmpty else { return false }
+
+        let keyboard = app.keyboards.firstMatch
+        guard keyboard.exists else { return false }
+
+        return element.frame.intersects(keyboard.frame)
+    }
+
     private func audit(
         _ app: XCUIApplication,
         _ screen: String,
@@ -121,6 +142,22 @@ final class AccessibilityUITests: XCTestCase {
                 if issue.auditType == .contrast, element?.isEnabled == false {
                     return true
                 }
+
+                // The system keyboard is not NEXT's screen.
+                //
+                // Capture focuses its field on appear, so the keyboard is up while the audit
+                // runs — which is the right state to audit, because that is the state the user
+                // is in, and the reason the action bar sits in a safe-area inset at all. But the
+                // audit walks everything on screen, including the keyboard's own QuickType bar:
+                // three unlabelled 140 × 44 slots that report "Element has no description" and
+                // that no app can label, style or remove.
+                //
+                // Scoped by frame rather than by ignoring unlabelled elements generally, because
+                // an unlabelled element inside NEXT is exactly what this check exists to catch.
+                if let element, isInsideTheKeyboard(element, of: app) {
+                    return true
+                }
+
                 issues.append(
                     """
                     • \(issue.auditType)

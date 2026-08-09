@@ -60,23 +60,40 @@ see `RELEASE_GATED.md` Gate B.
 - [x] No `Date()` or `UUID()` in `NextKit` (CI-enforced)
 - [x] All scoring constants live in `ScoringWeights`
 - [x] No stubbed ranking factor — `friction` is a decided zero (D-022)
-- [ ] No force unwraps outside tests
+- [x] No force unwraps outside tests — CI-enforced by `scripts/lint-shipped-code.sh`, verified
+      against a deliberate violation probe. Also bans networking symbols and any external
+      package (D-010) across all four shipped roots
 - [x] No dead experiments or "temporary" hacks in shipped code
-- [ ] Release build succeeds at Tier 2
-- [ ] No compiler warnings in a clean build
+- [ ] Release build succeeds at Tier 2 — a Release build of the app and widget now runs in CI
+- [ ] No compiler warnings in a clean build — Tier 1 builds with `-warnings-as-errors` and the
+      Tier 2 Release build with `SWIFT_TREAT_WARNINGS_AS_ERRORS`. Tier 1 measured clean; the app
+      layer's warning count had never been measured by anyone and is now gated rather than
+      asserted
 
 ### Testing — see `TESTING.md` for what each tier proves
 
-- [x] All Tier 1 unit tests pass — 549 in 100 suites
-- [ ] Every ranking edge case in `PRODUCT_SPEC.md` §5 covered
-- [ ] All eight AI failure-injection cases covered, none crash or corrupt data
-- [ ] Recommendation loop test passes
+- [x] All Tier 1 unit tests pass — 559 in 100 suites
+- [x] Every ranking edge case in `PRODUCT_SPEC.md` §5 covered — all eleven, with the three that
+      were open closed this session: the deadline tier of the tie-break, a missing estimate's
+      cost inside a stated window (D-025), and that the rejection penalty follows recency and
+      never the tally
+- [x] All eight AI failure-injection cases covered, none crash or corrupt data — both halves.
+      Extended to the one write path that rewrites an *existing* task, which is the only place a
+      bad response could damage work the user already had
+- [x] Recommendation loop test passes — run as a loop: recommend, reject what came back,
+      recommend again. The rejected task is taken from the engine's own first answer rather than
+      named in the fixture
 - [x] Tier 2 integration tests pass — 103 in 24 suites
 - [x] Tier 2 golden-path UI test passes
-- [ ] Offline test passes
+- [ ] Offline behaviour proven at the tier that can prove it — see `TESTING.md`. The literal
+      "with the network disabled" run is a Tier 3 device observation and lives in
+      `RELEASE_GATED.md`; what is provable here is that no shipped source names a networking API
+      (CI-enforced) and that the whole loop runs with no provider answering
 - [x] Persistence survives the full create/terminate/relaunch/modify/complete cycle —
       Tier 2, run 31293153742, against a real on-disk store
-- [ ] Schema migration strategy exists and has a round-trip test
+- [ ] Schema migration strategy exists and has a round-trip test — written: a real on-disk store
+      closed and reopened through `NextMigrationPlan`, with a tripwire that fails the moment a
+      second version is added without its own round trip
 
 ### Accessibility — release blocking
 
@@ -84,16 +101,24 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] VoiceOver traversal order is logical on every core screen
 - [x] Dynamic Type works at the largest accessibility sizes without breaking layout —
       Today and Focus audited at accessibility XXXL
-- [ ] Reduce Motion respected
+- [ ] Reduce Motion respected — all four animation sites now branch on it, where previously one
+      did and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit
+      tests on the curves, because no audit category can see motion
 - [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
       `NextPaletteTests` on the values. One system-rendered section header per
       `List`/`Form` screen is tracked rather than enforced (D-021)
 - [x] No meaning conveyed by colour alone — completion is spoken, not only struck through
-- [ ] No essential action is gesture-only
+- [ ] No essential action is gesture-only — every swipe action has a button equivalent under
+      test, and the deep-link task sheet has gained the Close button it never had: as the root of
+      its own stack it had no back button, so it could only be left by swiping it away
 - [x] Touch targets meet current platform guidance — audit-enforced (D-021)
-- [ ] Errors announced accessibly
+- [ ] Errors announced accessibly — all seven failure surfaces now announce on appearance. They
+      were rendered only, and most sit *before* the control the user just operated in traversal
+      order, so a refused permission left the toggle looking on and said nothing
 - [x] Timer state accessible — spoken, not left to the digits
-- [ ] Decorative images hidden from assistive technology
+- [ ] Decorative images hidden from assistive technology — no unlabelled symbol or image exists;
+      the marker stripe now declares itself hidden rather than relying on a modifier interaction;
+      both spinners have labels, which they lacked for exactly as long as they were working
 - [x] Loading states understandable
 - [ ] Two system-rendered exceptions — navigation-bar Dynamic Type and the first section
       header's contrast. Neither is app-fixable; both tracked under strict expected
@@ -110,8 +135,12 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Performance
 
-- [ ] No network request at launch
-- [ ] No synchronous AI call at launch
+- [x] NEXT issues no network request at launch — no shipped source names a networking API at all
+      (CI-enforced). Stated at this width deliberately: the one launch-time system integration is
+      the StoreKit transaction listener, and whether Apple's out-of-process daemon contacts Apple
+      is not something NEXT controls or can observe. The broader wording would have been false
+- [x] No synchronous AI call at launch — no `IntelligenceProvider` is constructed anywhere in the
+      launch graph, and both call sites are user-initiated and async
 - [ ] Cold start measured and acceptable
 - [ ] No unnecessary SDKs or oversized assets
 
@@ -125,10 +154,16 @@ sequence.
 
 - [x] No placeholder UI anywhere user-facing
 - [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
-- [x] Typography and hierarchy final — one scale in `NextType`, built from text styles so it
-      scales with Dynamic Type
-- [x] Motion restrained and Reduce-Motion-safe — one animated moment, with a still
-      equivalent that loses no information
+- [ ] Typography and hierarchy final — `NextType` is the scale and it is built from text styles,
+      so everything scales with Dynamic Type. Narrowed from a tick: **about eighteen places
+      across nine screens still name a system text style directly** rather than a `NextType`
+      token. None writes a point size and none is an accessibility defect, but "one scale" is not
+      yet literally true. A focused pass, not a bolt-on to another change
+- [x] Motion restrained and Reduce-Motion-safe — one animated moment in the card, with a still
+      equivalent that loses no information. **This line previously contradicted the Reduce Motion
+      box above it**: press feedback and the onboarding page turn were two further animated
+      moments and neither had a still equivalent. Both are guarded now, so one tick covers both
+      lines honestly
 - [ ] Haptics implemented (device verification remains gated)
 
 ### Documentation

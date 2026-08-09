@@ -58,6 +58,11 @@ struct CaptureConfirmationView: View {
                         .imageScale(.large)
                 }
                 .buttonStyle(.plain)
+                // A symbol's own bounds are the whole target without this — well under 44 points,
+                // on the control that decides whether a captured task is kept. The audit found it
+                // the first time this screen was audited at all.
+                .frame(minWidth: NextMetrics.tapTarget, minHeight: NextMetrics.tapTarget)
+                .contentShape(.rect)
                 // Meaning never rests on the tick alone.
                 .accessibilityLabel(proposal.isIncluded ? "Included" : "Not included")
                 .accessibilityIdentifier("proposal-toggle")
@@ -132,22 +137,19 @@ struct CaptureConfirmationView: View {
                     .accessibilityIdentifier("confirmation-failure")
             }
 
+            // Outlined secondary beside the one filled primary, which is D-023's rule rather
+            // than a restyle for its own sake. The system's `.bordered` drew "Edit" in the
+            // accent on the bar's material and failed contrast outright; `.borderedProminent`
+            // beside it would have been the second filled block the direction forbids.
             HStack(spacing: 12) {
                 Button("Edit") { model.returnToWriting() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
+                    .buttonStyle(.outlinedBlock)
                     .accessibilityIdentifier("confirmation-edit-button")
 
-                Button {
-                    Task { await model.confirm() }
-                } label: {
-                    Text("Looks right")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(savedCount == 0)
-                .accessibilityIdentifier("confirmation-accept-button")
+                Button("Looks right") { Task { await model.confirm() } }
+                    .buttonStyle(.primaryBlock)
+                    .disabled(savedCount == 0)
+                    .accessibilityIdentifier("confirmation-accept-button")
             }
         }
         .padding(20)

@@ -47,17 +47,17 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 549 tests in 100 suites, 549 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 559 tests in 100 suites, 559 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
 |---|---|
-| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility, the decay of lateness past a deadline, friction's decided zero |
+| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility, the decay of lateness past a deadline, friction's decided zero, all three tiers of the tie-break, the reject-and-re-rank loop, and a missing estimate's cost inside a stated window (D-025) |
 | Model | task state transitions and their refusals |
 | Persistence | the `TaskRepository` contract, run against the in-memory implementation |
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
 | Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
-| Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks |
+| Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks, and every mode driven through the one write path that rewrites an *existing* task |
 | Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language, which action Focus is pointed at and what finishing it means |
 | Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone, where tapping one lands |
 | Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
@@ -83,6 +83,23 @@ constant, and only surfaces when a real purchase fails to resolve against App St
 Verified the same way: a deliberate `monthy` typo in the configuration made it fail with both
 lists printed, and it returned to passing when the typo was removed.
 
+`scripts/lint-shipped-code.sh` covers **all four shipped roots** — `NextKit/Sources`,
+`NextApp/Sources`, `NextApp/Shared`, `NextWidget/Sources` — which the other two do not: both are
+scoped to `NextKit`. It bans force unwraps, force tries and force casts; every networking symbol;
+and any external package dependency (D-010). Both of the first two invariants already held when
+it was written, so it is not a cleanup — it is what stops the next one, and it is what turns
+"NEXT makes no network request" from something a reader has to verify into something the build
+does.
+
+Verified against a deliberate violation probe: a file with a `URLSession`, an `x!`, an `as!` and
+a `try!` was caught on all four, and the probe's `!isEmpty`, `!=` and `"URGENT!!!"` string
+literal were correctly left alone. Both halves matter — a lint that fires on `!=` gets disabled
+within a week.
+
+Its one known limitation is stated in its own header rather than papered over: the body lines of
+a multi-line `"""` literal are not stripped, so a `!` inside one would be a false positive. There
+are none today.
+
 ### Mutation testing
 
 Several behaviours here were pinned by tests written *after* the code, which means passing
@@ -98,6 +115,24 @@ capability in `FeatureGate.oneDotZero`, making the expiry boundary inclusive, dr
 per-receipt revocation filter, returning `.offerUpgrade` for an unknown entitlement, and removing
 the bound on billing-retry grace. `scratchpad/mutate.py` in that session applied each in turn and
 restored it; the same shape is worth repeating for any rule added here.
+
+The ranking and intelligence work of session 12 was mutation-tested as a batch, thirteen in all
+and every one caught: the deadline tie-break inverted, the rejection penalty removed, the penalty
+scaled by tally instead of recency, a missing estimate treated as filling the window, the
+recently-rejected flag never set, the decomposition write path made a no-op, an applicable
+failure mode refusing instead of injecting, and a mode losing its applicability to `.decompose`.
+
+Two of those attempts were **wrong mutations rather than surviving tests**, and it is worth
+recording which: replacing a timeout with a *different bad payload* still fails validation, so
+the store is still untouched and the test is right to stay green; and removing the refusal for an
+*inapplicable* pairing changes nothing the assertion covers, by design. A survived mutation is a
+question, not a verdict — the answer twice was that the mutation did not mean what it looked like.
+
+Where a mutation could not express the risk, a **control test** does instead. "The store still
+equals what it started as" only means something if that write is capable of changing the store,
+so a companion test drives a *successful* decomposition through the same path and asserts the
+parent really is rewritten. Without it, both tests would pass against plumbing that silently did
+nothing.
 
 `FocusTarget` was mutation-tested the same way and for the same reason. Five, all caught: making
 a reduced action complete its task, re-deriving a deliberately withheld parent title from the
@@ -241,6 +276,12 @@ element-level detail otherwise lives in an xcresult bundle that cannot be opened
 That change turned an unactionable "Hit area is too small" into a list of eight named controls in
 one CI round.
 
+**Capture Confirmation joined the audit in session 12.** It had been the one reachable screen the
+audit never visited: `testCapturePassesTheAudit` stopped at the writing stage, so the app's only
+state-carrying symbol — the include/exclude circle beside each extracted task, whose meaning is
+entirely in whether it is filled — was never put under `sufficientElementDescription`. Eleven
+screen states are now audited.
+
 Its first run found issues on all ten core screens. Eleven were fixed: eight controls below
 44 × 44 — every one a plain text button whose hit area was a line of text tall — and three clipped
 labels. **Two of the remaining failures were regressions the audit itself caught**: giving a
@@ -344,10 +385,32 @@ fresh install → onboarding → brain dump → extraction → confirmation
 → terminate → relaunch → state correct
 ```
 
-### Offline — Tier 2
+### Offline — split by what each tier can actually prove
 
-With the network disabled: manual task creation → recommendation → Focus → complete → relaunch
-→ state persists. The core app must work with no cloud AI of any kind.
+The original wording of this section asked for the golden path "with the network disabled". No
+tier can run that. There is no `XCUIDevice` or `simctl` control for airplane mode; the Simulator
+shares the host's network stack, so the only lever is a host-level one, and on the CI runner
+turning it would sever the runner's own connection to GitHub Actions. An item no tier can ever
+tick is not a strict standard, it is a permanently unticked box that stops meaning anything.
+
+Split into three claims, each provable where it is written:
+
+1. **Guardrail — no first-party networking exists.** `scripts/lint-shipped-code.sh` fails the
+   build if any shipped source names `URLSession`, `URLRequest`, `Network`, `WebKit`,
+   `Data(contentsOf:)` or the rest of the list, across all four shipped roots. This matters
+   because `URLSession` comes from Foundation: adding one needs no new import and would have
+   passed every check that existed before. It proves no first-party file *names* a networking
+   API. It does not prove no packet left the device.
+2. **Tier 1 — the offline provider answers with no network, key or consent.**
+   `TemplateFallbackProvider` is the shipping default in both view models that take a provider,
+   so this is not a fallback path, it is the path.
+3. **Tier 2 — the whole loop runs with no provider answering.** Capture, recommendation, Focus,
+   completion, relaunch and persistence all run green with the offline provider in place
+   (`PersistenceUITests`, `GoldenPathUITests`), which is the substantive half of the claim: NEXT
+   is fully usable when the intelligence layer says nothing.
+
+**Tier 3, with the radio genuinely off**, stays in `RELEASE_GATED.md` as a device observation.
+That is the only place the literal claim can be made, and it is not made anywhere else.
 
 ### AI failure injection — Tier 1
 
@@ -370,7 +433,15 @@ terminate → relaunch → verify.
 
 ### Accessibility — Tier 2 automated, Tier 3 manual
 
-Automated: labels present, contrast, touch-target size, Dynamic Type layout at the largest
-sizes, Reduce Motion honoured.
-Device-only, and documented as such: real VoiceOver gesture traversal, real rotor behaviour,
-real haptics.
+**By the audit** (`performAccessibilityAudit`, on a rendered screen): labels present, contrast,
+touch-target size, element detection, traits, Dynamic Type layout at the largest sizes.
+
+**By Tier 2 unit tests**, because the audit structurally cannot see them: that Reduce Motion
+selects the still curve *and* that the two curves differ, so the pair cannot become vacuous; and
+when a failure message is announced — on appearance, not on clearing, and never twice for the
+same message. XCUITest cannot hear VoiceOver speak, so the decision about *when* to speak is a
+pure function that is tested, and the line that hands the string to the system is one statement
+with no logic in it.
+
+**Device-only, and documented as such**: real VoiceOver gesture traversal, real rotor behaviour,
+whether an announcement is actually spoken, and real haptics.

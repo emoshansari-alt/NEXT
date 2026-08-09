@@ -269,10 +269,11 @@ struct TodayView: View {
             // Read as one unit rather than six fragments when swiping through with VoiceOver.
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel(for: recommendation))
-            // On the combined element rather than on any child, deliberately: the label above is
-            // the whole card's content, so a test watching this identifier sees the screen change
-            // when the recommendation does.
-            .accessibilityIdentifier("recommendation-card")
+            // Deliberately *not* given an identifier of its own. A container's identifier
+            // overwrites its children's, and `minimum-win-notice` and `recently-rejected-notice`
+            // inside this card are both queried by tests. That is the collision `TESTING.md`
+            // records losing CI rounds to; tests watching for a changed recommendation match on
+            // the label instead.
             // The single animated moment in the app: this card leaves, the next rises.
             .id(recommendation.task.id)
             .cardTransition()

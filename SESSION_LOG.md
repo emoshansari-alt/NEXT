@@ -5,6 +5,161 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-09 — Session 12: the standing visual rule, and an audit of every unticked box
+
+**Objective.** Record the owner's standing rule about which visual decisions need approval, then
+work the remaining release-candidate list down — starting with the schema-migration round trip.
+
+### Result
+
+**Tier 1: 559 tests / 100 suites.** Tier 2: run cited below.
+
+Fifteen checklist boxes moved. More usefully, **an audit of every unticked box found eighteen
+real gaps**, of which the most valuable were not the ones the checklist named.
+
+### The standing rule (D-024)
+
+Routine visual implementation is autonomous — layout, accessibility, responsive behaviour,
+consistency, components, animation within D-023's language. A short, **exhaustively named** list
+stops for a proposal checkpoint of two or three genuinely distinct options, shown rather than
+described: App Store screenshot direction, the icon, marketing imagery, Higgsfield assets,
+onboarding artwork, the visual identity, new art direction, and the palette or typography as a
+whole. App Store screenshots have a fixed seven-step sequence ending in the owner's selection.
+
+Two clauses exist because their absence is what would make the rule useless. A checkpoint that
+fires on ordinary work trains everyone to skim past it. And unrelated work does not wait on a
+pending proposal — a checkpoint blocks the thing it is a proposal for and nothing else.
+
+### The audit, and what it says about checklists
+
+Seven parallel read-only audits, each gap then given to an agent told to *refute* it. Eighteen
+survived, sixteen were refuted — and the refutations were the useful half. "No Tier 1 test
+round-trips the rejection loop" turned out to be false; so did "a real compiler warning exists in
+the app layer" and "the checklist understates the force-unwrap state". An adversarial pass on
+your own findings is worth as much as the findings.
+
+**The two most valuable gaps were in things already ticked**, which is the lesson worth keeping:
+
+- `freshRejectionDemotesTask` had been green since session 3 and **could not fail**. Its fixtures
+  were named "rejected" and "alternative"; with the penalty zeroed the two tie on every factor,
+  the tie-break falls to the identifier, and "alternative" wins anyway. The right answer for a
+  reason with nothing to do with rejection. This is the fourth test in this project found
+  incapable of failing, and every one was written after its implementation.
+- `RELEASE_CHECKLIST.md` **contradicted itself in the same file**: "Motion restrained and
+  Reduce-Motion-safe" was ticked six lines below an unticked "Reduce Motion respected". The
+  unticked one was right.
+
+### Reduce Motion was one call site out of four
+
+`NextMotion` opens by stating every animation has a still equivalent. It did not.
+`cardChange(reduceMotion:)` — written to provide one — **had no caller at all**: the card's
+timing curve was the static spring, every block button in the app scaled unconditionally, and
+onboarding's page turn was a full-width slide on the first screen a user ever sees.
+
+A helper that exists, reads correctly, and is never called is worse than a missing one. The
+missing one gets noticed.
+
+### Errors were rendered, never announced
+
+All seven failure surfaces were plain text, and grep found no `AccessibilityNotification`,
+`accessibilityAddTraits` or `UIAccessibility` anywhere in the app. Most sit *before* the control
+the user just operated in traversal order — the Settings notice above the toggle, the capture
+failure below the button — so sweeping the screen again may not reach them. A refused
+notification permission left the toggle looking on and said nothing at all.
+
+XCUITest cannot hear VoiceOver speak, so the part that can be got wrong — *when* to speak — is a
+pure function tested at Tier 2, and the part that cannot be tested is one statement with no logic
+in it. Announce on appearance; stay silent on clearing, because silence is what the absence of a
+problem sounds like; never repeat an unchanged message, because a view body runs for reasons that
+have nothing to do with the error and a failure that re-announces itself on every evaluation
+makes the screen unusable.
+
+**The modifier goes on the container, not on the message.** Every one of these is inside an
+`if let`, so the `Text` does not exist until the failure does — watching it for a change would
+mean watching a view born in its final state, and the nil-to-message transition would never be
+seen. The identifier stays on the leaf, which is the lesson this suite has already lost CI rounds
+to twice.
+
+### A screen you could only leave by swiping
+
+Task Detail carries no Close button because it is normally *pushed* and the back button is the
+way out. True there. As the root of its own stack — the deep-link route, from a tapped reminder
+or the widget — there is no back button, so the only exit was an interactive dismiss gesture. The
+control belongs to the sheet wrapper rather than to Task Detail, so the pushed presentation does
+not grow a second, contradictory exit.
+
+### Three claims made mechanical
+
+Each had no possible source of evidence, and one of them had been quietly false.
+
+- **Force unwraps.** The rule already held everywhere; the item sat directly under two marked
+  "(CI-enforced)" with nothing enforcing it.
+- **Networking.** `URLSession` comes from Foundation and needs no import, so adding one would
+  have passed every check that existed. The lint covers all four shipped roots — the other two
+  scripts only ever looked at `NextKit`.
+- **Release and warnings.** *Nothing in this repository had ever built Release.* The single
+  `xcodebuild` invocation runs the scheme's Test action, pinned to Debug. And the one compiler
+  warning the package had — a redundant `#require` in a test — had been printing in every green
+  run since it was written.
+
+Warnings-as-errors is passed on the Release step's command line rather than set in `project.yml`.
+In `project.yml` it would apply to every target, every configuration and local Xcode, so a
+diagnostic from a runner-image update would turn main red for a reason nobody here controls —
+the same trap the simulator-name step already refuses.
+
+### Two mutations survived, and both times the mutation was wrong
+
+Thirteen mutations were applied to this session's new tests and all thirteen were eventually
+caught, but two took a second attempt. Replacing a timeout with a *different bad payload* still
+fails validation, so the store stays untouched and the test is right to stay green. Removing the
+refusal for an *inapplicable* mode-operation pairing changes nothing the assertion covers, by
+design.
+
+**A survived mutation is a question, not a verdict.** Both times the answer was that the mutation
+did not mean what it looked like.
+
+Where a mutation could not express the risk, a **control test** does instead. "The store still
+equals what it started as" only means something if that write can change the store, so a
+companion test drives a *successful* decomposition through the same path and asserts the parent
+really is rewritten. Without it both tests would pass against plumbing that silently did nothing.
+
+### The offline box could never have been ticked
+
+`TESTING.md` asked for the golden path "with the network disabled". No tier can run that: there
+is no XCUITest or `simctl` control for airplane mode, and on the CI runner the only real lever
+would sever the runner's own connection to GitHub Actions. An item no tier can ever tick is not a
+strict standard; it is a permanently unticked box that stops meaning anything.
+
+Split into what each tier can prove — a lint that no shipped source names a networking API, the
+Tier 1 offline provider, and the whole loop running at Tier 2 with nothing answering — and the
+literal radio-off run moved to `RELEASE_GATED.md` where the other device claims live.
+
+Same correction to "No network request at launch": true of NEXT, and NEXT starts a StoreKit
+transaction listener whose out-of-process daemon is Apple's business, not something a grep can
+see. The narrower sentence is the true one.
+
+### Known limitations
+
+- **App Store screenshots are the next checkpoint and have not been proposed.** Under D-024 they
+  wait for the owner; nothing else waits on them.
+- VoiceOver traversal order still has no evidence, and whether an announcement is actually spoken
+  is device-only (B5).
+- The NEXT+ boundary, D-016 pricing and D-019 remain open and release-blocking.
+- Haptics designed, not implemented. Notification delivery, a real purchase and the widget's
+  content remain device- or signing-gated.
+- Two system-rendered accessibility exceptions remain tracked, not enforced (D-021).
+
+### Exact next action
+
+**App Store screenshots, at step 1 of D-024's sequence**: inspect the finished interface, decide
+the narrative, and bring the owner two or three distinct presentation directions with real
+mockups. That is the only remaining item that stops for approval, and it is now the largest one.
+
+Alongside it, and needing nobody: `PRIVACY.md` and the four privacy boxes, cold-start
+measurement, and VoiceOver traversal order.
+
+---
+
 ## 2026-08-09 — Session 11: Phase 12, and the app finally looks like something
 
 **Objective.** Propose visual directions, build the one the owner chose, and make contrast an
