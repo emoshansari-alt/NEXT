@@ -145,8 +145,16 @@ public struct RankingEngine: Sendable {
         case .startability:
             task.hasConcreteNextAction ? 1 : 0
 
-        // Not yet implemented. Driven in by its own test in a later cycle; until then it
-        // contributes an explicit zero rather than being silently missing.
+        // Deliberately zero, and decided rather than unfinished — see DECISIONS.md D-022.
+        //
+        // Every signal available for "harder to begin than its size suggests" is either already
+        // counted by another factor or actively wrong. A missing first step is `startability`.
+        // Recent refusals are `rejectionPenalty`. And the most tempting signal — that the task
+        // has been started before and is still outstanding — would demote precisely the thing
+        // the user is in the middle of, pushing them off work they had just begun.
+        //
+        // The factor stays present in every breakdown so "Why this?" cannot silently lose it,
+        // and so introducing a real signal later is a change to this one expression.
         case .friction:
             0
         }

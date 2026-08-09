@@ -244,7 +244,8 @@ a real flow is worth less than an honest fixture for it.
 
 Required by the product spec and **not** yet covered. Tracked honestly rather than implied away:
 
-- the `friction` ranking factor still contributes an explicit zero
+- the `friction` ranking factor contributes zero **by decision**, not by omission —
+  D-022, pinned by `RankingFrictionTests`
 - **notification delivery.** The plan and the routing are verified; nothing asserts anything
   arrives. Delivery needs a device — `RELEASE_GATED.md` B5.
 - **a real purchase**, and the receipt mapping behind it — `RELEASE_GATED.md` B4a

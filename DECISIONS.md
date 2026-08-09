@@ -573,6 +573,49 @@ is the standard being met here, not a broader one.
 
 ---
 
+## D-022 — `friction` ships as a decided zero, not an unfinished one
+
+**Date:** 2026-08-09 · **Status:** Accepted · **Revisit on rejection-rate evidence**
+
+**Context.** `friction` — "something makes this harder to begin than its size suggests" — has been
+one of eight ranking factors since Session 1 and has contributed an explicit zero the whole time,
+described as "not yet implemented". It is the last stub in the engine, and `ARCHITECTURE.md` §10
+forbids leaving dead experiments in shipped code, so it needed resolving one way or the other.
+
+**Decision.** It stays zero, as a decision rather than an omission, pinned by its own tests.
+
+**Reasoning — every available signal is already counted, or is actively wrong.**
+
+- *No concrete first step* is the obvious candidate, and it is exactly what `startability` already
+  scores. Counting it twice would silently double that factor's weight.
+- *Recent refusals* are `rejectionPenalty`, which decays on purpose.
+- *A refusal's stated reason* — "I don't have what I need", "I need less effort" — is the most
+  interesting candidate, because it describes the task rather than the moment and would outlive
+  the cooldown. It was rejected because it would permanently demote a task on the strength of one
+  tap, long after the user had got whatever they were missing. That is the shape of defect D-020
+  had just been written to remove.
+- *Has been started and is still outstanding* is the most tempting signal and the worst. It
+  describes a task in progress exactly as well as an abandoned one, so it would demote the thing
+  the user began a minute ago and push them off it.
+- *A large estimate with no decomposition* measures size, and the factor is explicitly about
+  difficulty **beyond** what size already explains — which `deadlineUrgency` and the time-budget
+  filter handle.
+
+**Why not ship a rough version anyway.** This engine decides the single thing on screen. A guessed
+signal does not degrade gracefully here: it silently reorders what the user is told to do, and
+`PRODUCT_SPEC.md` §14 already names recommendation *rejection rate* as the evidence that should
+drive tuning. There is none yet. P9 says complexity is not added merely because it is possible,
+and P6's reasoning — do not reach for machinery where deterministic logic suffices — applies just
+as well to a factor nobody can currently justify.
+
+**What keeps it honest.** The factor remains present in every `ScoreBreakdown`, enforced by a
+test, so "Why this?" cannot lose it and adding a real signal later is a change to one expression.
+`RankingFrictionTests` sweeps the task shapes that might plausibly have earned a penalty and
+asserts none does, including the started-and-outstanding case with the reasoning attached — so
+whoever implements it has to delete a test that explains why it was zero.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

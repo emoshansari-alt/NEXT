@@ -58,9 +58,10 @@ see `RELEASE_GATED.md` Gate B.
 
 - [ ] `NextKit` has no forbidden import (CI-enforced)
 - [ ] No `Date()` or `UUID()` in `NextKit` (CI-enforced)
-- [ ] All scoring constants live in `ScoringWeights`
+- [x] All scoring constants live in `ScoringWeights`
+- [x] No stubbed ranking factor — `friction` is a decided zero (D-022)
 - [ ] No force unwraps outside tests
-- [ ] No dead experiments or "temporary" hacks in shipped code
+- [x] No dead experiments or "temporary" hacks in shipped code
 - [ ] Release build succeeds at Tier 2
 - [ ] No compiler warnings in a clean build
 
@@ -86,11 +87,13 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] Contrast adequate throughout
 - [ ] No meaning conveyed by colour alone
 - [ ] No essential action is gesture-only
-- [ ] Touch targets meet current platform guidance
+- [x] Touch targets meet current platform guidance — audit-enforced (D-021)
 - [ ] Errors announced accessibly
 - [ ] Timer state accessible
 - [ ] Decorative images hidden from assistive technology
-- [ ] Loading states understandable
+- [x] Loading states understandable
+- [ ] Contrast and Dynamic Type — tracked under a strict expected failure until the
+      Phase 12 palette exists (D-021)
 - [ ] Remaining device-only checks explicitly listed in `RELEASE_GATED.md` B5
 
 ### Privacy and security
