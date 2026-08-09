@@ -256,4 +256,14 @@ Use exactly these terms:
 - **Local Release Candidate** — every Part 1 box ticked with evidence; only Gate B remains.
 - **Released** — live on the App Store.
 
-Today NEXT is: **In development.**
+Today NEXT is: **Tier 2 verified.**
+
+Corrected from "In development" in session 12, which had been wrong for several sessions rather
+than modest: that term means "not all Tier 1 tests pass", and all 559 of them do. The app
+compiles, the Simulator unit and UI suites pass, the accessibility audit passes on eleven screen
+states, and a Release build of the app and widget now succeeds with warnings as errors — run
+[31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838).
+
+It is **not** a Local Release Candidate, and must not be called one: 18 Part 1 boxes are still
+open. The largest are the NEXT+ capability boundary (D-015, D-016, D-019), the App Store
+screenshot set, and the device-only checks in `RELEASE_GATED.md` B5.
