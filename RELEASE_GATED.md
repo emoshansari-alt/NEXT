@@ -47,6 +47,28 @@ Blocks *distribution* and *device* work only.
 - [ ] Accept the Program License Agreement
 - [ ] Complete banking and tax forms (required before any paid tier can be sold)
 
+### B1a — App Group, and therefore the widget — **measured, not assumed**
+
+- [ ] Provision the `group.com.nextapp.next` App Group
+- [ ] Verify the widget reads the snapshot the app writes
+- [ ] Verify the widget's home-screen timeline refresh on a real device
+
+**Evidence.** CI run
+[31285133615](https://github.com/emoshansari-alt/NEXT/actions/runs/31285133615), 2026-08-09.
+A Tier 2 test asserted that `containerURL(forSecurityApplicationGroupIdentifier:)` resolves.
+It does not: in an unsigned Simulator build the call returns `nil`, because App Groups are
+*provisioned* entitlements and no profile grants one. Declaring the entitlement in
+`project.yml` is not sufficient.
+
+**What still works without it.** Everything except the widget's content. The widget target
+compiles, installs and renders; it shows its "Open NEXT to see what is next." placeholder
+because there is no snapshot to read. `SnapshotStore` returns `nil` and writes are no-ops, so
+the app itself is entirely unaffected — a Tier 2 test pins that degradation explicitly.
+
+**What is verified without signing:** snapshot construction, staleness, JSON round-tripping,
+deep-link generation and parsing, and that the app survives an unavailable container. Only the
+app-to-widget handoff is gated.
+
 ### B2 — Identifiers and signing
 
 - [ ] Register the App ID / bundle identifier
