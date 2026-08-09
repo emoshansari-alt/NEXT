@@ -43,6 +43,30 @@ final class GoldenPathUITests: XCTestCase {
         return app
     }
 
+    /// Waits for a field to actually hold `expected`, then asserts it.
+    ///
+    /// A polled wait rather than a sleep: it returns as soon as the value is right, so the happy
+    /// path costs nothing and only a genuine failure spends the full timeout.
+    private func expectValue(
+        _ expected: String,
+        in element: XCUIElement,
+        timeout: TimeInterval,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let predicate = NSPredicate(format: "value == %@", expected)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        _ = XCTWaiter().wait(for: [expectation], timeout: timeout)
+
+        XCTAssertEqual(
+            element.value as? String,
+            expected,
+            "the field should hold what was typed",
+            file: file,
+            line: line
+        )
+    }
+
     /// Chooses "Just start" on the Focus timer screen, so the session is running.
     private func startFocusWithoutTimer(_ app: XCUIApplication) {
         let justStart = app.buttons["focus-start-button"]
@@ -65,10 +89,13 @@ final class GoldenPathUITests: XCTestCase {
         field.tap()
         field.typeText(text)
 
-        // Assert the text actually landed before acting on it. Without this, a field that
-        // silently ignores input leaves the save button disabled, the tap does nothing, and the
-        // failure surfaces several assertions later pointing at the wrong thing.
-        XCTAssertEqual(field.value as? String, text, "the field should hold what was typed")
+        // Wait for the text to land rather than asserting immediately. `typeText` returns before
+        // SwiftUI has necessarily processed every keystroke, and on a loaded CI machine this
+        // read caught a half-typed "Email Pr". Checking that the field holds what was typed is
+        // still worth doing — a field that silently ignores input leaves the save button
+        // disabled and the failure surfaces several assertions later — it just has to be a wait
+        // rather than a glance.
+        expectValue(text, in: field, timeout: 10)
 
         let saveSingle = app.buttons["capture-save-single-button"]
         XCTAssertTrue(saveSingle.waitForExistence(timeout: 5))
