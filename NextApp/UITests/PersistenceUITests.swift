@@ -66,11 +66,15 @@ final class PersistenceUITests: XCTestCase {
         everything.tap()
     }
 
-    /// Asserts a task is listed, having first confirmed Everything is actually open.
+    /// Asserts a task is listed in Everything, by looking at the rows themselves.
     ///
-    /// The confirmation is not ceremony. Today sits behind this sheet and shows the recommended
-    /// task's title too, so an unscoped search of the whole hierarchy can match the screen
-    /// underneath and pass without Everything having opened at all.
+    /// **Not** by searching `staticTexts` for the title, which is how this was first written and
+    /// why it gave false passes: an Everything row is a `Button` carrying its own accessibility
+    /// label, so the title inside it is not exposed as a separate element — the container's label
+    /// replaces its children's, exactly as `TESTING.md` records. What the search actually matched
+    /// was Today, sitting behind the sheet and showing the same title. It only came apart once the
+    /// task was completed and Today fell back to its empty state, at which point an assertion that
+    /// had "passed" three times turned out never to have looked at Everything at all.
     private func assertEverythingContains(
         _ text: String,
         in app: XCUIApplication,
@@ -80,7 +84,16 @@ final class PersistenceUITests: XCTestCase {
             app.buttons["everything-close-button"].waitForExistence(timeout: 10),
             "Everything should be open before looking in it"
         )
-        XCTAssertTrue(app.staticTexts[text].waitForExistence(timeout: 10), message)
+
+        let rows = app.buttons.matching(identifier: "task-row")
+        let row = rows.element(boundBy: 0)
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "\(message) — no rows are listed at all")
+
+        let labels = (0..<rows.count).map { rows.element(boundBy: $0).label }
+        XCTAssertTrue(
+            labels.contains { $0.contains(text) },
+            "\(message) — rows were: \(labels)"
+        )
     }
 
     func testWorkSurvivesBeingKilledThroughEveryStateChange() {
@@ -173,6 +186,13 @@ final class PersistenceUITests: XCTestCase {
             title,
             in: app,
             message: "a completed task is filed, not deleted — a state with no way back is a trap"
+        )
+        // And it is filed *as completed*, spoken rather than left to the strikethrough, which is
+        // the only part of this a screen reader can convey.
+        assertEverythingContains(
+            "Completed.",
+            in: app,
+            message: "the row should say it is completed, not only look it"
         )
     }
 
