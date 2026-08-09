@@ -37,6 +37,7 @@ struct NextPaletteTests {
             ("the accent on the card", NextPalette.biro, NextPalette.card),
             ("a warning on the card", NextPalette.warning, NextPalette.card),
             ("text on the primary button", NextPalette.onBiro, NextPalette.biro),
+            ("a disabled button's label", NextPalette.inkSecondary, NextPalette.edge),
             ("primary text on the desk", NextPalette.ink, NextPalette.desk),
             ("supporting text on the desk", NextPalette.inkSecondary, NextPalette.desk)
         ]

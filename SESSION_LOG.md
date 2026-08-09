@@ -5,6 +5,112 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-09 — Session 11: Phase 12, and the app finally looks like something
+
+**Objective.** Propose visual directions, build the one the owner chose, and make contrast an
+enforced check rather than a tracked failure.
+
+### Result
+
+**Tier 1: 549 tests / 100 suites. Tier 2: 107 unit / 25 suites + 34 UI tests.**
+
+### Three directions, one selected
+
+Proposed as three different *systems* rather than three palettes, each grounded in the student's
+own world: **Index Card** (hierarchy by depth), **Departure Board** (hierarchy by scale and time),
+**Margin** (hierarchy by position). Presented as a published artifact with live mockups of Today,
+Focus and Rescue in each, so the choice was made from something visible rather than described.
+
+The owner chose **Index Card, with Margin's outlined controls and motion restraint** (D-023).
+
+Worth keeping from the proposal: Departure Board was the most distinctive and was argued *against*
+on a product ground rather than an aesthetic one. It answers "what is next" by listing what comes
+after — and removing the list is the entire product. A direction can be the best-looking one and
+still be wrong.
+
+### What the direction actually is
+
+One card, resting on a desk. From the revision card students already use to reduce a subject to a
+single prompt. Ballpoint blue is the accent because it is the colour of their own handwriting; a
+highlighter stripe marks the line that matters. Depth carries hierarchy so the type can stay quiet,
+which is what §10 means by typography carrying the identity.
+
+`NextApp/Shared/Design` holds the palette, type scale, surfaces, controls and motion — compiled
+into **both the app and the widget**, so the card on the home screen is the same card as in the
+app. No colour or point size is written anywhere else.
+
+Margin's contribution is discipline, and it is doing real work: cards invite decoration, and cards
+are the most common surface in mobile design. The secondary control is outlined or underlined and
+never a second filled block, and **motion gets exactly one moment** — the card leaving and the next
+rising, which is the `NEXT → START → DONE → NEXT` loop §10 asks motion to reinforce.
+
+### Contrast stopped being an aspiration
+
+`NextPaletteTests` resolves every token pair in both appearances and asserts 4.5:1 against the
+values themselves, not against a screenshot. Two things fell out of writing it:
+
+- **`inkSecondary` is NEXT's own value**, because the system `.secondary` does not reliably clear
+  4.5:1 at caption size — which was one of the audit's original findings.
+- **The highlighter is a stripe and never a fill behind text.** That removes the one colour that
+  could not have cleared the bar, and the palette deliberately offers no `onMarker` colour, so
+  using it that way does not compile.
+
+The test then caught a token chosen by eye: the dark card measured 1.16 against the dark desk where
+the palette asks for 1.2. An object you cannot see resting on something is not an object.
+
+### The audit earned its keep again
+
+Four enforced failures on the first Phase 12 run, all in the new work: three clipped labels and
+Onboarding's Skip target. The last of those is worth remembering —
+`.buttonStyle(.plain)` sat closer to the `Button` than `.buttonStyle(.quietText)`, so it won and
+the 44-point guarantee never applied. Two button styles on one control is not an error, and only
+the audit noticed the wrong one had taken effect.
+
+Both the clipping and the height problem were fixed **in the styles**, not per screen:
+`NextMetrics.controlHeight` stands the comfortable 56-point minimum down once the type sets its
+own, which is Session 10's Capture lesson applied in one place instead of one screen at a time.
+
+### A misreading, corrected
+
+The first Phase 12 log appeared to show contrast and Dynamic Type failures on Capture. They
+belonged to the expected-failure test, which is *allowed* to fail — the log parser attributed them
+to whichever screen it had last seen. A filter for "elements behind a sheet" was written on the
+strength of that and then removed. Machinery justified by a misread log is worse than no machinery.
+
+### The icon
+
+Three shapes — the card, its spine, one marked line — rendered from the palette's own hex values by
+a script at 3× and downsampled, so the asset cannot drift from the app's colours. Generated imagery
+was assessed and rejected for it: at three shapes a generator is slower to iterate than arithmetic
+and cannot promise exact values. **No `/design` skill exists in this session**, which D-014 asks be
+said plainly rather than quietly substituted; `frontend-design` and `artifact-design` produced the
+direction proposals.
+
+### Known limitations
+
+- **Dynamic Type on navigation-bar buttons** — "Cancel", "Done", "Close" do not scale, SwiftUI
+  gives no control over it, and an app cannot fix it. Tracked under a strict expected failure.
+- Haptics are designed but not implemented; Core Haptics is unavailable in the Simulator anyway.
+- No screenshots produced from the real app yet.
+- Everything, Task Detail and Settings keep native `List` and `Form`. Deliberate — those are the
+  right shapes, and turning them into cards would contradict the one-card rule — but they are the
+  least distinctive screens in the app.
+- Notification delivery, a real purchase and the widget's content all remain device- or
+  signing-gated.
+
+### Exact next action
+
+**The schema-migration round-trip test** — the last unticked engineering item needing neither a
+device nor a palette, and the one thing standing between the store and release-candidate status.
+`NextMigrationPlan` has one version and no stage; the test should write a store at V1, migrate, and
+assert every field survives.
+
+Then: **App Store screenshots from the real app**, which is now worth doing because the app finally
+looks like itself, and where D-014's Higgsfield fallback is genuinely justified — the environment a
+phone sits in is marketing, not product.
+
+---
+
 ## 2026-08-09 — Session 10: the release-blocking gaps, and four decisions taken rather than deferred
 
 **Objective.** Work down the remaining 1.0 list autonomously: relaunch persistence, daily

@@ -19,7 +19,7 @@ struct PrimaryBlockStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(NextType.control)
-            .foregroundStyle(NextPalette.onBiro)
+            .foregroundStyle(isEnabled ? NextPalette.onBiro : NextPalette.inkSecondary)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, minHeight: NextMetrics.controlHeight(typeSize))
@@ -27,9 +27,8 @@ struct PrimaryBlockStyle: ButtonStyle {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: NextMetrics.controlRadius, style: .continuous)
-                    .fill(NextPalette.biro)
+                    .fill(isEnabled ? NextPalette.biro : NextPalette.edge)
             )
-            .opacity(isEnabled ? 1 : 0.4)
             // Presses in rather than fading. On a direction built from a physical object, a
             // control that recedes under the finger is the only touch feedback that makes sense.
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
@@ -46,7 +45,7 @@ struct OutlinedBlockStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(NextType.control)
-            .foregroundStyle(NextPalette.ink)
+            .foregroundStyle(isEnabled ? NextPalette.ink : NextPalette.inkSecondary)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, minHeight: NextMetrics.controlHeight(typeSize))
@@ -56,7 +55,6 @@ struct OutlinedBlockStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: NextMetrics.controlRadius, style: .continuous)
                     .strokeBorder(NextPalette.ink.opacity(0.35), lineWidth: 1.5)
             )
-            .opacity(isEnabled ? 1 : 0.4)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(NextMotion.press, value: configuration.isPressed)
     }
@@ -78,8 +76,10 @@ struct QuietTextStyle: ButtonStyle {
             .fixedSize(horizontal: false, vertical: true)
             .overlay(alignment: .bottom) {
                 if underlined {
+                    // Full strength, matching the label. A faded rule reads as decoration and
+                    // fails the contrast the text beside it passes.
                     Rectangle()
-                        .fill(NextPalette.inkSecondary.opacity(0.45))
+                        .fill(NextPalette.inkSecondary)
                         .frame(height: 1)
                         .offset(y: 2)
                 }

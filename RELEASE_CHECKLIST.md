@@ -84,7 +84,7 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] VoiceOver traversal order is logical on every core screen
 - [ ] Dynamic Type works at the largest accessibility sizes without breaking layout
 - [ ] Reduce Motion respected
-- [ ] Contrast adequate throughout
+- [x] Contrast adequate throughout — enforced by the audit and by `NextPaletteTests`
 - [x] No meaning conveyed by colour alone — completion is spoken, not only struck through
 - [ ] No essential action is gesture-only
 - [x] Touch targets meet current platform guidance — audit-enforced (D-021)
@@ -92,8 +92,8 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Timer state accessible — spoken, not left to the digits
 - [ ] Decorative images hidden from assistive technology
 - [x] Loading states understandable
-- [ ] Contrast and Dynamic Type — tracked under a strict expected failure until the
-      Phase 12 palette exists (D-021)
+- [ ] Dynamic Type on navigation-bar buttons — not app-fixable; tracked under a strict
+      expected failure (D-021)
 - [ ] Remaining device-only checks explicitly listed in `RELEASE_GATED.md` B5
 
 ### Privacy and security
@@ -113,10 +113,12 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Visual
 
-- [ ] No placeholder UI anywhere user-facing
-- [ ] App icon final
-- [ ] Typography and hierarchy final
-- [ ] Motion restrained and Reduce-Motion-safe
+- [x] No placeholder UI anywhere user-facing
+- [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
+- [x] Typography and hierarchy final — one scale in `NextType`, built from text styles so it
+      scales with Dynamic Type
+- [x] Motion restrained and Reduce-Motion-safe — one animated moment, with a still
+      equivalent that loses no information
 - [ ] Haptics implemented (device verification remains gated)
 
 ### Documentation

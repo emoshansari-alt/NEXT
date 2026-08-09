@@ -76,7 +76,7 @@ struct OnboardingView: View {
             if let body = panel.body {
                 Text(body)
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                     .multilineTextAlignment(.center)
             }
             Spacer()

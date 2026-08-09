@@ -70,6 +70,7 @@ struct MinimumWinView: View {
             }
             .scrollContentBackground(.hidden)
             .background(NextPalette.desk)
+            .listRowBackgroundIsCard()
             .navigationTitle("Still possible")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

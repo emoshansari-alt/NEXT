@@ -84,3 +84,16 @@ extension View {
         background(NextPalette.desk.ignoresSafeArea())
     }
 }
+
+extension View {
+
+    /// Makes every row in a `List` or `Form` the card stock.
+    ///
+    /// Setting the scroll background to the desk is only half of it: rows keep the system's own
+    /// background unless told otherwise, so ink chosen for contrast against the card ends up
+    /// rendered against a colour nobody picked. The accessibility audit found that in bulk on
+    /// Settings and Task Detail — eight and six issues respectively — and it is one line to fix.
+    func listRowBackgroundIsCard() -> some View {
+        listRowBackground(NextPalette.card)
+    }
+}

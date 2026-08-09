@@ -233,6 +233,13 @@ abstraction layer beyond what SwiftUI already provides.
 The point of the protocol wrappers is that view models remain testable on the simulator without
 real notification permission, real purchases, or real hardware.
 
+### The design system is shared with the widget
+
+`NextApp/Shared/Design` is compiled into both the app and the widget target, for the same reason
+`SnapshotStore` is: the widget must be the same object as the card in the app, and two copies of a
+palette drift. It is view modifiers and value types with no state, so sharing costs nothing at
+launch — an embedded framework would, in an extension expected to render in milliseconds.
+
 ### What crosses between screens is a value, not a task
 
 Rescue and Minimum Win both answer with a deliberately *smaller* action than the task it came
@@ -265,8 +272,9 @@ migration plan, and a round-trip test per schema version.
 
 - No god objects; no file grows large merely because splitting is effort.
 - No duplicated business logic between `NextKit` and `NextApp`.
-- No unexplained magic constants — scoring constants live in `ScoringWeights`, UI constants in
-  a design-token file.
+- No unexplained magic constants — scoring constants live in `ScoringWeights`, and every colour,
+  font, radius and duration lives in `NextApp/Shared/Design` (D-023). A hex value or a point size
+  written anywhere else is a defect, not a shortcut.
 - No force unwraps outside tests.
 - No dead experiments and no permanent "temporary" hacks in shipped code.
 - Prefer boring, comprehensible engineering over architectural elegance.

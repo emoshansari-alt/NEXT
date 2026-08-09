@@ -39,6 +39,7 @@ struct EverythingView: View {
             .navigationTitle("Everything")
             .scrollContentBackground(.hidden)
             .background(NextPalette.desk)
+            .listRowBackgroundIsCard()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

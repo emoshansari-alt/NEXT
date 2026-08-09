@@ -29,6 +29,9 @@ struct SettingsView: View {
             }
             .scrollContentBackground(.hidden)
             .background(NextPalette.desk)
+            // Rows are the card stock. Without this they keep the system's own background and
+            // the palette's contrast guarantees do not apply to what is actually rendered.
+            .listRowBackgroundIsCard()
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

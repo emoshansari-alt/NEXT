@@ -63,6 +63,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
 | Everything | date bucketing into sections, ordering, partitioning |
 | Monetisation | entitlement rules, expiry boundary, bounded billing-retry grace, per-receipt revocation, the capability gate, the 1.0 tripwire, the purchase contract, purchase tone |
+| Design | every palette pair's contrast ratio in both appearances, the card's separation from the desk (Tier 2 — the colours are app-layer) |
 
 The suite also runs on `macos-latest` in CI under Apple Swift 6.3.3, so it passes on two
 toolchains and two operating systems.
@@ -208,10 +209,19 @@ test bundles and defeat the purpose.
 ### The accessibility audit
 
 `AccessibilityUITests` runs `performAccessibilityAudit()` over every core screen, plus Today and
-Focus at accessibility XXXL. It enforces `hitRegion`, `textClipped`, `elementDetection`,
-`sufficientElementDescription` and `trait`. **Contrast and Dynamic Type are asserted under a
-strict `XCTExpectFailure`** — they do not pass, they are Phase 12's to fix, and the strictness
-means the test will fail the day they start passing so the expectation gets removed (D-021).
+Focus at accessibility XXXL. It enforces `contrast`, `hitRegion`, `textClipped`,
+`elementDetection`, `sufficientElementDescription` and `trait`.
+
+**Contrast became enforceable when the Index Card palette landed** (D-023). It is checked twice
+and in two different ways: `NextPaletteTests` resolves every token pair in both appearances and
+asserts 4.5:1 against the *values*, and the audit checks what is actually rendered. The first
+catches a token chosen carelessly; the second catches a screen that puts the right colours in the
+wrong place.
+
+**Dynamic Type is still tracked rather than enforced**, under a strict `XCTExpectFailure`. What
+remains is navigation-bar buttons — "Cancel", "Done", "Close" — which SwiftUI does not scale and an
+app cannot make scale. Strict, so if that ever changes the test fails for *not* failing and the
+expectation gets removed.
 
 The audit reports each issue's identifier, label and frame rather than only the fault, because the
 element-level detail otherwise lives in an xcresult bundle that cannot be opened from Windows.
