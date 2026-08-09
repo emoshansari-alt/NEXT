@@ -117,6 +117,12 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Visual
 
+**How visual work is decided (D-024).** Everything in this section is ordinary UI engineering and
+is done autonomously. The items that stop for an owner proposal checkpoint are the subjective ones
+— the app icon's *direction*, the palette and typography as a whole, marketing imagery, onboarding
+artwork, and the App Store screenshot set below. D-024 lists them exhaustively and gives the
+sequence.
+
 - [x] No placeholder UI anywhere user-facing
 - [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
 - [x] Typography and hierarchy final — one scale in `NextType`, built from text styles so it
@@ -135,8 +141,14 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Store preparation that needs no membership
 
-- [ ] Screenshots produced from the real app
+- [ ] **Screenshot direction proposed and selected — owner checkpoint (D-024).** Two or three
+      distinct presentation directions, shown as visual examples rather than described, with a
+      recommendation. The set is not produced until a direction is selected. Other
+      release-candidate work does not wait on this.
 - [ ] Screenshot narrative assembled
+- [ ] Screenshots produced from the real app — the real NEXT interface is the source of truth;
+      generated imagery may support the composition but may not fabricate functionality or stand
+      in for a screenshot (D-014, D-024)
 - [ ] Title, subtitle, description, keywords drafted
 - [ ] Privacy policy text drafted
 - [ ] Support contact decided

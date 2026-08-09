@@ -669,6 +669,77 @@ would contradict the one-card rule. They sit on the desk and use the same type a
 
 ---
 
+## D-024 — Visual implementation is autonomous; product identity and marketing stop for a proposal checkpoint
+
+**Date:** 2026-08-09 · **Status:** Accepted (owner instruction) · **Standing rule, applies from now on**
+
+**Context.** Phase 12 established the visual direction by proposing three systems and letting the
+owner choose (D-023). That worked, and it was expensive: it stopped all work while a choice was
+made. Most visual work is not like that. Wrapping a label, raising a contrast ratio, giving a
+button a 44-point target and animating a card out are engineering decisions with a right answer,
+and asking about each one would turn every UI fix into a round trip. A small number of visual
+decisions are genuinely not like that: they define what NEXT *is* to someone who has never opened
+it, and they are matters of taste on which the owner's judgement is the deciding one.
+
+**Decision.** Two categories, with different rules.
+
+**1. Routine visual implementation proceeds autonomously.** No approval, no checkpoint, no
+pre-announcement. This covers layout fixes, accessibility corrections, responsive and Dynamic Type
+behaviour, consistency work across screens, component implementation, animation implementation
+**within the approved design language** (D-023), and ordinary UI engineering of every other kind.
+If the answer follows from the design language, the accessibility rules or the product spec, it is
+engineering and it gets made.
+
+**2. Major subjective visual and marketing decisions stop for a proposal checkpoint.** Named
+exhaustively, so the boundary is not a judgement call:
+
+- App Store screenshot visual direction and composition
+- app icon redesign, or substantial change to the existing one
+- marketing and promotional imagery
+- Higgsfield-generated assets
+- major onboarding artwork
+- substantial change to NEXT's established visual identity
+- new illustration or art direction
+- major change to the palette or the typography
+
+For anything in that list: develop a small number of **genuinely distinct** proposals — normally
+two or three, distinct as *approaches* rather than as variations of one — present them to the
+owner with the strengths and weaknesses of each and a recommendation, and stop for the selection.
+After the selection, the implementation is autonomous again: build and verify the whole thing
+without further checkpoints.
+
+**Show, do not describe.** Wherever it is technically practical, a proposal carries an actual
+visual preview or mockup rather than prose about one. D-023's proposal was made as a published
+artifact with live mockups of Today, Focus and Rescue in all three directions, and that is the
+standard: a direction chosen from a paragraph is a direction chosen blind.
+
+**The real UI is the source of truth for anything representing the product.** Generated imagery
+may not fabricate functionality NEXT does not have, and may not stand in for a real screenshot.
+Higgsfield remains available for supporting marketing artwork where it is genuinely the better
+tool — the environment a phone sits in is marketing, not product — under D-014's ordering, which
+is unchanged: Claude's own design tooling first, Higgsfield for what that cannot do.
+
+**App Store screenshots have a fixed sequence**, because they are the one place where the
+composition, the narrative and the truthfulness of the product representation all land at once:
+
+1. inspect the actual finished NEXT interface;
+2. decide the screenshot narrative — the story the set tells in order;
+3. propose two or three distinct presentation directions;
+4. show representative visual examples or mockups wherever the tooling permits;
+5. give the strengths and weaknesses of each, and recommend one;
+6. **stop for the owner's selection;**
+7. then autonomously produce and verify the complete set.
+
+**What this is not.** It is not approval for every visual detail, and it must not be read that
+way. A checkpoint that fires on ordinary work is worse than no rule, because it trains everyone
+to skim past it. The checkpoint exists for subjective product identity and marketing direction.
+
+**Unrelated work does not wait on a pending checkpoint.** Engineering and release-candidate work
+continues while a visual direction sits with the owner. A proposal awaiting selection blocks the
+thing it is a proposal for and nothing else.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

@@ -27,6 +27,13 @@ Read in this order. The repository — not any chat transcript — is the source
 6. [`TESTING.md`](TESTING.md) — test strategy, what is verified, what is not
 7. `git log --oneline` — recent history
 
+**Before doing visual work, read [`DECISIONS.md`](DECISIONS.md) D-024.** Routine UI engineering —
+layout, accessibility, responsive behaviour, components, animation within the approved design
+language — proceeds autonomously. A short, exhaustive list of subjective decisions (App Store
+screenshot direction, the app icon, marketing imagery, palette or typography as a whole, new art
+direction) stops first for an owner proposal checkpoint of two or three distinct options, shown
+rather than described.
+
 ---
 
 ## Repository layout
