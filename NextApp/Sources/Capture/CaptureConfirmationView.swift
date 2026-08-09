@@ -28,10 +28,15 @@ struct CaptureConfirmationView: View {
                 if model.proposals.isEmpty {
                     Text("NEXT could not find any tasks in that.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NextPalette.inkSecondary)
                 }
             }
             .listStyle(.insetGrouped)
+            // The same treatment the other native-list screens get (D-023): rows on the card
+            // stock, so the palette's contrast guarantees apply to what is actually rendered.
+            // This screen was missed when Settings and Task Detail were done, and extending the
+            // audit past the writing stage is what found it.
+            .listRowBackgroundIsCard()
             // On the list, not on the enclosing stack. A container's identifier propagates to
             // its children and would overwrite every control's own — including the accept
             // button in the footer below.
@@ -94,7 +99,7 @@ struct CaptureConfirmationView: View {
                     // Stated in words, not signalled by colour. The app is not sure, and says so.
                     Text("Is this right?")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NextPalette.inkSecondary)
                         .accessibilityIdentifier("deadline-uncertain")
                 }
 
@@ -103,13 +108,13 @@ struct CaptureConfirmationView: View {
                 Button("Clear") { model.setDeadline(nil, forProposal: proposal.id) }
                     .font(.caption)
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
             }
         } else {
             HStack {
                 Text("No deadline")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                 Spacer()
             }
         }
@@ -122,7 +127,7 @@ struct CaptureConfirmationView: View {
             if let failure = model.failure {
                 Text(failure)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                     .multilineTextAlignment(.center)
                     .accessibilityIdentifier("confirmation-failure")
             }

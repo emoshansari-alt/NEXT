@@ -16,7 +16,7 @@ struct SettingsView: View {
                     Section {
                         Text(notice)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(NextPalette.inkSecondary)
                             .accessibilityIdentifier("settings-notice")
                     }
                 }

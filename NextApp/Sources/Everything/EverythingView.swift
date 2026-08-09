@@ -83,7 +83,7 @@ struct EverythingView: View {
                 .font(.title3.weight(.semibold))
             Text("Whatever is on your mind goes here first.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NextPalette.inkSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(32)
@@ -95,7 +95,7 @@ struct EverythingView: View {
             if let failure = model.storeFailure {
                 Text(failure)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                     .accessibilityIdentifier("everything-failure")
             }
 

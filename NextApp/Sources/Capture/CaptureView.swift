@@ -96,7 +96,7 @@ struct CaptureView: View {
             if let failure = model.failure {
                 Text(failure)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                     .multilineTextAlignment(.center)
                     .accessibilityIdentifier("capture-failure")
             }
@@ -154,7 +154,7 @@ struct CaptureView: View {
                 .accessibilityIdentifier("capture-saved")
             Text("NEXT will work out where to start.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NextPalette.inkSecondary)
             Spacer()
             Button("Done") { dismiss() }
                 .buttonStyle(.borderedProminent)

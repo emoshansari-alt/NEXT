@@ -22,7 +22,7 @@ struct TaskDetailView: View {
                 if let failure = model.failure {
                     Text(failure)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NextPalette.inkSecondary)
                         .accessibilityIdentifier("detail-failure")
                 }
 
@@ -62,7 +62,7 @@ struct TaskDetailView: View {
                     if let added = model.stepsAdded {
                         Text("Added \(added) step\(added == 1 ? "" : "s"). They are in Everything.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(NextPalette.inkSecondary)
                             .accessibilityIdentifier("detail-steps-added")
                     }
                 }

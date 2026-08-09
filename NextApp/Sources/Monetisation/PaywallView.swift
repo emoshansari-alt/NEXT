@@ -25,7 +25,7 @@ struct PaywallView: View {
                 Section {
                     Text(notice)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NextPalette.inkSecondary)
                         .accessibilityIdentifier("paywall-notice")
                 }
             }
@@ -33,6 +33,9 @@ struct PaywallView: View {
             productsSection
             restoreSection
         }
+        // The same row stock the other native-list screens use, so `inkSecondary` is measured
+        // against the surface it was actually chosen against (D-023).
+        .listRowBackgroundIsCard()
         .announcesFailure(model.notice)
         .navigationTitle(NextPlusCopy.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -62,7 +65,7 @@ struct PaywallView: View {
         if model.products.isEmpty {
             Section {
                 Text("Nothing is available to buy right now.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
                     .accessibilityIdentifier("paywall-no-products")
             }
         } else {
@@ -109,7 +112,7 @@ struct PaywallView: View {
                 }
                 Text(NextPlusCopy.period(for: product.kind))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NextPalette.inkSecondary)
             }
 
             Spacer()
