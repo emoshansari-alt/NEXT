@@ -47,7 +47,7 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-08 · **Result:** 410 tests in 75 suites, 410 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 481 tests in 89 suites, 481 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
@@ -57,7 +57,11 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Persistence | the `TaskRepository` contract, run against the in-memory implementation |
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
 | Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
-| Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting |
+| Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks |
+| Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language |
+| Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone |
+| Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
+| Everything | date bucketing into sections, ordering, partitioning |
 
 The suite also runs on `macos-latest` in CI under Apple Swift 6.3.3, so it passes on two
 toolchains and two operating systems.
@@ -86,14 +90,28 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 
 ## Current state — Tier 2
 
-**Last run:** 2026-08-08 · **Result:** `** TEST SUCCEEDED **` ·
-run [31284277004](https://github.com/emoshansari-alt/NEXT/actions/runs/31284277004)
+**Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` ·
+run [31286116920](https://github.com/emoshansari-alt/NEXT/actions/runs/31286116920)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 55 tests in 12 suites, passed |
+| `NextAppTests` (swift-testing) | 66 tests in 15 suites, passed (1 known issue — see below) |
 | `NextAppUITests` (XCTest, real Simulator) | 13 tests, passed |
+| `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
+
+### The one known issue: App Groups need signing
+
+A Tier 2 test asserted the widget's shared container resolves. It does not:
+`containerURL(forSecurityApplicationGroupIdentifier:)` returns `nil` in an unsigned Simulator
+build, because App Groups are *provisioned* entitlements and declaring one in `project.yml` is
+not enough. Evidence:
+run [31285133615](https://github.com/emoshansari-alt/NEXT/actions/runs/31285133615).
+
+That test is now marked `withKnownIssue`, so it starts passing on its own the day signing
+exists rather than needing to be remembered. Alongside it, a test asserts the *degradation* is
+silent: writes are no-ops, reads are `nil`, nothing throws. The app is entirely unaffected;
+only the app-to-widget handoff is gated (`RELEASE_GATED.md` B1a).
 
 This proves the app compiles, `NextKit` links into an iOS target, the SwiftData store honours
 the storage contract, and the golden path works end to end on a Simulator. It proves nothing

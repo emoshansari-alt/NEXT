@@ -5,6 +5,85 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-09 — Session 8: widget, deep links, and the App Group answer
+
+**Objective.** Build the widget, and find out whether an App Group actually works unsigned
+rather than assuming either way.
+
+### Result
+
+**Tier 1: 481 tests / 89 suites. Tier 2: 66 unit (1 known issue) + 13 UI tests.** Green —
+run [31286116920](https://github.com/emoshansari-alt/NEXT/actions/runs/31286116920).
+
+### The App Group experiment, and its answer
+
+The widget needs to read what the app writes, which needs a shared container, which needs an
+App Group entitlement. Whether that works in an unsigned Simulator build was genuinely unknown,
+so rather than guess, a Tier 2 test **asserted** the container resolves.
+
+**It does not.** `containerURL(forSecurityApplicationGroupIdentifier:)` returns `nil` —
+App Groups are *provisioned* entitlements and declaring one in `project.yml` is not enough.
+Evidence: run [31285133615](https://github.com/emoshansari-alt/NEXT/actions/runs/31285133615).
+
+Recorded as `RELEASE_GATED.md` **B1a** with what still works without it. The widget compiles,
+installs and renders its placeholder; the app is entirely unaffected. Snapshot construction,
+staleness, JSON round-tripping and deep-link parsing are all verified. Only the app-to-widget
+handoff is gated.
+
+The tests now assert what is true in *each* world: with a container the round trip must work
+(marked `withKnownIssue`, so it starts running for free the day signing exists); without one the
+degradation must be silent — writes are no-ops, reads are `nil`, nothing throws. That second
+branch is the one running today, and it is the one that matters: a widget that cannot update
+must never become a problem the user sees.
+
+### Design worth keeping
+
+The widget never opens the task store. Extensions run under a hard memory limit and are woken
+at unpredictable moments, so standing up SwiftData and a migration plan to render two lines
+would be slow and fragile. The app writes a few hundred bytes of JSON instead — which also
+confined the entitlement's blast radius to the widget alone.
+
+Snapshots carry rendered strings and the publisher reads the same `UnavailabilityCopy` the Today
+screen does; two surfaces describing one state differently is how a user learns to trust
+neither. A snapshot goes stale after a day, but one dated in the *future* is deliberately not
+stale — reachable from a clock change, and blanking the widget for a reason the user cannot see
+or fix is worse than being slightly off.
+
+`DeepLink` lives in `NextKit` so the widget, notifications and the app parse links identically.
+Unrecognised links are rejected rather than guessed at; a link to a deleted task leaves the user
+on Today, which is reachable in normal use.
+
+### A real flake, fixed properly
+
+`typeText` returns before SwiftUI has processed every keystroke, and on a loaded runner the
+assertion read a half-typed `"Email Pr"`. The same test had passed in earlier runs — which is
+what made it worth fixing rather than re-running. Now a polled `XCTNSPredicateExpectation`.
+
+### Known limitations
+
+- **The widget's content is unverifiable until signing.** It renders a placeholder in CI.
+- Notification **delivery** has still never been observed — only the plan is verified.
+- No notification *actions* (complete/snooze from the banner).
+- Minimum Win has a tested planner and **no caller in the UI**.
+- Rescue's "Do that" opens Focus on the parent task, not the shrunken step.
+- "I'm stuck" is not reachable from inside Focus.
+- No StoreKit or paywall. `friction` is still an explicit zero.
+
+### Exact next action
+
+**StoreKit (Phase 10)** — the last unbuilt area of the 1.0 scope. In order: a `.storekit`
+configuration file, an entitlement model in `NextKit` (locally testable, mirroring how
+`ReminderPlanner` works), a `PurchaseService` protocol so view models can be tested without
+StoreKit, and the paywall — invoked only by intent, never at launch.
+
+Note before starting: `.storekit` local testing is a scheme option, so check whether it can be
+driven from `xcodebuild` in CI or whether it, like the App Group, turns out to be gated.
+
+Then the smaller gaps: Minimum Win needs a caller, Rescue should carry its step into Focus, and
+"I'm stuck" should be reachable from Focus.
+
+---
+
 ## 2026-08-08 — Session 7: Settings, notification scheduling, consent switch
 
 **Objective.** Build the last 1.0 surface that did not exist at all, and the notification
