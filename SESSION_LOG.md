@@ -82,19 +82,16 @@ SwiftUI ever honours `foregroundStyle` there it fails for *not* failing.
 
 That is a narrower claim than "contrast is enforced", and it is the true one.
 
-### Contrast stopped being an aspiration
+### What the palette test contributes on its own
 
 `NextPaletteTests` resolves every token pair in both appearances and asserts 4.5:1 against the
-values themselves, not against a screenshot. Two things fell out of writing it:
+values, not against a screenshot. Two things fell out of writing it:
 
 - **`inkSecondary` is NEXT's own value**, because the system `.secondary` does not reliably clear
-  4.5:1 at caption size — which was one of the audit's original findings.
+  4.5:1 at caption size — one of the audit's original findings.
 - **The highlighter is a stripe and never a fill behind text.** That removes the one colour that
-  could not have cleared the bar, and the palette deliberately offers no `onMarker` colour, so
-  using it that way does not compile.
-
-The test then caught a token chosen by eye: the dark card measured 1.16 against the dark desk where
-the palette asks for 1.2. An object you cannot see resting on something is not an object.
+  could not have cleared the bar, and the palette offers no `onMarker` colour, so using it that way
+  does not compile.
 
 ### The audit earned its keep again
 
@@ -108,13 +105,6 @@ Both the clipping and the height problem were fixed **in the styles**, not per s
 `NextMetrics.controlHeight` stands the comfortable 56-point minimum down once the type sets its
 own, which is Session 10's Capture lesson applied in one place instead of one screen at a time.
 
-### A misreading, corrected
-
-The first Phase 12 log appeared to show contrast and Dynamic Type failures on Capture. They
-belonged to the expected-failure test, which is *allowed* to fail — the log parser attributed them
-to whichever screen it had last seen. A filter for "elements behind a sheet" was written on the
-strength of that and then removed. Machinery justified by a misread log is worse than no machinery.
-
 ### The icon
 
 Three shapes — the card, its spine, one marked line — rendered from the palette's own hex values by
@@ -126,8 +116,9 @@ direction proposals.
 
 ### Known limitations
 
-- **Dynamic Type on navigation-bar buttons** — "Cancel", "Done", "Close" do not scale, SwiftUI
-  gives no control over it, and an app cannot fix it. Tracked under a strict expected failure.
+- **Two system-rendered exceptions**, both tracked under strict expected failures: navigation-bar
+  buttons do not scale with Dynamic Type, and the first section header on a `List` or `Form` is
+  rendered against the bar's material whatever colour it is given. Neither is app-fixable.
 - Haptics are designed but not implemented; Core Haptics is unavailable in the Simulator anyway.
 - No screenshots produced from the real app yet.
 - Everything, Task Detail and Settings keep native `List` and `Form`. Deliberate — those are the
