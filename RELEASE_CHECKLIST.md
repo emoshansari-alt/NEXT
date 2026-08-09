@@ -34,10 +34,13 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Minimum Win — planner built and Tier 1 tested
 - [x] Settings — reminder controls and the cloud-processing consent switch
 - [x] Notifications — scheduling planned and Tier 1 tested
-- [ ] Daily replanning, no shame language — engine recalculates, but no day-boundary behaviour
+- [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
+      the screen for ever (D-020)
 - [x] Minimum Win **surfaced in the UI** — offered on Today when the deadline is unreachable
 - [x] "I'm stuck" reachable from inside Focus, and the smaller action replaces the current one
-- [ ] Notification delivery observed, deep link, and actions
+- [x] Notification deep link — tapping a reminder opens the task it named
+- [ ] Notification delivery observed — needs a device, `RELEASE_GATED.md` B5
+- [ ] Notification actions — deliberately out of 1.0 scope; §8 does not ask for them
 - [ ] Widget with working deep link
 - [ ] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
       in a normal build** (D-015): NEXT+ unlocks nothing, so there is nothing to sell.
@@ -70,7 +73,8 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] Tier 2 integration tests pass
 - [ ] Tier 2 golden-path UI test passes
 - [ ] Offline test passes
-- [ ] Persistence survives the full create/terminate/relaunch/modify/complete cycle
+- [x] Persistence survives the full create/terminate/relaunch/modify/complete cycle —
+      Tier 2, run 31293153742, against a real on-disk store
 - [ ] Schema migration strategy exists and has a round-trip test
 
 ### Accessibility — release blocking

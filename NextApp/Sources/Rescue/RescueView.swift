@@ -58,6 +58,10 @@ struct RescueView: View {
         VStack(spacing: 14) {
             Text("What is in the way?")
                 .font(.title3.weight(.semibold))
+                .multilineTextAlignment(.center)
+                // Wraps rather than clips once the type is large — the audit caught this being
+                // cut off, which on this screen means the question itself becomes unreadable.
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 8)
                 .accessibilityIdentifier("rescue-question")
 

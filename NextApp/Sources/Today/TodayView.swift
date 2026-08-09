@@ -265,19 +265,24 @@ struct TodayView: View {
             // to go hunting for it.
             Button("I'm stuck") { showingRescue = true }
                 .font(.subheadline.weight(.medium))
+                .accessibleTapTarget()
                 .accessibilityIdentifier("im-stuck-button")
 
             HStack(spacing: 22) {
                 Button("Not this") { showingRejectionReasons = true }
+                    .accessibleTapTarget()
                     .accessibilityIdentifier("not-this-button")
 
                 Button("Why this?") { showingExplanation = true }
+                    .accessibleTapTarget()
                     .accessibilityIdentifier("why-this-button")
 
                 Button("Everything") { showingEverything = true }
+                    .accessibleTapTarget()
                     .accessibilityIdentifier("everything-button")
 
                 Button("Add") { showingCapture = true }
+                    .accessibleTapTarget()
                     .accessibilityIdentifier("add-button")
             }
             .font(.subheadline)
@@ -358,6 +363,7 @@ struct TodayView: View {
                 .font(.subheadline)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .accessibleTapTarget()
                 .accessibilityIdentifier("everything-button")
         }
         .padding(.horizontal, 32)

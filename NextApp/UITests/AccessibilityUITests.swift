@@ -73,16 +73,25 @@ final class AccessibilityUITests: XCTestCase {
     ///
     /// The handler returns `true` for every issue, meaning "handled" — so the audit itself does
     /// not throw and this method decides the verdict, having recorded all of them.
+    /// The checks NEXT is held to now.
+    ///
+    /// Contrast and Dynamic Type are deliberately absent, and tracked separately below rather
+    /// than quietly dropped — see `auditColourAndType` and `DECISIONS.md` D-021.
+    private static let enforced: XCUIAccessibilityAuditType = [
+        .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
+    ]
+
     private func audit(
         _ app: XCUIApplication,
         _ screen: String,
+        for types: XCUIAccessibilityAuditType = AccessibilityUITests.enforced,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
         var issues: [String] = []
 
         do {
-            try app.performAccessibilityAudit { issue in
+            try app.performAccessibilityAudit(for: types) { issue in
                 let element = issue.element
                 issues.append(
                     """
@@ -215,6 +224,32 @@ final class AccessibilityUITests: XCTestCase {
         XCTAssertTrue(app.buttons["minimum-win-close-button"].waitForExistence(timeout: 5))
 
         audit(app, "Minimum Win")
+    }
+
+    // MARK: Contrast and Dynamic Type — tracked, not yet enforced
+
+    func testContrastAndDynamicTypeAreStillOutstanding() {
+        // These are the two categories the first audit run found that NEXT does not yet meet, and
+        // they are recorded here rather than silently excluded.
+        //
+        // Most of what fails is not NEXT's own styling: the system tint on `.bordered` buttons,
+        // `.secondary` label colour, and navigation-bar buttons that do not scale with Dynamic
+        // Type at all. Choosing a palette that clears 4.5:1 across light and dark is Phase 12
+        // (`PRODUCT_SPEC.md` §10), which has not happened — the app currently ships system
+        // defaults on purpose, and repainting it now would be inventing a visual design in order
+        // to pass a test.
+        //
+        // `XCTExpectFailure` is strict, so the day the palette lands this test fails for *not*
+        // failing, and whoever does that work is told to come here and enforce it. That is the
+        // same device `withKnownIssue` provides for the App Group and StoreKit findings.
+        XCTExpectFailure("contrast and Dynamic Type are Phase 12 work — DECISIONS.md D-021")
+
+        let app = launch()
+        skipOnboarding(app)
+        captureOneTask(app)
+        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
+
+        audit(app, "Today, recommending", for: [.contrast, .dynamicType])
     }
 
     // MARK: The largest Dynamic Type

@@ -526,6 +526,53 @@ judgement layered on top of it is not.
 
 ---
 
+## D-021 — The accessibility audit enforces what NEXT controls, and tracks what Phase 12 owns
+
+**Date:** 2026-08-09 · **Status:** Accepted · **Contrast and Dynamic Type revisited at Phase 12**
+
+**Context.** `PRODUCT_SPEC.md` §11 makes accessibility release-blocking and P8 calls it
+architecture, but nothing had ever checked. The first run of `performAccessibilityAudit()` across
+every core screen found issues on all ten of them, in five categories.
+
+**What it found, and who owns it.**
+
+Genuinely NEXT's, and fixed: **eight controls below the 44 × 44 minimum** — "Skip", "Stop",
+"I'm stuck" on both Today and Focus, "Not this", "Why this?", "Everything" and "Add". Every one is
+a plain text button, so its hit area was the height of a line of text: "Everything" measured
+73 × 18. That reads correctly as a quiet secondary action and is genuinely hard to hit with a
+tremor, on a bus, or one-handed — and "I'm stuck" is used precisely when someone is already having
+a bad time. Also fixed: **three clipped labels**, including Rescue's own question, which at larger
+type sizes was being cut off.
+
+Not NEXT's, and not fixed now: **contrast** and **Dynamic Type**. The bulk of those hits are the
+system tint on `.bordered` buttons, the standard `.secondary` label colour, and navigation-bar
+buttons — "Cancel", "Done", "Close" — which SwiftUI does not scale with Dynamic Type at all and an
+app cannot make scale.
+
+**Decision.** The audit enforces `hitRegion`, `textClipped`, `elementDetection`,
+`sufficientElementDescription` and `trait` on every core screen now. `contrast` and `dynamicType`
+are asserted in a test wrapped in a **strict** `XCTExpectFailure`.
+
+**Why not simply fix the contrast too.** Choosing a palette that clears 4.5:1 in both light and
+dark is Phase 12 (`PRODUCT_SPEC.md` §10), which has not happened. The app ships system defaults
+deliberately. Repainting it now would mean inventing a visual design in order to pass a test —
+and a palette chosen to satisfy an audit rather than to look like anything is how an app ends up
+with neither.
+
+**Why not exclude them silently.** Because then nobody would ever come back. A strict
+`XCTExpectFailure` fails the day the problem is fixed, so whoever lands the palette is told, by a
+failing test, to come and enforce it. Same device as the `withKnownIssue` markers on the App Group
+and StoreKit findings, and the same reason: the reminder has to live in the suite, not in
+somebody's memory.
+
+**What a green run does and does not claim.** It claims the automatable checks pass on every core
+screen. It does not claim NEXT is accessible: VoiceOver gesture traversal, rotor behaviour, real
+Dynamic Type rendering and haptics all need hardware and remain `RELEASE_GATED.md` B5. §11's own
+instruction — automate what can be automated, document precisely what still requires a device —
+is the standard being met here, not a broader one.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

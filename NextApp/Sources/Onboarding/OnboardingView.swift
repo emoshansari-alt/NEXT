@@ -60,6 +60,7 @@ struct OnboardingView: View {
                 .font(.subheadline)
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .accessibleTapTarget()
                 .padding(.top, 14)
                 .padding(.bottom, 28)
                 .accessibilityIdentifier("onboarding-skip-button")

@@ -95,6 +95,7 @@ struct FocusView: View {
             Button("Stop", action: onStop)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .accessibleTapTarget()
                 .accessibilityIdentifier("focus-stop-button")
 
             Spacer()
@@ -105,6 +106,7 @@ struct FocusView: View {
             Button("I'm stuck") { showingRescue = true }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .accessibleTapTarget()
                 .accessibilityIdentifier("focus-im-stuck-button")
         }
         .padding(.horizontal, 24)

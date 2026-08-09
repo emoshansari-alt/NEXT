@@ -47,19 +47,19 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 531 tests in 97 suites, 531 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 546 tests in 99 suites, 546 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
 |---|---|
-| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility |
+| Ranking | outcome states, deadline urgency, importance, rejection, available time, prerequisites and unlocking, startability, determinism, explanation, feasibility, the decay of lateness past a deadline |
 | Model | task state transitions and their refusals |
 | Persistence | the `TaskRepository` contract, run against the in-memory implementation |
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
 | Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
 | Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks |
 | Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language, which action Focus is pointed at and what finishing it means |
-| Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone |
+| Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone, where tapping one lands |
 | Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
 | Everything | date bucketing into sections, ordering, partitioning |
 | Monetisation | entitlement rules, expiry boundary, bounded billing-retry grace, per-receipt revocation, the capability gate, the 1.0 tripwire, the purchase contract, purchase tone |
@@ -205,6 +205,27 @@ which `NextAppTests` cannot import, so the claim that it bound both implementati
 It throws rather than using `#expect`, because importing `Testing` would restrict the target to
 test bundles and defeat the purpose.
 
+### Persistence across relaunch — closed
+
+The oldest gap in this file, carried since Session 3, is verified as of run
+[31293153742](https://github.com/emoshansari-alt/NEXT/actions/runs/31293153742). The full cycle
+runs: create → terminate → relaunch → verify → edit → terminate → relaunch → verify the edit →
+complete → terminate → relaunch → verify it is filed rather than deleted.
+
+It needed a launch mode of its own. `-ui-testing` swaps in a fresh in-memory container per launch
+so the golden path cannot consume its own fixtures, which is right for every other test and fatal
+for this one: against a store recreated on launch, "relaunch and verify" passes no matter what the
+persistence layer does. `-ui-store-name` puts a real SwiftData store on disk in a throwaway
+location, and `-ui-reset-store` clears it on a test's first launch only.
+
+**Three of its assertions passed for the wrong reason first**, which is worth recording. An
+Everything row is a `Button` carrying its own accessibility label, so the title inside it is not a
+separate element — the container's label replaces its children's, the same lesson recorded above.
+Searching `staticTexts` for the title matched *Today*, sitting behind the sheet showing the same
+title. It only came apart when the task was completed and Today fell back to its empty state. A UI
+assertion that never looked at the screen it names is the same failure the mutation-testing rule
+exists to catch, and it applies to UI tests too.
+
 ### UI tests run against a clean store
 
 The UI target launches the app with `-ui-testing`, which swaps in an in-memory container.
@@ -224,15 +245,12 @@ a real flow is worth less than an honest fixture for it.
 Required by the product spec and **not** yet covered. Tracked honestly rather than implied away:
 
 - the `friction` ranking factor still contributes an explicit zero
-- **persistence across relaunch.** The UI target gets a fresh in-memory store per launch, so the
-  create → terminate → relaunch → verify cycle needs a different arrangement than the one the
-  suite currently uses. This is the oldest outstanding gap in this file.
-- **notification delivery.** The plan is verified at Tier 1; nothing asserts anything arrives.
+- **notification delivery.** The plan and the routing are verified; nothing asserts anything
+  arrives. Delivery needs a device — `RELEASE_GATED.md` B5.
 - **a real purchase**, and the receipt mapping behind it — `RELEASE_GATED.md` B4a
 - **the widget's rendered content**, which needs a shared container — B1a
-- the automated accessibility audit
-- daily replanning across a day boundary
-- notification actions, and opening a task from a notification
+- notification *actions* — deliberately out of 1.0 scope; §8 specifies categories, contextual
+  permission and real controls, and does not ask for them
 
 ---
 
