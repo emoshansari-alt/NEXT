@@ -154,7 +154,7 @@ final class AccessibilityUITests: XCTestCase {
                 //
                 // Scoped by frame rather than by ignoring unlabelled elements generally, because
                 // an unlabelled element inside NEXT is exactly what this check exists to catch.
-                if let element, isInsideTheKeyboard(element, of: app) {
+                if let element, self.isInsideTheKeyboard(element, of: app) {
                     return true
                 }
 

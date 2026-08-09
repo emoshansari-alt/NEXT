@@ -86,14 +86,21 @@ struct ReduceMotionTests {
     func cardChangeKeepsItsSpringOtherwise() {
         // Both directions, because a function that returned the reduced curve unconditionally
         // would pass the test above and remove the app's one animated moment.
-        #expect(NextMotion.cardChange(reduceMotion: false) == NextMotion.cardChange)
+        //
+        // Annotated because `cardChange` names both the stored curve and the function that
+        // chooses between it and the reduced one.
+        let full: Animation = NextMotion.cardChange
+
+        #expect(NextMotion.cardChange(reduceMotion: false) == full)
     }
 
     @Test("the reduced curve is a different animation from the full one")
     func theTwoCurvesAreNotTheSame() {
         // Guards the pair above against becoming vacuous: if `reduced` were ever set equal to
         // `cardChange`, both would pass while Reduce Motion did nothing at all.
-        #expect(NextMotion.reduced != NextMotion.cardChange)
+        let full: Animation = NextMotion.cardChange
+
+        #expect(NextMotion.reduced != full)
     }
 }
 

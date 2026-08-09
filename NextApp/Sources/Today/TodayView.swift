@@ -274,6 +274,7 @@ struct TodayView: View {
             // inside this card are both queried by tests. That is the collision `TESTING.md`
             // records losing CI rounds to; tests watching for a changed recommendation match on
             // the label instead.
+            //
             // The single animated moment in the app: this card leaves, the next rises.
             .id(recommendation.task.id)
             .cardTransition()
