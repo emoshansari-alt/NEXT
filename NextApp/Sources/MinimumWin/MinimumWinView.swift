@@ -26,7 +26,9 @@ struct MinimumWinView: View {
                     // how the situation arose — "you left this too late" is the natural sentence
                     // here and exactly what invariant P5 forbids.
                     Text(plan.framing.sentence)
-                        .font(.headline)
+                        .font(NextType.heading)
+                        .foregroundStyle(NextPalette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("minimum-win-framing")
 
                     if plan.source.isGeneric {
@@ -34,8 +36,9 @@ struct MinimumWinView: View {
                         // dishonesty that costs a tool its credibility the first time it is
                         // noticed.
                         Text("These are general stages — NEXT does not know how this one breaks down.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .font(NextType.meta)
+                            .foregroundStyle(NextPalette.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("minimum-win-generic-notice")
                     }
                 } header: {
@@ -65,6 +68,8 @@ struct MinimumWinView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(NextPalette.desk)
             .navigationTitle("Still possible")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -79,12 +84,14 @@ struct MinimumWinView: View {
     private func row(for rung: MinimumWinRung) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(rung.goal.text)
-                .font(.body.weight(.medium))
+                .font(.system(.body, weight: .medium))
+                .foregroundStyle(NextPalette.ink)
                 .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(detail(for: rung))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(NextType.meta)
+                .foregroundStyle(NextPalette.inkSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

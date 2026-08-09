@@ -19,7 +19,9 @@ struct NextWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "NextRecommendation", provider: SnapshotProvider()) { entry in
             NextWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                // The widget *is* the card — the same stock, the same spine, the same eyebrow.
+                // On a home screen the card is what makes NEXT recognisable at a glance.
+                .containerBackground(NextPalette.card, for: .widget)
         }
         .configurationDisplayName("NEXT")
         .description("The one thing to start.")
@@ -67,14 +69,19 @@ struct NextWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("NEXT")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.5)
-                .foregroundStyle(.secondary)
+                .nextEyebrow()
                 .accessibilityHidden(true)
 
             content
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(alignment: .leading) {
+            // The card's ballpoint spine, carried onto the home screen.
+            Rectangle()
+                .fill(NextPalette.biro)
+                .frame(width: 3)
+                .offset(x: -12)
+        }
         .widgetURL(link)
     }
 
@@ -84,20 +91,21 @@ struct NextWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let title = snapshot.taskTitle {
                     Text(title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
                         .lineLimit(1)
                 }
 
                 Text(snapshot.headline)
-                    .font(.headline)
+                    .font(.system(.headline, weight: .semibold))
+                    .foregroundStyle(NextPalette.ink)
                     .lineLimit(3)
                     .minimumScaleFactor(0.8)
 
                 if let detail = snapshot.detail {
                     Text(detail)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
                         .lineLimit(1)
                 }
             }
@@ -112,8 +120,8 @@ struct NextWidgetView: View {
             // All three mean the same thing to the reader — the widget does not know — and
             // saying so is better than showing a recommendation that may no longer be true.
             Text("Open NEXT to see what is next.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(NextType.parent)
+                .foregroundStyle(NextPalette.inkSecondary)
                 .accessibilityIdentifier("widget-placeholder")
         }
     }

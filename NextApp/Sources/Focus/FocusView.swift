@@ -37,7 +37,9 @@ struct FocusView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            // Focus removes the desk entirely: the card becomes the whole screen, which is
+            // the direction's way of saying nothing else is happening now.
+            NextPalette.card.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header
@@ -50,15 +52,17 @@ struct FocusView: View {
                     // is not undone here.
                     if let parentTitle = target.parentTitle {
                         Text(parentTitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(NextType.parent)
+                            .foregroundStyle(NextPalette.inkSecondary)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     Text(target.action)
-                        .font(.largeTitle.weight(.bold))
+                        .font(NextType.actionFocused)
+                        .foregroundStyle(NextPalette.ink)
                         .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 32)
                 .accessibilityElement(children: .combine)
@@ -93,9 +97,7 @@ struct FocusView: View {
     private var header: some View {
         HStack {
             Button("Stop", action: onStop)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .accessibleTapTarget()
+                .buttonStyle(.quietText)
                 .accessibilityIdentifier("focus-stop-button")
 
             Spacer()
@@ -104,9 +106,7 @@ struct FocusView: View {
             // stuck happens *while* working, and someone who has to leave Focus, find Today and
             // hunt for the way out has already lost the thread.
             Button("I'm stuck") { showingRescue = true }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .accessibleTapTarget()
+                .buttonStyle(.quietText)
                 .accessibilityIdentifier("focus-im-stuck-button")
         }
         .padding(.horizontal, 24)
@@ -118,13 +118,13 @@ struct FocusView: View {
     private var timerChooser: some View {
         VStack(spacing: 12) {
             Text("How long?")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(NextType.parent)
+                .foregroundStyle(NextPalette.inkSecondary)
 
             HStack(spacing: 8) {
                 ForEach([5, 15, 25, 45], id: \.self) { minutes in
                     Button("\(minutes)m") { start(minutes: minutes) }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.chip)
                         .accessibilityIdentifier("focus-timer-\(minutes)")
                         .accessibilityLabel("\(minutes) minutes")
                 }
@@ -132,17 +132,10 @@ struct FocusView: View {
 
             // Listed alongside the presets rather than hidden, because working without a timer
             // is a normal choice and not an opt-out.
-            Button {
-                start(minutes: nil)
-            } label: {
-                Text("Just start")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding(.top, 4)
-            .accessibilityIdentifier("focus-start-button")
+            Button("Just start") { start(minutes: nil) }
+                .buttonStyle(.primaryBlock)
+                .padding(.top, 4)
+                .accessibilityIdentifier("focus-start-button")
         }
         .padding(.horizontal, 28)
         .padding(.bottom, 32)
@@ -155,9 +148,9 @@ struct FocusView: View {
         VStack(spacing: 16) {
             if let countdown = session.countdown(at: now) {
                 Text(countdown)
-                    .font(.system(size: 44, weight: .medium, design: .rounded))
+                    .font(NextType.timer)
                     .monospacedDigit()
-                    .foregroundStyle(session.isRunning ? .primary : .secondary)
+                    .foregroundStyle(session.isRunning ? NextPalette.ink : NextPalette.inkSecondary)
                     // The digits are hidden from VoiceOver and the words are announced instead:
                     // "23:30" read aloud as digits is close to useless.
                     .accessibilityHidden(true)
@@ -171,8 +164,9 @@ struct FocusView: View {
                 if session.isFinished(at: now) {
                     // A statement, not a verdict. The user decides what happens next.
                     Text("That is the time you set.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -182,18 +176,12 @@ struct FocusView: View {
                         ? session.paused(at: timeSource.now)
                         : session.resumed(at: timeSource.now)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                .buttonStyle(.outlinedBlock)
                 .accessibilityIdentifier("focus-pause-button")
 
-                Button(action: onDone) {
-                    Text(FocusCopy.doneLabel(for: target))
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .accessibilityIdentifier("focus-done-button")
+                Button(FocusCopy.doneLabel(for: target)) { onDone() }
+                    .buttonStyle(.primaryBlock)
+                    .accessibilityIdentifier("focus-done-button")
             }
         }
         .padding(.horizontal, 28)

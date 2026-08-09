@@ -27,6 +27,8 @@ struct SettingsView: View {
                 nextPlusSection
                 aboutSection
             }
+            .scrollContentBackground(.hidden)
+            .background(NextPalette.desk)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

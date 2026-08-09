@@ -57,7 +57,8 @@ struct RescueView: View {
     private var pathChooser: some View {
         VStack(spacing: 14) {
             Text("What is in the way?")
-                .font(.title3.weight(.semibold))
+                .font(NextType.heading)
+                .foregroundStyle(NextPalette.ink)
                 .multilineTextAlignment(.center)
                 // Wraps rather than clips once the type is large — the audit caught this being
                 // cut off, which on this screen means the question itself becomes unreadable.
@@ -74,12 +75,10 @@ struct RescueView: View {
                     Text(option.prompt)
                         .multilineTextAlignment(.center)
                         // The four paths are the whole screen. A prompt that clips is a choice the
-                        // user cannot read, so the button grows instead — 52 is a floor, not a
-                        // ceiling.
+                        // user cannot read, so the button grows instead.
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.outlinedBlock)
                 .accessibilityIdentifier("rescue-path-\(option.rawValue)")
             }
 
@@ -91,7 +90,8 @@ struct RescueView: View {
     private var timeBudgetChooser: some View {
         VStack(spacing: 14) {
             Text("How long have you got?")
-                .font(.title3.weight(.semibold))
+                .font(NextType.heading)
+                .foregroundStyle(NextPalette.ink)
                 .padding(.top, 8)
                 .accessibilityIdentifier("rescue-time-question")
 
@@ -103,9 +103,8 @@ struct RescueView: View {
                     Text(option.label)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, minHeight: 52)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.outlinedBlock)
                 .accessibilityIdentifier("rescue-budget-\(option.rawValue)")
             }
 
@@ -125,32 +124,32 @@ struct RescueView: View {
                 // it produces reads as a judgement.
                 ForEach(Array(response.lines.enumerated()), id: \.offset) { _, line in
                     Text(line)
-                        .font(.title3.weight(.medium))
-                        .multilineTextAlignment(.center)
+                        .font(NextType.action)
+                        .foregroundStyle(NextPalette.ink)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal, 28)
+            // A smaller card, and without the spine: it is a step out of the task, not a second
+            // thing competing with it.
+            .cardSurface(spine: false)
+            .padding(.horizontal, NextMetrics.screenPadding)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("rescue-guidance")
 
             Spacer()
 
-            Button {
+            Button("Do that") {
                 onStart(response)
                 dismiss()
-            } label: {
-                Text("Do that")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(.primaryBlock)
             .accessibilityIdentifier("rescue-start-button")
 
             Button("Something else") { reset() }
-                .font(.subheadline)
-                .accessibleTapTarget()
-                .padding(.top, 14)
+                .buttonStyle(.quietText)
+                .padding(.top, 10)
                 .accessibilityIdentifier("rescue-back-button")
         }
         .padding(24)
@@ -160,14 +159,17 @@ struct RescueView: View {
         VStack(spacing: 10) {
             Spacer()
             Text(UnavailabilityCopy.headline(for: reason))
-                .font(.title3.weight(.semibold))
+                .font(NextType.heading)
+                .foregroundStyle(NextPalette.ink)
+                .fixedSize(horizontal: false, vertical: true)
             Text(UnavailabilityCopy.detail(for: reason))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(NextType.body)
+                .foregroundStyle(NextPalette.inkSecondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button("Something else") { reset() }
-                .accessibleTapTarget()
+                .buttonStyle(.quietText)
                 .accessibilityIdentifier("rescue-back-button")
         }
         .padding(24)

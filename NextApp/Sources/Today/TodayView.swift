@@ -42,7 +42,7 @@ struct TodayView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemBackground).ignoresSafeArea()
+            NextPalette.desk.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 if let warning = warningText {
@@ -164,12 +164,14 @@ struct TodayView: View {
 
     private func banner(_ text: String) -> some View {
         Text(text)
-            .font(.footnote)
+            .font(NextType.meta)
+            .foregroundStyle(NextPalette.warning)
             .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .padding(.horizontal, 20)
-            .background(Color(.secondarySystemBackground))
+            .padding(.horizontal, NextMetrics.screenPadding)
+            .background(NextPalette.card)
             .accessibilityIdentifier("store-warning")
     }
 
@@ -180,35 +182,42 @@ struct TodayView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
-            VStack(spacing: 12) {
+            // The one card. There is deliberately never a second one on this screen — see
+            // `CardSurface`, and DECISIONS.md D-023.
+            VStack(alignment: .leading, spacing: 10) {
                 Text("NEXT")
-                    .font(.footnote.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(.secondary)
+                    .nextEyebrow()
                     .accessibilityHidden(true)
 
                 Text(recommendation.task.title)
-                    .font(.title3.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .font(NextType.parent)
+                    .foregroundStyle(NextPalette.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(recommendation.actionText)
-                    .font(.largeTitle.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.6)
+                    .font(NextType.action)
+                    .foregroundStyle(NextPalette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // The marker: a stripe under the live action, never a fill behind it.
+                Rectangle()
+                    .fill(NextPalette.marker)
+                    .frame(width: 44, height: 3)
+                    .padding(.top, 2)
 
                 if !metaLine(for: recommendation).isEmpty {
                     Text(metaLine(for: recommendation))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if recommendation.wasRecentlyRejected {
                     // Never silently re-serve something the user passed on.
                     Text("You passed on this earlier, but it is what is left.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if recommendation.deadlineFeasibility.suggestsMinimumWin {
@@ -216,47 +225,46 @@ struct TodayView: View {
                     // are short of time; what they do not know is that there is still a version
                     // of this worth doing (PRODUCT_SPEC.md §4.12).
                     Text("There is not enough time left to finish this.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("minimum-win-notice")
                 }
             }
-            .padding(.horizontal, 28)
-            // Read as one unit rather than four fragments when swiping through with VoiceOver.
+            .cardSurface()
+            .padding(.horizontal, NextMetrics.screenPadding)
+            // Read as one unit rather than six fragments when swiping through with VoiceOver.
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel(for: recommendation))
+            // The single animated moment in the app: this card leaves, the next rises.
+            .id(recommendation.task.id)
+            .cardTransition()
 
             Spacer(minLength: 0)
 
-            Button {
+            Button("START") {
                 Task { await model.startRecommended() }
-            } label: {
-                Text("START")
-                    .font(.headline)
-                    .tracking(1)
-                    .frame(maxWidth: .infinity, minHeight: 56)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding(.horizontal, 28)
+            .buttonStyle(.primaryBlock)
+            .padding(.horizontal, NextMetrics.screenPadding)
             .accessibilityIdentifier("start-button")
             .accessibilityHint("Opens Focus for this action.")
 
             secondaryActions(recommendation)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
         }
-        .padding(.vertical, 32)
+        .padding(.vertical, 28)
+        .animation(NextMotion.cardChange, value: recommendation.task.id)
     }
 
     private func secondaryActions(_ recommendation: Recommendation) -> some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 10) {
             // Only when the ladder genuinely exists. Offering "what can I still do?" for work
             // that comfortably fits would be manufacturing an emergency.
             if model.minimumWinPlan != nil {
                 Button("What can I still do?") { showingMinimumWin = true }
-                    .font(.subheadline.weight(.medium))
+                    .buttonStyle(.quietText)
                     .accessibilityIdentifier("minimum-win-button")
             }
 
@@ -264,31 +272,27 @@ struct TodayView: View {
             // not a footnote — the moment someone needs it is the moment they are least likely
             // to go hunting for it.
             Button("I'm stuck") { showingRescue = true }
-                .font(.subheadline.weight(.medium))
-                .accessibleTapTarget()
+                .buttonStyle(.quietText)
                 .accessibilityIdentifier("im-stuck-button")
 
-            HStack(spacing: 22) {
+            HStack(spacing: 4) {
                 Button("Not this") { showingRejectionReasons = true }
-                    .accessibleTapTarget()
+                    .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("not-this-button")
 
                 Button("Why this?") { showingExplanation = true }
-                    .accessibleTapTarget()
+                    .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("why-this-button")
 
                 Button("Everything") { showingEverything = true }
-                    .accessibleTapTarget()
+                    .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("everything-button")
 
                 Button("Add") { showingCapture = true }
-                    .accessibleTapTarget()
+                    .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("add-button")
             }
-            .font(.subheadline)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
         .alert(
             "Why this?",
             isPresented: $showingExplanation,
@@ -330,44 +334,46 @@ struct TodayView: View {
     /// A first run has nothing to recommend, and a screen that only says so is a dead end. The
     /// button is the whole point of the state, not a footnote to it.
     private func empty(headline: String, detail: String) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
             Spacer()
 
-            VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("NEXT")
+                    .nextEyebrow()
+                    .accessibilityHidden(true)
+
                 Text(headline)
-                    .font(.title2.weight(.semibold))
+                    .font(NextType.heading)
+                    .foregroundStyle(NextPalette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 Text(detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .font(NextType.body)
+                    .foregroundStyle(NextPalette.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            // An empty state is still the one card. The screen does not change shape because
+            // there is nothing to do — it says so on the same object.
+            .cardSurface(spine: false)
+            .padding(.horizontal, NextMetrics.screenPadding)
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("empty-state")
 
             Spacer()
 
-            Button {
-                showingCapture = true
-            } label: {
-                Text("Add something")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .accessibilityIdentifier("empty-add-button")
+            Button("Add something") { showingCapture = true }
+                .buttonStyle(.primaryBlock)
+                .padding(.horizontal, NextMetrics.screenPadding)
+                .accessibilityIdentifier("empty-add-button")
 
             // Reachable even with nothing outstanding — otherwise completed and archived work
             // would be unreachable the moment the last task is done.
             Button("Everything") { showingEverything = true }
-                .font(.subheadline)
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .accessibleTapTarget()
+                .buttonStyle(.quietText)
+                .padding(.top, 12)
                 .accessibilityIdentifier("everything-button")
         }
-        .padding(.horizontal, 32)
-        .padding(.bottom, 32)
+        .padding(.vertical, 28)
     }
 
     // MARK: Focus presentation

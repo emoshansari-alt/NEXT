@@ -37,6 +37,8 @@ struct EverythingView: View {
                 }
             }
             .navigationTitle("Everything")
+            .scrollContentBackground(.hidden)
+            .background(NextPalette.desk)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -127,15 +129,16 @@ struct EverythingView: View {
         } label: {
             VStack(alignment: .leading, spacing: 3) {
                 Text(task.title)
-                    .font(.body)
-                    .foregroundStyle(task.status == .active ? .primary : .secondary)
+                    .font(NextType.body)
+                    .foregroundStyle(task.status == .active ? NextPalette.ink : NextPalette.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     // Completion is never signalled by strikethrough or colour alone.
                     .strikethrough(task.status == .completed)
 
                 if let detail = detailLine(task) {
                     Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

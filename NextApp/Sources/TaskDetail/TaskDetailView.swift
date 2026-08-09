@@ -89,6 +89,8 @@ struct TaskDetailView: View {
 
                 actions
             }
+            .scrollContentBackground(.hidden)
+            .background(NextPalette.desk)
             .navigationTitle("Task")
             .navigationBarTitleDisplayMode(.inline)
             // No Close button: this is a pushed screen, so the navigation bar's back button is

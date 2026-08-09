@@ -59,13 +59,12 @@ struct OnboardingView: View {
             Button("Skip") { onFinish() }
                 .font(.subheadline)
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .accessibleTapTarget()
-                .padding(.top, 14)
-                .padding(.bottom, 28)
+                .buttonStyle(.quietText)
+                .padding(.top, 10)
+                .padding(.bottom, 24)
                 .accessibilityIdentifier("onboarding-skip-button")
         }
-        .background(Color(.systemBackground))
+        .background(NextPalette.desk)
     }
 
     private func panelView(_ panel: Panel) -> some View {

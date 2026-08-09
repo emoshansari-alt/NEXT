@@ -123,6 +123,10 @@ struct NEXTApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(onboarding: onboarding) { today }
+                // One accent, set once. Every system control — pickers, switches, the navigation
+                // bar's own buttons — inherits it, so ballpoint blue is the only accent in the app
+                // without each screen having to say so.
+                .tint(NextPalette.biro)
                 // Started here rather than in `init` so it is unambiguously on the main actor.
                 // Starting twice is a no-op, which is what makes that safe.
                 .task { transactions.start() }

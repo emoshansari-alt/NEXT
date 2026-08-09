@@ -616,6 +616,59 @@ whoever implements it has to delete a test that explains why it was zero.
 
 ---
 
+## D-023 — Visual direction: Index Card, with Margin's controls and motion restraint
+
+**Date:** 2026-08-09 · **Status:** Accepted (owner selection) · **Phase 12**
+
+**Context.** Three directions were proposed, each a different *system* rather than a different
+palette: **Index Card** (hierarchy by depth), **Departure Board** (hierarchy by scale and time),
+**Margin** (hierarchy by position). The owner selected Index Card, taking Margin's outlined
+secondary controls and its restraint about motion.
+
+**The direction.** The screen holds **exactly one card**, resting on a desk. It comes from the
+revision card — the thing students already use to reduce a subject to a single prompt. The accent
+is ballpoint blue, because that is the colour of a student's own handwriting, and a highlighter
+marks the line that matters.
+
+**Why this and not the others.** Index Card is the only direction whose *structure* enforces the
+product's central rule. One card is not a style; it is `PRODUCT_SPEC.md` §1's promise made
+difficult to violate, and it will keep the app honest long after this phase. Departure Board was
+the most distinctive and was rejected on a product ground rather than an aesthetic one: it answers
+"what is next" by listing what comes *after* that, and removing the list is the entire product. It
+also spent its boldness on uppercase, which costs the readability §10 names outright.
+
+**What the borrowing changes.** Cards invite decoration, and cards are the most common surface in
+mobile design — so the discipline around the card is what stops this reading as a notes app.
+From Margin: the secondary control is **outlined or underlined, never a second filled block**, and
+motion gets **one moment**. `NextMotion` spends the entire budget on the card transition that
+carries `NEXT → START → DONE → NEXT`, because that loop is what §10 says motion should reinforce.
+
+**Where it lives.** `NextApp/Shared/Design/` — palette, type scale, surfaces, controls, motion —
+compiled into both the app and the widget, so the card on the home screen is the same card as the
+one in the app. No colour or font size is written anywhere else.
+
+**Contrast is now a test, not an aspiration.** `NextPaletteTests` resolves every token pair in both
+appearances and asserts 4.5:1. The system's own `.secondary` at caption size does not reliably
+clear it — that was one of the audit's findings — so `inkSecondary` is NEXT's own value chosen to.
+The highlighter is a **stripe and never a fill behind text**, which removes the one colour that
+could not have cleared the bar; the palette deliberately offers no `onMarker` colour, so using it
+that way does not compile.
+
+**The app icon is authored, not generated.** Three shapes: the card, its spine, one marked line.
+Rendered from the palette's own hex values by a script at 3× and downsampled, so the asset cannot
+drift from the app's colours. `D-014` puts Claude's design tooling ahead of Higgsfield and it is
+worth recording that **no `/design` skill exists in this session** — `frontend-design` and
+`artifact-design` do, and produced the direction proposals. Generated imagery was assessed and
+rejected for the icon: at three shapes a generator is slower to iterate than arithmetic and cannot
+promise exact palette values. It remains justified for App Store screenshot environments, which
+are marketing rather than product (§10).
+
+**What is deliberately unchanged.** Everything, Task Detail and Settings keep their native `List`
+and `Form` structure — those are the right shapes for those screens and replacing them with cards
+would contradict the one-card rule. They sit on the desk and use the same type and colour.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

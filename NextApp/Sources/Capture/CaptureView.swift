@@ -109,13 +109,12 @@ struct CaptureView: View {
                         .frame(maxWidth: .infinity, minHeight: actionHeight)
                 } else {
                     Text("Sort this out")
-                        .font(.headline)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, minHeight: actionHeight)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.primaryBlock)
             .disabled(!model.canSubmit)
             .accessibilityIdentifier("capture-extract-button")
 
@@ -124,11 +123,7 @@ struct CaptureView: View {
             Button("Just save it as one task") {
                 Task { await model.saveAsSingleTask() }
             }
-            .font(.subheadline)
-            // Room for the words at any type size, and a fingertip-sized target around them.
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibleTapTarget()
+            .buttonStyle(.quietText)
             .disabled(!model.canSubmit)
             .accessibilityIdentifier("capture-save-single-button")
         }
