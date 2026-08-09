@@ -70,8 +70,13 @@ struct MinimumWinView: View {
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(NextPalette.desk)
+            // Native background, deliberately. D-023 keeps these screens' `List` and `Form`
+            // structure because that is the right shape for them — and a system container's
+            // headers, separators and materials are all chosen against the system's own
+            // background. Painting the desk behind them and then restyling every part that
+            // noticed was three rounds of contrast failures the audit could not even attribute
+            // to an element. The desk belongs to the card screens; these are native, wearing
+            // NEXT's type and ink.
             .listRowBackgroundIsCard()
             .navigationTitle("Still possible")
             .navigationBarTitleDisplayMode(.inline)
