@@ -28,12 +28,54 @@ struct NEXTApp: App {
     /// flaky test of a real flow is worse than an honest fixture for it.
     static let seedUnreachableArgument = "-ui-seed-unreachable"
 
+    /// Followed by a name, this puts the UI-testing store on **disk** instead of in memory, in a
+    /// throwaway location of its own.
+    ///
+    /// It exists for the one thing an in-memory store makes impossible to check: that work
+    /// survives the app being killed. `-ui-testing` deliberately swaps in a fresh container per
+    /// launch so the golden path cannot eat its own fixtures — which is right for every other
+    /// test and fatal for this one, because "relaunch and verify" against a store that is
+    /// recreated on launch would pass no matter what the persistence layer did.
+    ///
+    /// The name scopes the file, so a test owns its own database and two tests cannot interfere.
+    static let storeNameArgument = "-ui-store-name"
+
+    /// Deletes that store before opening it. Passed on a test's *first* launch only — the whole
+    /// point of the later ones is to find what the earlier ones left behind.
+    static let resetStoreArgument = "-ui-reset-store"
+
     private static var isUITesting: Bool {
         ProcessInfo.processInfo.arguments.contains(uiTestingArgument)
     }
 
     private static var shouldSeedUnreachable: Bool {
         isUITesting && ProcessInfo.processInfo.arguments.contains(seedUnreachableArgument)
+    }
+
+    /// Where a named UI-testing store lives, or `nil` for the ordinary in-memory one.
+    ///
+    /// Under the temporary directory rather than Application Support: it is scratch data owned by
+    /// a test run, and putting it where the real store lives would risk a test clearing something
+    /// that is not its own.
+    private static var uiTestingStoreURL: URL? {
+        guard isUITesting else { return nil }
+
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: storeNameArgument),
+              case let next = arguments.index(after: flag),
+              next < arguments.endIndex
+        else { return nil }
+
+        let name = arguments[next]
+        // A name is used to build a path, so anything that could climb out of the directory is
+        // refused rather than sanitised — this is test scaffolding and a silently rewritten path
+        // would be worse than a clear refusal.
+        guard !name.isEmpty, !name.contains("/"), !name.contains("."), name != ".." else {
+            return nil
+        }
+
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("next-ui-\(name).store")
     }
 
     private let repository: any TaskRepository
@@ -142,6 +184,30 @@ struct NEXTApp: App {
     }
 
     private static func makeContainer() -> (ModelContainer, Bool) {
+        if let url = uiTestingStoreURL {
+            if ProcessInfo.processInfo.arguments.contains(resetStoreArgument) {
+                // The write-ahead log and shared-memory files sit beside the database. Deleting
+                // only the database and leaving a stale journal next to it is how a run that is
+                // supposed to start clean starts dirty instead.
+                for suffix in ["", "-wal", "-shm"] {
+                    try? FileManager.default.removeItem(atPath: url.path + suffix)
+                }
+            }
+
+            do {
+                return (
+                    try ModelContainer(
+                        for: StoredTask.self,
+                        migrationPlan: NextMigrationPlan.self,
+                        configurations: ModelConfiguration(url: url)
+                    ),
+                    false
+                )
+            } catch {
+                fatalError("NEXT could not open the UI-testing store at \(url): \(error)")
+            }
+        }
+
         if isUITesting {
             do {
                 return (
