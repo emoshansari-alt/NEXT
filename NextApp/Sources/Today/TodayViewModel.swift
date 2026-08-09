@@ -193,9 +193,10 @@ final class TodayViewModel {
     /// whole thing is not what is happening right now.
     ///
     /// What is recorded in that case is what was already recorded when Focus opened: the task was
-    /// started, which supersedes any earlier rejection. Nothing further is invented — see
-    /// `DECISIONS.md` D-018 for the open question of whether a finished step should become a
-    /// child task in its own right.
+    /// started, which supersedes any earlier rejection. Nothing further is invented. D-018
+    /// considered recording the finished step as a completed child task and decided against it
+    /// for 1.0 — the benefit only arrives with a change to `StepShrinker`, and without that it
+    /// would add an entry to every user's completed list and buy nothing they would notice.
     func completeFocused() async {
         guard let target = focus else { return }
 

@@ -128,7 +128,7 @@ public struct RankingEngine: Sendable {
             urgencySignal(deadline: task.deadline, now: context.now)
 
         case .overdueRelevance:
-            task.isOverdue(at: context.now) ? 1 : 0
+            overdueSignal(deadline: task.deadline, now: context.now)
 
         case .importance:
             task.importance.signal
@@ -177,12 +177,44 @@ public struct RankingEngine: Sendable {
         guard let deadline else { return 0 }
 
         let remaining = deadline.timeIntervalSince(now)
-        guard remaining > 0 else { return 1 }
+        // Past the deadline, urgency fades with the same curve lateness does. Holding it at full
+        // strength is what let an abandoned task from last term outrank work that is still
+        // achievable, for ever (DECISIONS.md D-020).
+        guard remaining > 0 else { return latenessDecay(overdueBy: -remaining) }
 
         let horizon = weights.urgencyHorizon
         guard horizon > 0 else { return 1 }
 
         return max(0, min(1, 1 - remaining / horizon))
+    }
+
+    /// How much a passed deadline still counts for.
+    private func overdueSignal(deadline: Date?, now: Date) -> Double {
+        guard let deadline else { return 0 }
+
+        let remaining = deadline.timeIntervalSince(now)
+        guard remaining <= 0 else { return 0 }
+
+        return latenessDecay(overdueBy: -remaining)
+    }
+
+    /// One curve, shared by both deadline factors.
+    ///
+    /// Deliberately a single function rather than a decay per factor: lateness is one idea, and
+    /// two curves that could drift apart would make the ranking's behaviour past a deadline
+    /// impossible to reason about — and only visible as a task mysteriously changing places.
+    ///
+    /// Full strength at the moment the deadline passes, falling linearly to `overdueFloor` over
+    /// `overdueHorizon`, then flat. Flat rather than continuing to zero because the work is still
+    /// outstanding: something that sank without limit would eventually be invisible, which is the
+    /// app quietly deciding it no longer matters.
+    private func latenessDecay(overdueBy: TimeInterval) -> Double {
+        let floor = max(0, min(1, weights.overdueFloor))
+        let horizon = weights.overdueHorizon
+        guard horizon > 0 else { return floor }
+
+        let travelled = min(1, max(0, overdueBy) / horizon)
+        return 1 - travelled * (1 - floor)
     }
 
     /// How well a task uses the time the user actually has.

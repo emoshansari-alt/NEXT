@@ -416,14 +416,29 @@ expensive to check on a Simulator. Two of them are load-bearing and easy to get 
 **What is recorded when a step is finished.** Only what was already recorded when Focus opened:
 the task is marked started, which supersedes any earlier "Not this". Nothing further is invented.
 
-**The open question, deliberately not answered.** Should a finished reduced step become a child
-task in its own right, the way a decomposition's steps do (Session 6)? It would make progress
-visible and feed `StepShrinker` and `MinimumWinPlanner` real substeps next time. It would also
-create tasks the user never wrote, on every rescue, and if such a child were linked as a
-prerequisite it could render the parent unrecommendable until a generic suggested step was
-ticked off. That is a product decision with a real cost either way, and there is no evidence yet
-about which is right. Recording a step is strictly additive and can be introduced later; silently
-completing a task cannot be undone, which is why the conservative half is the half that shipped.
+**Should a finished reduced step become a child task? Not in 1.0 — resolved, not deferred.**
+
+The case for it is that recording the step would feed `StepShrinker` and `MinimumWinPlanner` real
+substeps next time, and make progress visible. Objections about "planting tasks the student never
+wrote" do not really apply: a *completed* child records work that was done, which is a different
+thing from adding work to a list.
+
+It was rejected for 1.0 because **the benefit does not actually materialise without a second
+change**, and that change is the substantive one. `StepShrinker.outstandingChildren` already
+excludes completed children, so a completed child would not stop the ladder re-offering the same
+rung — the rung is regenerated from the template each time, and deduplication happens within one
+ladder build rather than against work already finished. Getting the win would mean teaching the
+shrinker to skip steps the user has already completed, which changes what Rescue answers rather
+than what it records. That is worth doing on evidence, and there is none yet: nothing in the app
+currently advances the ladder between visits either (`stepsAlreadyRevealed` is caller-held and
+every caller passes zero), so "the same step twice" is a broader gap than this decision.
+
+Shipping the recording alone would therefore add tasks to every user's completed list, on every
+rescue, and buy nothing they would notice. **Recording remains strictly additive and can be
+introduced whenever the shrinker change is made.** Wrongly completing a task cannot be undone,
+which is the asymmetry that decided the rest of this entry.
+
+Revisit alongside the ladder-advancement gap, not on its own.
 
 ---
 
@@ -458,6 +473,56 @@ distinguished from a real free tier — plausible options being a cached last-kn
 distinction between "asked and got nothing" and "never successfully asked", or an explicit
 refresh before any gate is evaluated. `RELEASE_CHECKLIST.md` carries this alongside the boundary
 decision so the two are made together.
+
+---
+
+## D-020 — Lateness decays, and never reaches zero (closes the Session 1 open question)
+
+**Date:** 2026-08-09 · **Status:** Accepted
+
+**Context.** Session 1 recorded an open question and explicitly said not to resolve it silently:
+overdue contributed a flat full weight with no decay. A task three months late scored exactly
+what it scored an hour late — `deadlineUrgency` returned `1` for any passed deadline and
+`overdueRelevance` returned `1` alongside it — so it pinned to the top of the Today screen
+permanently. Nothing in nine sessions had changed that.
+
+**This is a defect, not a tuning preference.** It breaks **P4** (a missed day triggers
+recalculation, never punishment): a screen showing the same unachievable thing every morning for
+a term is punishment however neutrally it is worded. It breaks **P5** (no productivity morality):
+there is no stronger way to say *you failed at this* than to refuse to discuss anything else. And
+it breaks the product's central promise — an app whose single recommendation never changes has
+stopped recommending. It is also the substance of §4.13, which asks that a new day reassess what
+matters *now*.
+
+**Decision.** Both deadline-related factors fade together across `overdueHorizon` (14 days), from
+full strength at the deadline instant down to `overdueFloor` (0.25), and then stay flat.
+
+**One curve, not two.** `latenessDecay(overdueBy:)` is shared by `urgencySignal` and
+`overdueSignal`. Lateness is a single idea; two curves that could drift apart would make ranking
+behaviour past a deadline impossible to reason about, and the only symptom would be a task
+mysteriously changing places.
+
+**The floor is deliberately not zero.** The work is still outstanding. A task that sank without
+limit would eventually be invisible, which is the app quietly deciding on the user's behalf that
+it no longer matters — the same paternalism that made archiving-without-a-way-back a trap. At a
+quarter it stays comfortably above undated work while anything with a live deadline overtakes it.
+
+**What this produces, in the numbers.** A freshly passed deadline still scores the full 65 and
+outranks everything. A task overdue by a fortnight or more scores about 16, so work due tomorrow
+(~34) now comes first, work due in six days (~6) does not, and undated work (0) never does. That
+ordering is the intended behaviour stated as a consequence rather than as a wish, and each line
+of it has a test.
+
+**Verification.** Nine Tier 1 tests, including a monotonicity sweep across the horizon — a curve
+that dipped and recovered would satisfy any pair of endpoints while making the recommendation
+jump about for no visible reason. Four mutations applied and all four caught: urgency held at
+maximum past the deadline, the floor lowered to zero, the decay left unbounded, and overdue
+restored to a flat full weight.
+
+**What did not change.** The explanation still says "Overdue by 3 months." plainly. Refusing to
+say it would be a different failure — an app being coy about a deadline to spare feelings is an
+app that cannot be trusted about deadlines. A test pins that the *fact* is allowed while
+judgement layered on top of it is not.
 
 ---
 

@@ -18,8 +18,10 @@ public struct ScoringWeights: Hashable, Sendable {
     /// does not want to be told to do something more "important" next week.
     public var deadlineUrgency: Double
 
-    /// Already past its deadline. Stacks on top of full urgency, so an overdue task
-    /// reliably surfaces above merely imminent ones.
+    /// Already past its deadline. Stacks on top of full urgency, so a task that has just gone
+    /// past its deadline reliably surfaces above merely imminent ones.
+    ///
+    /// This contribution **decays** with how long ago the deadline was — see `overdueHorizon`.
     public var overdueRelevance: Double
 
     /// Finishing this unblocks other work. Ranked above raw importance because unblocking
@@ -56,6 +58,25 @@ public struct ScoringWeights: Hashable, Sendable {
     /// How long a "Not this" rejection keeps suppressing a task.
     public var rejectionCooldown: TimeInterval
 
+    /// How long after a deadline passes before lateness stops getting louder.
+    ///
+    /// Fourteen days. Both deadline-related contributions fade across this window, from full
+    /// strength at the moment the deadline passes down to `overdueFloor`, and stop changing
+    /// after it (DECISIONS.md D-020).
+    ///
+    /// Without this, a task three months late scored exactly what it scored an hour late and
+    /// pinned to the top of the screen permanently — which is punishment under P4 and P5 however
+    /// neutrally it is worded, and it means the one recommendation on screen never changes again.
+    public var overdueHorizon: TimeInterval
+
+    /// What proportion of the deadline factors an indefinitely late task keeps.
+    ///
+    /// **Not zero, deliberately.** The work is still outstanding, and a task that sank silently
+    /// below everything would be the app deciding on the user's behalf that it no longer matters.
+    /// A quarter leaves it comfortably above undated work while letting anything with a live
+    /// deadline overtake it.
+    public var overdueFloor: Double
+
     /// How many dependent tasks count as "fully unlocking". Beyond this the factor saturates,
     /// so a hub task with twenty dependents does not permanently dominate the ranking.
     public var unlockSaturationCount: Int
@@ -76,6 +97,8 @@ public struct ScoringWeights: Hashable, Sendable {
         rejectionPenalty: Double,
         urgencyHorizon: TimeInterval,
         rejectionCooldown: TimeInterval,
+        overdueHorizon: TimeInterval,
+        overdueFloor: Double,
         unlockSaturationCount: Int,
         tightDeadlineMultiplier: Double
     ) {
@@ -89,6 +112,8 @@ public struct ScoringWeights: Hashable, Sendable {
         self.rejectionPenalty = rejectionPenalty
         self.urgencyHorizon = urgencyHorizon
         self.rejectionCooldown = rejectionCooldown
+        self.overdueHorizon = overdueHorizon
+        self.overdueFloor = overdueFloor
         self.unlockSaturationCount = unlockSaturationCount
         self.tightDeadlineMultiplier = tightDeadlineMultiplier
     }
@@ -109,6 +134,8 @@ public struct ScoringWeights: Hashable, Sendable {
         rejectionPenalty: 60,
         urgencyHorizon: 7 * 24 * 3600,
         rejectionCooldown: 4 * 3600,
+        overdueHorizon: 14 * 24 * 3600,
+        overdueFloor: 0.25,
         unlockSaturationCount: 3,
         tightDeadlineMultiplier: 3
     )

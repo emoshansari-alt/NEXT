@@ -66,15 +66,21 @@ final class PersistenceUITests: XCTestCase {
         everything.tap()
     }
 
+    /// Asserts a task is listed, having first confirmed Everything is actually open.
+    ///
+    /// The confirmation is not ceremony. Today sits behind this sheet and shows the recommended
+    /// task's title too, so an unscoped search of the whole hierarchy can match the screen
+    /// underneath and pass without Everything having opened at all.
     private func assertEverythingContains(
         _ text: String,
         in app: XCUIApplication,
         message: String
     ) {
-        let match = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS[c] %@", text)
-        ).firstMatch
-        XCTAssertTrue(match.waitForExistence(timeout: 10), message)
+        XCTAssertTrue(
+            app.buttons["everything-close-button"].waitForExistence(timeout: 10),
+            "Everything should be open before looking in it"
+        )
+        XCTAssertTrue(app.staticTexts[text].waitForExistence(timeout: 10), message)
     }
 
     func testWorkSurvivesBeingKilledThroughEveryStateChange() {
@@ -103,7 +109,7 @@ final class PersistenceUITests: XCTestCase {
         // with no text to clear first. Selecting and replacing existing text through XCUITest
         // means press-and-hold and a context menu, which is precisely the kind of fragile
         // interaction that makes a suite fail for reasons unrelated to what it is testing.
-        openTask(title, in: app)
+        openTask(in: app)
 
         let nextActionField = app.textFields["detail-next-action-field"]
         XCTAssertTrue(nextActionField.waitForExistence(timeout: 5), "the task should open")
@@ -126,7 +132,7 @@ final class PersistenceUITests: XCTestCase {
         // 4. Relaunch and verify the edit survived, not merely the task it was made on.
         app = launch(store: store, reset: false)
         openEverything(app)
-        openTask(title, in: app)
+        openTask(in: app)
         expectValue(nextAction, in: app.textFields["detail-next-action-field"], timeout: 10)
 
         // 5. Complete it, from Today.
@@ -193,13 +199,32 @@ final class PersistenceUITests: XCTestCase {
         assertEverythingContains(text, in: app, message: message)
     }
 
-    /// Taps the row for a task, from inside Everything.
-    private func openTask(_ title: String, in app: XCUIApplication) {
-        let row = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS[c] %@", title)
-        ).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "\(title) should be listed")
+    /// Taps the task's row, from inside Everything.
+    ///
+    /// The row itself, not the text inside it. A `staticText` matching the title also exists on
+    /// Today behind the sheet, and tapping that does nothing at all — the failure then surfaces
+    /// as the detail screen never appearing, several assertions away from the cause.
+    private func openTask(in app: XCUIApplication) {
+        XCTAssertTrue(
+            app.buttons["everything-close-button"].waitForExistence(timeout: 10),
+            "Everything should be open"
+        )
+
+        let row = app.buttons["task-row"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "the task should be listed")
+        XCTAssertTrue(row.isHittable, "the row must be tappable, not merely present")
         row.tap()
+
+        if !app.buttons["detail-save-button"].waitForExistence(timeout: 8) {
+            // Ask the app rather than guess across ten-minute CI round trips.
+            XCTFail(
+                """
+                Tapping the task did not open its detail.
+                TREE:
+                \(app.debugDescription)
+                """
+            )
+        }
     }
 
     /// Waits for a field to actually hold `expected`, then asserts it.
