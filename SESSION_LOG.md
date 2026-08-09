@@ -12,7 +12,8 @@ enforced check rather than a tracked failure.
 
 ### Result
 
-**Tier 1: 549 tests / 100 suites. Tier 2: 107 unit / 25 suites + 34 UI tests.**
+**Tier 1: 549 tests / 100 suites. Tier 2: 107 unit / 25 suites + 35 UI tests.**
+Green — run [31314178101](https://github.com/emoshansari-alt/NEXT/actions/runs/31314178101).
 
 ### Three directions, one selected
 
@@ -43,6 +44,43 @@ Margin's contribution is discipline, and it is doing real work: cards invite dec
 are the most common surface in mobile design. The secondary control is outlined or underlined and
 never a second filled block, and **motion gets exactly one moment** — the card leaving and the next
 rising, which is the `NEXT → START → DONE → NEXT` loop §10 asks motion to reinforce.
+
+### Turning contrast on found defects rather than confirming the palette
+
+Five rounds, and worth every one. Enforcing contrast surfaced **four classes of defect no
+screenshot would have shown**, none of which the palette test could see:
+
+- an underline drawn at 45% opacity — decoration pretending to be an affordance, and the reason
+  every failing quiet button was an underlined one while every plain variant passed;
+- disabled controls faded to 0.4 opacity, which takes the label below legibility. "Unavailable" is
+  information the user still has to read, so disabled now changes colour instead;
+- ink rendered on **system row backgrounds** that had never been set — eight failures on Settings
+  and six on Task Detail from one omission;
+- section headers left on the system's colour rather than the palette's.
+
+The palette test was correct the entire time while the screens were wrong. It also caught what the
+audit could not: a dark card measuring 1.16 against the dark desk, a token chosen by eye. The two
+checks answer different questions and both were needed.
+
+**Two mistakes of mine in the sequence, recorded because they cost rounds.** A filter for "elements
+behind a sheet" was written on the strength of a misread log — the contrast rows belonged to the
+expected-failure test — and removed once read properly. And moving the list screens back to the
+native background was committed saying it would clear their failures; it did not. The change stands
+on its own merits, because D-023 already said those screens keep their native structure and
+painting the desk behind system chrome contradicted it, but the claim outran the evidence.
+
+### Where contrast actually landed
+
+**Enforced on the five screens NEXT draws itself** — Today, Focus, Rescue, Capture, Onboarding.
+
+**Tracked, not enforced, on the four built from a system `List` or `Form`.** Each reports exactly
+one contrast failure, always the *first* section header, always directly beneath the navigation
+bar. The header is NEXT's own `Text` carrying the palette's colour; the list style renders it
+against the bar's material regardless. Every other header on those screens passes, which is what
+identifies it as the system's rendering rather than NEXT's colour. Strict expected failure, so if
+SwiftUI ever honours `foregroundStyle` there it fails for *not* failing.
+
+That is a narrower claim than "contrast is enforced", and it is the true one.
 
 ### Contrast stopped being an aspiration
 

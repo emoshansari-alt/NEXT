@@ -82,9 +82,12 @@ see `RELEASE_GATED.md` Gate B.
 
 - [x] Every meaningful control has a useful label — audit-enforced
 - [ ] VoiceOver traversal order is logical on every core screen
-- [ ] Dynamic Type works at the largest accessibility sizes without breaking layout
+- [x] Dynamic Type works at the largest accessibility sizes without breaking layout —
+      Today and Focus audited at accessibility XXXL
 - [ ] Reduce Motion respected
-- [x] Contrast adequate throughout — enforced by the audit and by `NextPaletteTests`
+- [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
+      `NextPaletteTests` on the values. One system-rendered section header per
+      `List`/`Form` screen is tracked rather than enforced (D-021)
 - [x] No meaning conveyed by colour alone — completion is spoken, not only struck through
 - [ ] No essential action is gesture-only
 - [x] Touch targets meet current platform guidance — audit-enforced (D-021)
@@ -92,8 +95,9 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Timer state accessible — spoken, not left to the digits
 - [ ] Decorative images hidden from assistive technology
 - [x] Loading states understandable
-- [ ] Dynamic Type on navigation-bar buttons — not app-fixable; tracked under a strict
-      expected failure (D-021)
+- [ ] Two system-rendered exceptions — navigation-bar Dynamic Type and the first section
+      header's contrast. Neither is app-fixable; both tracked under strict expected
+      failures so they surface if SwiftUI changes (D-021)
 - [ ] Remaining device-only checks explicitly listed in `RELEASE_GATED.md` B5
 
 ### Privacy and security

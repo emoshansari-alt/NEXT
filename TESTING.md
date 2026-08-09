@@ -113,13 +113,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` ·
-run [31296600849](https://github.com/emoshansari-alt/NEXT/actions/runs/31296600849)
+run [31314178101](https://github.com/emoshansari-alt/NEXT/actions/runs/31314178101)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 103 tests in 24 suites, passed (2 known issues — see below) |
-| `NextAppUITests` (XCTest, real Simulator) | 34 tests in 6 suites, passed |
+| `NextAppTests` (swift-testing) | 107 tests in 25 suites, passed (2 known issues — see below) |
+| `NextAppUITests` (XCTest, real Simulator) | 35 tests in 6 suites, passed |
 | `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
 
 ### Two known issues, and both are the same answer
@@ -212,16 +212,29 @@ test bundles and defeat the purpose.
 Focus at accessibility XXXL. It enforces `contrast`, `hitRegion`, `textClipped`,
 `elementDetection`, `sufficientElementDescription` and `trait`.
 
-**Contrast became enforceable when the Index Card palette landed** (D-023). It is checked twice
-and in two different ways: `NextPaletteTests` resolves every token pair in both appearances and
-asserts 4.5:1 against the *values*, and the audit checks what is actually rendered. The first
-catches a token chosen carelessly; the second catches a screen that puts the right colours in the
-wrong place.
+**Contrast is enforced on the five screens NEXT draws itself** — Today, Focus, Rescue, Capture and
+Onboarding — as of the Index Card palette (D-023). It is checked twice and in two different ways:
+`NextPaletteTests` resolves every token pair in both appearances and asserts 4.5:1 against the
+*values*, and the audit checks what is actually rendered.
 
-**Dynamic Type is still tracked rather than enforced**, under a strict `XCTExpectFailure`. What
-remains is navigation-bar buttons — "Cancel", "Done", "Close" — which SwiftUI does not scale and an
-app cannot make scale. Strict, so if that ever changes the test fails for *not* failing and the
-expectation gets removed.
+Both are needed, and the difference is not academic. Turning contrast on found **four classes of
+defect the palette test could not see**: an underline drawn at 45% opacity, disabled controls
+dimmed below legibility, ink rendered on system row backgrounds that were never set, and section
+headers left on the system's colour. The palette was correct throughout while the screens were
+wrong. Equally, the palette test caught a dark card at 1.16 against the desk that no screen would
+have reported.
+
+Two categories remain **tracked rather than enforced**, both under strict `XCTExpectFailure` so
+they fail the day they start passing:
+
+- **Dynamic Type on navigation-bar buttons.** "Cancel", "Done", "Close" do not scale; SwiftUI
+  offers no control over it.
+- **The first section header on a system `List` or `Form`.** Everything, Task Detail, Settings and
+  Minimum Win each report exactly one contrast failure, always the first header, always directly
+  beneath the navigation bar. The header is NEXT's own `Text` carrying the palette's colour and
+  the list style renders it against the bar's material regardless. Every *other* header on those
+  screens passes, which is what identifies it as the system's rendering rather than NEXT's colour.
+  Those four screens run the identical checks minus contrast.
 
 The audit reports each issue's identifier, label and frame rather than only the fault, because the
 element-level detail otherwise lives in an xcresult bundle that cannot be opened from Windows.
