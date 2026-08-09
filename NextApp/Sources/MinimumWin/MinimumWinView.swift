@@ -43,6 +43,7 @@ struct MinimumWinView: View {
                     }
                 } header: {
                     Text(plan.taskTitle)
+                .foregroundStyle(NextPalette.inkSecondary)
                 }
 
                 Section {
@@ -57,6 +58,7 @@ struct MinimumWinView: View {
                     }
                 } header: {
                     Text("What still fits")
+                .foregroundStyle(NextPalette.inkSecondary)
                 }
 
                 if let reassessAt = plan.reassessAt {

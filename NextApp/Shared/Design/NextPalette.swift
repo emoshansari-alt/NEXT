@@ -26,7 +26,7 @@ enum NextPalette {
     ///
     /// Chosen to clear 4.5:1 on `card` in both appearances, which the system's own `.secondary`
     /// does not reliably do at caption sizes. That was one of the audit's findings.
-    static let inkSecondary = dynamic(light: 0x5C584F, dark: 0xA8A69F)
+    static let inkSecondary = dynamic(light: 0x54504A, dark: 0xB0AEA7)
 
     /// Ballpoint blue. The single accent: the card's spine, the primary action, the live mark.
     static let biro = dynamic(light: 0x2438C8, dark: 0x8FA0FF)
@@ -38,7 +38,7 @@ enum NextPalette {
     static let marker = dynamic(light: 0xE0A800, dark: 0xD8A93A)
 
     /// Hairlines and the card's own edge.
-    static let edge = dynamic(light: 0xD8D3C9, dark: 0x393D45)
+    static let edge = dynamic(light: 0xD8D3C9, dark: 0x2F3238)
 
     /// Where something has gone wrong. Distinct from `biro` so a warning never reads as an action.
     static let warning = dynamic(light: 0x9A3412, dark: 0xF2A88A)

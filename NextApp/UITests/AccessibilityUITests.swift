@@ -97,6 +97,15 @@ final class AccessibilityUITests: XCTestCase {
         do {
             try app.performAccessibilityAudit(for: types) { issue in
                 let element = issue.element
+
+                // WCAG 1.4.3 exempts inactive components from the contrast requirement, and iOS
+                // dims a disabled system control itself — a toolbar "Save" that is off until
+                // there is something to save is rendered by the navigation bar, not by NEXT.
+                // Everything the app *can* control about disabled state is covered instead by
+                // `NextPaletteTests`, which asserts the disabled fill and label still clear 4.5:1.
+                if issue.auditType == .contrast, element?.isEnabled == false {
+                    return true
+                }
                 issues.append(
                     """
                     • \(issue.auditType)

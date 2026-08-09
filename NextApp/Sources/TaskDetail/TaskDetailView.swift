@@ -26,7 +26,7 @@ struct TaskDetailView: View {
                         .accessibilityIdentifier("detail-failure")
                 }
 
-                Section("Task") {
+                Section(header: Text("Task").foregroundStyle(NextPalette.inkSecondary)) {
                     TextField("Task", text: $model.title, axis: .vertical)
                         .accessibilityIdentifier("detail-title-field")
                         .accessibilityLabel("Task name")
@@ -37,7 +37,7 @@ struct TaskDetailView: View {
                         .accessibilityLabel("Notes")
                 }
 
-                Section("First step") {
+                Section(header: Text("First step").foregroundStyle(NextPalette.inkSecondary)) {
                     TextField("What is the first thing to do?", text: $model.nextAction, axis: .vertical)
                         .accessibilityIdentifier("detail-next-action-field")
                         .accessibilityLabel("First step")
@@ -64,11 +64,11 @@ struct TaskDetailView: View {
                     }
                 }
 
-                Section("When") {
+                Section(header: Text("When").foregroundStyle(NextPalette.inkSecondary)) {
                     deadlineControls
                 }
 
-                Section("How long") {
+                Section(header: Text("How long").foregroundStyle(NextPalette.inkSecondary)) {
                     Picker("Estimate", selection: $model.estimatedMinutes) {
                         ForEach(Self.durations, id: \.self) { minutes in
                             Text(minutes.map { "\($0) min" } ?? "Not sure")
@@ -78,7 +78,7 @@ struct TaskDetailView: View {
                     .accessibilityIdentifier("detail-estimate-picker")
                 }
 
-                Section("Priority") {
+                Section(header: Text("Priority").foregroundStyle(NextPalette.inkSecondary)) {
                     Picker("Priority", selection: $model.importance) {
                         Text("Normal").tag(Importance.normal)
                         Text("Important").tag(Importance.important)

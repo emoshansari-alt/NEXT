@@ -77,8 +77,10 @@ struct SettingsView: View {
             }
         } header: {
             Text("Deadlines")
+                .foregroundStyle(NextPalette.inkSecondary)
         } footer: {
             Text("One reminder before something you gave a deadline to. Nothing else.")
+                .foregroundStyle(NextPalette.inkSecondary)
         }
     }
 
@@ -109,9 +111,11 @@ struct SettingsView: View {
             }
         } header: {
             Text("Daily")
+                .foregroundStyle(NextPalette.inkSecondary)
         } footer: {
             // Says what it is rather than selling it.
             Text("Off unless you want it. It says how much is outstanding, once a day.")
+                .foregroundStyle(NextPalette.inkSecondary)
         }
     }
 
@@ -127,6 +131,7 @@ struct SettingsView: View {
             .accessibilityIdentifier("settings-cloud-ai-toggle")
         } header: {
             Text("Intelligence")
+                .foregroundStyle(NextPalette.inkSecondary)
         } footer: {
             // The whole truth, including the part that says this changes nothing today.
             Text(
@@ -136,6 +141,7 @@ struct SettingsView: View {
                 and only the text for that one request would be sent — never your whole list.
                 """
             )
+            .foregroundStyle(NextPalette.inkSecondary)
         }
     }
 
@@ -165,8 +171,10 @@ struct SettingsView: View {
             LabeledContent("Account", value: "None")
         } header: {
             Text("Privacy")
+                .foregroundStyle(NextPalette.inkSecondary)
         } footer: {
             Text("NEXT has no account and collects nothing about you.")
+                .foregroundStyle(NextPalette.inkSecondary)
         }
     }
 
