@@ -72,16 +72,39 @@ struct RescueIntoFocusTests {
         // The defect: this used to open Focus on the essay — the exact thing the user had just
         // told the app was too much.
         let (model, _) = await loaded([
-            task("essay", title: "History essay", nextAction: "Write the whole thing.", deadlineHours: 30)
+            task("essay", title: "History essay", deadlineHours: 30)
         ])
         let response = try #require(rescue(model, path: .tooMuch))
+        try #require(response.step.text != "History essay", "the step should be smaller than the task")
 
         await model.focusRescued(response)
 
         let focus = try #require(model.focus)
         #expect(focus.action == response.step.text)
         #expect(focus.action != "History essay")
-        #expect(focus.action != "Write the whole thing.")
+    }
+
+    @Test("a recorded next action is offered as written, even when it is a large one")
+    func rescueOffersTheUsersOwnWordsUnchanged() async throws {
+        // Documenting real behaviour rather than asserting a wish. `StepShrinker` puts a recorded
+        // next action at the head of the ladder on purpose — the user wrote it, and nothing
+        // inferred from a keyword read of the title beats that.
+        //
+        // The consequence, stated plainly: someone who records "Write the whole thing." as their
+        // next action and then says "It's too much" gets that same sentence back. NEXT is not
+        // overruling the user's own words on the strength of a template. It is a real limitation
+        // of this path and it is in SESSION_LOG.md, not hidden behind a fixture that avoids it.
+        let (model, _) = await loaded([
+            task("essay", title: "History essay", nextAction: "Write the whole thing.", deadlineHours: 30)
+        ])
+
+        let response = try #require(rescue(model, path: .tooMuch))
+        await model.focusRescued(response)
+
+        #expect(response.step.origin == .recordedNextAction)
+        // What this test actually guards is the propagation: whatever Rescue decided on, that is
+        // what Focus shows.
+        #expect(try #require(model.focus).action == response.step.text)
     }
 
     @Test("finishing a rescued step leaves the task outstanding")

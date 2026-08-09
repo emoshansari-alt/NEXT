@@ -26,6 +26,16 @@ final class TodayViewModel {
     /// was too much.
     private(set) var focus: FocusTarget?
 
+    /// What is still achievable on the recommended task, when the whole of it no longer is.
+    ///
+    /// `nil` unless there is genuinely a ladder to offer, which is most of the time. Stored
+    /// rather than computed on demand for two reasons: the planner reads the clock, so a computed
+    /// version would change under SwiftUI without anything telling it to re-render, and a view
+    /// body touches this several times per pass. It is recomputed wherever `outcome` is, from the
+    /// recommendation's own `deadlineFeasibility` rather than a fresh judgement — so the ladder
+    /// can never contradict the screen that offered it (PRODUCT_SPEC.md §4.12).
+    private(set) var minimumWinPlan: MinimumWinPlan?
+
     /// Everything currently in the store.
     ///
     /// Exposed because Rescue needs the whole set, not just the recommendation: the
@@ -86,14 +96,26 @@ final class TodayViewModel {
     /// removed both it and the test that was guarding against forgetting to.
     func load() async {
         do {
-            let stored = try await repository.fetchAll()
-            tasks = stored
-            outcome = engine.recommend(from: stored, context: context())
+            recompute(from: try await repository.fetchAll())
             storeFailure = nil
             publishSnapshot()
         } catch {
             storeFailure = "NEXT could not open your tasks."
             outcome = .nothingToDo
+            minimumWinPlan = nil
+        }
+    }
+
+    /// Everything derived from the store, worked out in one place.
+    ///
+    /// Both the recommendation and the Minimum Win ladder are recomputed together, from the same
+    /// list at the same instant. Deriving them at different moments is how a screen ends up
+    /// offering a reduced goal for a task it is no longer recommending.
+    private func recompute(from stored: [TaskItem]) {
+        tasks = stored
+        outcome = engine.recommend(from: stored, context: context())
+        minimumWinPlan = outcome.recommendation.flatMap {
+            planner.plan(for: $0, among: stored, now: timeSource.now).plan
         }
     }
 
@@ -137,17 +159,6 @@ final class TodayViewModel {
         focus = target
         let task = target.task
         await write { try task.started(at: self.timeSource.now) }
-    }
-
-    /// What is still achievable on the recommended task, when the whole of it no longer is.
-    ///
-    /// Returns `nil` unless there is genuinely a ladder to offer. Deriving this from the
-    /// recommendation's own `deadlineFeasibility` rather than recomputing it means the ladder can
-    /// never contradict the screen that offered it (PRODUCT_SPEC.md §4.12).
-    var minimumWinPlan: MinimumWinPlan? {
-        guard let recommendation = outcome.recommendation else { return nil }
-
-        return planner.plan(for: recommendation, among: tasks, now: timeSource.now).plan
     }
 
     func stopFocus() {
@@ -218,9 +229,7 @@ final class TodayViewModel {
     private func write(_ transition: () throws -> TaskItem) async {
         do {
             try await repository.upsert(transition())
-            let stored = try await repository.fetchAll()
-            tasks = stored
-            outcome = engine.recommend(from: stored, context: context())
+            recompute(from: try await repository.fetchAll())
             storeFailure = nil
             publishSnapshot()
             await onStoreChanged()
