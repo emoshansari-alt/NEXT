@@ -158,20 +158,44 @@ struct MockFailureContainmentTests {
 
     @Test("every failure mode on every operation throws, and returns nothing")
     func everyModeOnEveryOperationThrows() async throws {
+        // Forty combinations, and only twenty-six of them are injections. For a mode that does
+        // not apply to an operation the mock refuses before producing any bytes at all, so
+        // "it threw" is true for a reason that has nothing to do with the failure being
+        // injected. Counting those as covered is how a matrix test flatters itself.
+        //
+        // So the applicable pairings additionally assert the error is *not* the refusal: the day
+        // a mode stops generating its bad payload, this fails instead of quietly shrinking to
+        // fourteen real cases.
+        var injected = 0
+
         for mode in IntelligenceFailureMode.allCases {
             for operation in IntelligenceOperation.allCases {
                 let provider = MockIntelligenceProvider(.failureMode(mode))
+                let applicable = mode.applicableOperations.contains(operation)
+                if applicable { injected += 1 }
 
                 var threw = false
+                var refused = false
                 do {
                     try await call(operation, on: provider)
+                } catch let error as IntelligenceError {
+                    threw = true
+                    refused = error == .providerFailure(
+                        operation: operation,
+                        code: MockIntelligenceProvider.inapplicableModeCode
+                    )
                 } catch {
                     threw = true
                 }
 
                 #expect(threw, "\(mode) on \(operation) returned a value")
+                if applicable {
+                    #expect(!refused, "\(mode) on \(operation) refused instead of failing")
+                }
             }
         }
+
+        #expect(injected == 26)
     }
 
     @Test("no failure mode can put anything in the task database")

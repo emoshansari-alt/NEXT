@@ -174,11 +174,87 @@ struct CaptureDatabaseIntegrityTests {
         }
     }
 
-    @Test("nothing a provider returns can change a task the user already had")
+    @Test("breaking a task down under every failure mode leaves the task exactly as it was")
+    func decompositionNeverDamagesTheParent() async throws {
+        // Extraction was the only path either corruption test drove, and extraction is the safe
+        // one: it can only ever mint new rows. Decomposition is the single place in NEXT where a
+        // model's answer causes an *existing* task to be rewritten — the parent gains
+        // prerequisites and a new `updatedAt` — so it is the only place a bad response could
+        // damage something the user already had.
+        //
+        // Six of the eight modes apply to `.decompose`; the other two are shape-specific and say
+        // so, which is checked here rather than assumed so a mode losing its applicability shows
+        // up as a change in what this test covers.
+        let parent = makeTask(
+            id: "essay",
+            title: "History essay",
+            estimatedMinutes: 120,
+            nextAction: "Open the assignment brief."
+        )
+        var covered: Set<IntelligenceFailureMode> = []
+
+        for mode in IntelligenceFailureMode.allCases
+        where mode.applicableOperations.contains(.decompose) {
+            covered.insert(mode)
+
+            let repository = InMemoryTaskRepository([parent])
+            let provider = MockIntelligenceProvider(.failureMode(mode))
+
+            do {
+                let validated = try await provider.decompose(
+                    DecompositionRequest(title: parent.title, estimatedMinutes: 120, maxSteps: 5)
+                )
+                let children = validated.childTasks(
+                    of: parent, idProvider: ids, createdAt: .testReference
+                )
+                try await repository.upsert(children + [parent.awaiting(children)])
+            } catch {
+                // Expected for every mode. What matters is the store.
+            }
+
+            let stored = try await repository.fetchAll()
+            #expect(stored == [parent], "\(mode)")
+        }
+
+        #expect(covered.count == 6)
+    }
+
+    @Test("a decomposition that succeeds does rewrite the parent")
+    func aSuccessfulDecompositionChangesTheParent() async throws {
+        // The control for the test above, and the reason it is not vacuous.
+        //
+        // "The store still equals what it started as" is only a meaningful assertion if this
+        // write is capable of changing the store — otherwise both tests would pass against a
+        // decomposition path that silently did nothing at all, and the guarantee would be an
+        // artefact of broken plumbing rather than of the failure being contained.
+        let parent = makeTask(id: "essay", title: "History essay", estimatedMinutes: 120)
+        let repository = InMemoryTaskRepository([parent])
+
+        let validated = try await TemplateFallbackProvider().decompose(
+            DecompositionRequest(title: parent.title, estimatedMinutes: 120, maxSteps: 5)
+        )
+        let children = validated.childTasks(
+            of: parent, idProvider: ids, createdAt: .testReference
+        )
+        try await repository.upsert(children + [parent.awaiting(children)])
+
+        let stored = try await repository.fetchAll()
+        #expect(stored != [parent])
+        #expect(stored.count == children.count + 1)
+
+        let rewritten = try #require(stored.first { $0.id == parent.id })
+        #expect(rewritten.prerequisiteIDs == children.map(\.id))
+    }
+
+    @Test("nothing a provider returns can name a task the user already had")
     func providersCannotReachExistingTasks() async throws {
-        // There is no operation for editing, completing or deleting, and no request type carries
-        // a `TaskID`, so a provider has no way to name an existing task at all. Extraction only
-        // ever mints new identifiers.
+        // The guarantee proven here is about the *request*: there is no operation for editing,
+        // completing or deleting, and no request type carries a `TaskID`, so a provider has no
+        // way to name an existing task. Extraction only ever mints new identifiers.
+        //
+        // That is narrower than "an existing task can never be modified", which is not true —
+        // decomposition rewrites the parent, deliberately and locally. The test above is the one
+        // that covers that path.
         let repository = InMemoryTaskRepository([makeTask(id: "essay", title: "History essay")])
 
         let validated = try await capture("chem test monday", with: TemplateFallbackProvider())
