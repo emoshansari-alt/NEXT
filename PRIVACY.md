@@ -157,6 +157,58 @@ account and no server copy, there is no remote deletion request to make and noth
 
 ---
 
+## Public privacy policy — draft text
+
+Drafted from everything above, and true of NEXT as built. It is deliberately short and written
+for a sixteen-year-old to read in one go, because a policy nobody finishes is not consent. **It
+must be re-checked against the code before publication** — every sentence here is a claim the
+repository currently supports, and the first cloud provider changes three of them.
+
+> ### NEXT — Privacy
+>
+> **Last updated: [date of publication]**
+>
+> NEXT keeps your work on your phone.
+>
+> **We do not collect anything about you.** There is no account, no sign-up, no email address,
+> no username, and no profile. We do not know who you are, and there is nothing on our side to
+> connect to you if we wanted to.
+>
+> **Your tasks stay on your device.** Everything you write in NEXT — task titles, notes,
+> deadlines, the steps you break work into — is stored on your phone. It is not uploaded, backed
+> up to us, or shared with anyone. We cannot read it.
+>
+> **NEXT does not use the internet.** The app makes no network requests of its own. What it
+> suggests you do next is worked out on your phone, by ordinary code, with no model and no
+> server involved.
+>
+> **There is no analytics, tracking, or advertising.** No analytics service, no advertising
+> identifier, no third-party code of any kind. NEXT does not know how often you open it.
+>
+> **Reminders and the widget stay on your phone too.** If you turn reminders on, NEXT asks iOS to
+> show them; the text is written on your device and never leaves it. The home-screen widget reads
+> what to show from a file NEXT writes on your phone.
+>
+> **If you buy NEXT+**, the purchase is handled entirely by Apple. We never see your payment
+> details — we only ask Apple whether you have bought it.
+>
+> **Deleting is deleting.** A task you delete is removed from your phone. Deleting NEXT removes
+> everything with it. Because there is no account and no copy on our side, there is nothing left
+> anywhere to ask us to delete.
+>
+> **If this ever changes**, we will say so here and in the app before it applies to anything you
+> write. If NEXT ever offers a feature that sends what you write off your phone, it will be
+> switched off until you turn it on, it will tell you exactly what would be sent, and it will
+> only ever send the text for that one request — never your whole list.
+>
+> **Questions:** [support contact].
+
+Two placeholders, both deliberate. The date is filled at publication. The support contact is an
+owner decision and the one thing in this document nobody else can supply — see
+`RELEASE_CHECKLIST.md`.
+
+---
+
 ## Apple App Privacy questionnaire — draft answers
 
 To be finalised in Phase 15 once the Phase 8 provider decision is made. Current expected

@@ -777,6 +777,49 @@ current behaviour is not a dead end: the user can add an estimate in Task Detail
 
 ---
 
+## D-026 — Versioning: the marketing version is chosen, the build number is derived
+
+**Date:** 2026-08-09 · **Status:** Accepted
+
+**Context.** `RELEASE_CHECKLIST.md` requires a versioning and build-number strategy before
+release-candidate status. Neither `project.yml` nor `Info.plist` sets either today, so both come
+from Xcode's defaults — which is how two builds end up sharing a build number and App Store
+Connect rejects the second one with no explanation of what changed.
+
+**Decision.**
+
+**`CFBundleShortVersionString` — the marketing version — is chosen by hand**, as `MAJOR.MINOR`,
+and lives in `project.yml`. It starts at `1.0`. It is the number the user sees, and it should
+mean something to them: it changes when what NEXT *is* changes, not when a build is made.
+`MAJOR.MINOR.PATCH` is available if a release ever needs a third component, but 1.0 does not
+start with one it has no use for.
+
+**`CFBundleVersion` — the build number — is derived and never edited by hand.** It is the count
+of commits on `main` at build time, which is monotonic, unique per commit, and requires nobody to
+remember anything. A human-maintained counter is a field somebody forgets, and the failure mode
+is a rejected upload rather than a warning.
+
+**Reasoning.** These two numbers answer different questions and should not share a mechanism. The
+marketing version answers "which release is this?" and is a product statement. The build number
+answers "which exact binary is this?" and is bookkeeping — Apple only requires it to increase
+within a marketing version, and deriving it from the commit count means an archive can always be
+traced back to a commit.
+
+Commit count rather than a timestamp because it is stable: rebuilding the same commit produces
+the same build number, so an accidental rebuild is not a new build.
+
+**Rejected alternatives.** A date-based build number (`20260809.1`) reads well but two builds of
+the same commit differ, and it invites hand-editing the suffix. A CI run number is unique but
+means nothing outside GitHub and is not reproducible locally. Auto-incrementing on every build
+makes local builds burn numbers that will never be uploaded.
+
+**Not yet done, deliberately.** Wiring the derivation into `project.yml` is a build-settings
+change that cannot be verified from the Windows development machine except through a full CI
+round, and no upload can happen until Gate B. The strategy is what the checklist asks for; the
+implementation belongs with the first archive, where it can be seen to work.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

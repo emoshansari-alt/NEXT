@@ -202,12 +202,23 @@ sequence.
       generated imagery may support the composition but may not fabricate functionality or stand
       in for a screenshot (D-014, D-024)
 - [ ] Title, subtitle, description, keywords drafted
-- [ ] Privacy policy text drafted
+- [x] Privacy policy text drafted — `PRIVACY.md`, written for a sixteen-year-old to read in one
+      go, because a policy nobody finishes is not consent. Every sentence is a claim the
+      repository currently supports; it carries an instruction to re-check it against the code
+      before publication, since the first cloud provider changes three of them
+- [ ] Support contact decided — **owner decision.** It is the one placeholder in the drafted
+      privacy policy and in `RELEASE_GATED.md` B3 that nobody else can supply
 - [ ] Support contact decided
 - [x] StoreKit product structure defined in a `.storekit` file — `NextApp/NEXT.storekit`,
       three provisional products, identifiers guarded by `scripts/lint-storekit.sh` (D-016)
-- [ ] App Store Connect configuration steps written out for later execution
-- [ ] Versioning and build-number strategy defined
+- [x] App Store Connect configuration steps written out for later execution —
+      `RELEASE_GATED.md` B3, in order, with the App Privacy answers derived from `PRIVACY.md`
+      rather than left to be improvised under submission pressure. Names the two things that
+      cannot be prepared yet, and why
+- [x] Versioning and build-number strategy defined — D-026. Marketing version chosen by hand as
+      `MAJOR.MINOR` starting at 1.0; build number derived from the commit count on `main`, so it
+      is monotonic, unique, reproducible for a given commit, and never a field anyone forgets.
+      Wiring it into `project.yml` belongs with the first archive, where it can be seen to work
 
 ---
 

@@ -86,6 +86,41 @@ app-to-widget handoff is gated.
 - [ ] Upload icon, screenshots, description, keywords, support and privacy-policy URLs
 - [ ] Host the privacy policy at a public URL
 
+#### The steps in order, written out now so they are not improvised later
+
+Written while the reasoning behind each answer is still fresh, which is the point: the App
+Privacy questionnaire in particular is a set of legal declarations, and the honest answers are
+the ones derivable from `PRIVACY.md` rather than the ones that seem safe under time pressure.
+
+1. **Create the app record.** Bundle identifier `com.nextapp.next` — it must match `project.yml`
+   exactly, and it cannot be changed after the first upload. Primary language English (UK),
+   category Productivity.
+2. **Answer the App Privacy questionnaire from `PRIVACY.md`, not from memory.** As NEXT is built
+   today the answer to every collection question is **no**: no account, no analytics SDK, no
+   third-party dependency, no networking of any kind, no advertising identifier. The expected
+   declaration is therefore **"Data Not Collected"** in full. That answer stops being true the
+   moment a cloud provider ships, which is why `PRIVACY.md` says so in the same place.
+3. **Age rating.** No objectionable content, no user-generated content shown to other users, no
+   web view, no gambling, no unrestricted web access — the questionnaire should come out at 4+.
+   NEXT's audience is 16–22 but the rating describes content, not target audience.
+4. **Encryption declaration.** `ITSAppUsesNonExemptEncryption` is already `false` in
+   `NextApp/Info.plist`, which is correct: NEXT ships no encryption of its own and makes no
+   network request. This is what stops every upload asking the same question again.
+5. **Support URL and privacy-policy URL.** Both must be public and reachable at submission. The
+   privacy policy text is drafted from `PRIVACY.md`; the support contact is an owner decision and
+   is the one item here nobody else can make.
+6. **Upload the build**, then attach screenshots, description and keywords. Screenshots have
+   their own approval sequence — see D-024 — and must be produced from the real app.
+7. **TestFlight before submission**, which is also the first opportunity to close B5's device
+   checks: notification delivery, real VoiceOver traversal, real haptics, and the widget's
+   content.
+
+Two things are deliberately *not* on this list, because they would be guesses. The NEXT+ products
+cannot be created in App Store Connect until D-015's capability boundary and D-016's pricing are
+decided — creating them earlier would put identifiers on record that the decision might change.
+And no submission can be prepared while `FeatureGate.oneDotZero` gates nothing, because the
+paywall would be selling something that grants nothing.
+
 ### B4a — Local StoreKit testing — **measured, not assumed**
 
 - [ ] Verify the NEXT+ catalogue resolves against a `.storekit` configuration
