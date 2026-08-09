@@ -59,18 +59,50 @@ final class AccessibilityUITests: XCTestCase {
         done.tap()
     }
 
-    /// Audits whatever is currently on screen, naming the screen in any failure.
+    /// Audits whatever is currently on screen and reports **every** issue, with the element.
+    ///
+    /// The default behaviour throws on the first problem with a message like "Hit area is too
+    /// small" and nothing about which control — the detail lives in the result bundle, which
+    /// cannot be opened on the Windows development machine. Collecting the issues here instead
+    /// turns one CI round into the whole list, which is the same reason the UI suite dumps
+    /// `debugDescription` rather than guessing across ten-minute round trips.
+    ///
+    /// The handler returns `true` for every issue, meaning "handled" — so the audit itself does
+    /// not throw and this method decides the verdict, having recorded all of them.
     private func audit(
         _ app: XCUIApplication,
         _ screen: String,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
+        var issues: [String] = []
+
         do {
-            try app.performAccessibilityAudit()
+            try app.performAccessibilityAudit { issue in
+                let element = issue.element
+                issues.append(
+                    """
+                    • \(issue.auditType)
+                        id: \(element?.identifier ?? "—")
+                        label: \(element?.label ?? "—")
+                        type: \(element.map { "\($0.elementType.rawValue)" } ?? "—")
+                        frame: \(element.map { "\($0.frame)" } ?? "—")
+                        detail: \(issue.compactDescription)
+                    """
+                )
+                return true
+            }
         } catch {
-            XCTFail("\(screen) failed the accessibility audit: \(error)", file: file, line: line)
+            issues.append("• the audit itself failed: \(error)")
         }
+
+        guard !issues.isEmpty else { return }
+
+        XCTFail(
+            "\(screen) — \(issues.count) accessibility issue(s):\n" + issues.joined(separator: "\n"),
+            file: file,
+            line: line
+        )
     }
 
     // MARK: Every core screen
