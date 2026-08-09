@@ -158,9 +158,20 @@ schemes:
         NextAppUITests: [test]
     run:
       config: Debug
+      # The other route to local StoreKit testing, and the one Xcode itself uses.
+      #
+      # SKTestSession alone was not enough: with the configuration sitting in the test bundle and
+      # found there, every session operation still failed with SKInternalErrorDomain Code 3 —
+      # including clearTransactions(), which does not read the file at all. That points at the
+      # StoreKit test facility refusing the process rather than at the configuration's contents,
+      # so this attaches the configuration to the scheme, which is how Xcode enables it normally.
+      storeKitConfiguration: NextApp/NEXT.storekit
     test:
       config: Debug
       gatherCoverageData: true
+      # `xcodebuild test` runs the Test action, so the Run action's copy above would never apply
+      # to the tests. Both are set deliberately.
+      storeKitConfiguration: NextApp/NEXT.storekit
       targets:
         - NextAppTests
         - NextAppUITests
