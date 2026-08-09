@@ -22,10 +22,13 @@ private struct FixedTimeSource: TimeSource {
 // bundle. It needs no scheme configuration and no signing, which is precisely why it was chosen
 // over the scheme's StoreKit Configuration option.
 
+/// Marks the bundle these tests are compiled into, so it can be found at runtime.
+private final class TestBundleMarker {}
+
 @Suite("StoreKit — the purchase contract against a real store", .serialized)
 struct StoreKitPurchaseServiceTests {
 
-    private func session() throws -> SKTestSession {
+    private func makeSession() throws -> SKTestSession {
         let session = try SKTestSession(configurationFileNamed: "NEXT")
         // Without this the purchase sheet appears and a unit test has no way to dismiss it.
         session.disableDialogs = true
@@ -33,9 +36,53 @@ struct StoreKitPurchaseServiceTests {
         return session
     }
 
+    @Test("diagnostic — where the store configuration is, and what StoreKit makes of it")
+    func reportWhatStoreKitCanSee() async throws {
+        // Not a rule, a question. The first run of this suite failed with an empty catalogue and
+        // no explanation, which is precisely the situation TESTING.md says to answer by asking
+        // the system rather than guessing across ten-minute CI round-trips.
+        //
+        // Delete this once the answer is recorded in RELEASE_GATED.md or the setup is fixed.
+        let testBundle = Bundle(for: TestBundleMarker.self)
+
+        var report = ["", "StoreKit configuration diagnostic", "---"]
+        report.append("test bundle:        \(testBundle.bundlePath)")
+        report.append(
+            "NEXT.storekit here: "
+            + String(describing: testBundle.url(forResource: "NEXT", withExtension: "storekit"))
+        )
+        report.append("main bundle:        \(Bundle.main.bundlePath)")
+        report.append(
+            "NEXT.storekit here: "
+            + String(describing: Bundle.main.url(forResource: "NEXT", withExtension: "storekit"))
+        )
+
+        let bundled = (try? FileManager.default.contentsOfDirectory(atPath: testBundle.bundlePath))
+        report.append("test bundle contents: \(bundled ?? [])")
+
+        do {
+            let session = try makeSession()
+            report.append("SKTestSession:      created")
+            defer { session.clearTransactions() }
+
+            let ids = NextPlusProducts.all.map(\.rawValue)
+            do {
+                let products = try await Product.products(for: ids)
+                report.append("Product.products:   \(products.count) of \(ids.count)")
+                report.append("returned:           \(products.map(\.id))")
+            } catch {
+                report.append("Product.products threw: \(error)")
+            }
+        } catch {
+            report.append("SKTestSession threw: \(error)")
+        }
+
+        Issue.record(Comment(rawValue: report.joined(separator: "\n")))
+    }
+
     @Test("the StoreKit-backed service honours the identical contract the stub does")
     func storeKitHonoursTheContract() async throws {
-        let session = try session()
+        let session = try makeSession()
         defer { session.clearTransactions() }
 
         // The same function Tier 1 runs against a stub. Neither tier re-derives the rules, so
@@ -49,7 +96,7 @@ struct StoreKitPurchaseServiceTests {
 
     @Test("the catalogue carries the store's own prices rather than any NEXT invented")
     func pricesComeFromTheStore() async throws {
-        let session = try session()
+        let session = try makeSession()
         defer { session.clearTransactions() }
 
         let products = try await StoreKitPurchaseService().products()
@@ -69,7 +116,7 @@ struct StoreKitPurchaseServiceTests {
         // The entitlement rules are proven at Tier 1 against plain values. This asks a different
         // question: that a real expiry, produced by StoreKit rather than by a fixture, arrives in
         // the shape those rules expect.
-        let session = try session()
+        let session = try makeSession()
         defer { session.clearTransactions() }
 
         let service = StoreKitPurchaseService()

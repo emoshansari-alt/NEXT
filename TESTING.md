@@ -47,7 +47,7 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 481 tests in 89 suites, 481 passed, 0 failed ·
+**Last run:** 2026-08-09 · **Result:** 516 tests in 96 suites, 516 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
@@ -62,6 +62,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone |
 | Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
 | Everything | date bucketing into sections, ordering, partitioning |
+| Monetisation | entitlement rules, expiry boundary, bounded billing-retry grace, per-receipt revocation, the capability gate, the 1.0 tripwire, the purchase contract, purchase tone |
 
 The suite also runs on `macos-latest` in CI under Apple Swift 6.3.3, so it passes on two
 toolchains and two operating systems.
@@ -75,6 +76,12 @@ It has been verified against a deliberate violation probe — a file importing S
 calling both `Date()` and `UUID()`. The lint caught all three, exited non-zero, and returned to
 passing once the probe was removed. A guardrail only ever observed to pass has not been tested.
 
+`scripts/lint-storekit.sh` holds `NextPlusProducts` and `NextApp/NEXT.storekit` to the same three
+product identifiers. A typo in one of them compiles, passes every test that uses the Swift
+constant, and only surfaces when a real purchase fails to resolve against App Store Connect.
+Verified the same way: a deliberate `monthy` typo in the configuration made it fail with both
+lists printed, and it returned to passing when the typo was removed.
+
 ### Mutation testing
 
 Several behaviours here were pinned by tests written *after* the code, which means passing
@@ -82,6 +89,14 @@ proves nothing on its own. Those were validated by deliberately breaking the imp
 confirming the test went red, then restoring it. Done so far for: prerequisite blocking, the
 repository's ordering guarantee, rejection clearing on start, next-action trimming, transition
 refusals, rejection preservation across `reopened()`, and the P5 language sweep.
+
+The monetisation rules were mutation-tested as a batch when they were written, because their RED
+was only a compile failure — every type was new, so "cannot find type in scope" proved the tests
+referenced something, not that they could fail on behaviour. Five mutations, all caught: gating a
+capability in `FeatureGate.oneDotZero`, making the expiry boundary inclusive, dropping the
+per-receipt revocation filter, returning `.offerUpgrade` for an unknown entitlement, and removing
+the bound on billing-retry grace. `scratchpad/mutate.py` in that session applied each in turn and
+restored it; the same shape is worth repeating for any rule added here.
 
 This is not ceremony. An adversarial review round found four tests that could never fail,
 including the academic-integrity guard, which built its "approved copy" table by calling the

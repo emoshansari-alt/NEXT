@@ -124,6 +124,7 @@ targets:
       # and this route sidesteps the question entirely. It also keeps the file out of the app,
       # so nothing about a shipping build changes.
       - path: NextApp/NEXT.storekit
+        type: file
         buildPhase: resources
     dependencies:
       - target: NextApp

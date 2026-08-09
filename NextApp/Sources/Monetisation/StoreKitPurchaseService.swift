@@ -45,10 +45,8 @@ struct StoreKitPurchaseService: PurchaseService {
         let result: Product.PurchaseResult
         do {
             result = try await product.purchase()
-        } catch StoreKitError.networkError {
-            throw PurchaseError.networkUnavailable
-        } catch StoreKitError.notAvailableInStorefront {
-            throw PurchaseError.productUnavailable(id)
+        } catch let error as StoreKitError {
+            throw Self.translate(error, for: id)
         } catch {
             throw PurchaseError.storeUnavailable
         }
@@ -103,10 +101,28 @@ struct StoreKitPurchaseService: PurchaseService {
     private func storeProducts() async throws -> [Product] {
         do {
             return try await Product.products(for: NextPlusProducts.all.map(\.rawValue))
-        } catch StoreKitError.networkError {
-            throw PurchaseError.networkUnavailable
+        } catch let error as StoreKitError {
+            throw Self.translate(error, for: nil)
         } catch {
             throw PurchaseError.storeUnavailable
+        }
+    }
+
+    /// StoreKit's failures, in NEXT's words.
+    ///
+    /// Only the distinctions that change what the person should be told are kept. Everything
+    /// else becomes "the store did not answer", because a more specific message that the reader
+    /// can do nothing with is not more helpful, only longer.
+    private static func translate(_ error: StoreKitError, for id: ProductID?) -> PurchaseError {
+        switch error {
+        case .networkError:
+            return .networkUnavailable
+        case .notAvailableInStorefront:
+            return id.map { PurchaseError.productUnavailable($0) } ?? .storeUnavailable
+        case .notEntitled:
+            return .notAllowed
+        default:
+            return .storeUnavailable
         }
     }
 
