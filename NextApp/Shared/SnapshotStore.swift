@@ -52,8 +52,16 @@ struct SnapshotStore {
     }
 
     /// Reads the snapshot, or `nil` if there is none yet.
+    ///
+    /// Through `FileManager` rather than `Data(contentsOf:)`, which would do the same job here
+    /// and also accepts an `http` URL. The URL is always a local container path, so the choice
+    /// changes no behaviour — it puts "this reads a file and cannot fetch anything" in the type
+    /// system instead of in a comment, and lets `scripts/lint-shipped-code.sh` ban the remote
+    /// form outright rather than carry an exception for the one place it was used.
     func read() -> RecommendationSnapshot? {
-        guard let fileURL, let data = try? Data(contentsOf: fileURL) else { return nil }
+        guard let fileURL, let data = FileManager.default.contents(atPath: fileURL.path) else {
+            return nil
+        }
         return try? JSONDecoder().decode(RecommendationSnapshot.self, from: data)
     }
 

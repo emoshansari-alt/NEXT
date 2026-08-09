@@ -30,6 +30,12 @@ jobs:
       - name: Enforce the NEXT+ product catalogue
         run: bash scripts/lint-storekit.sh
 
+      # Both invariants held when this was added, and neither was checked by anything. A force
+      # unwrap and a URLSession both compile, pass every test, and are only ever caught by
+      # someone reading the diff — which is not a guarantee.
+      - name: Enforce no force unwraps and no networking in shipped code
+        run: bash scripts/lint-shipped-code.sh
+
   tier1:
     name: Tier 1 — NextKit tests
     runs-on: macos-latest
@@ -39,8 +45,15 @@ jobs:
       - name: Report toolchain
         run: swift --version
 
-      - name: Build
-        run: swift build --package-path NextKit
+      # `--build-tests`, so the test target is held to the same bar as the library. The one
+      # warning this repository had was in a test file — a redundant `#require` printed in every
+      # green run since it was written, which nobody was ever going to notice by scrolling.
+      #
+      # Measured clean on Swift 6.3.3 before this was turned on. If a future runner image
+      # introduces a diagnostic outside our control this fails, and that is the intended cost:
+      # a warning that cannot fail anything is a warning nobody reads.
+      - name: Build with warnings as errors
+        run: swift build --package-path NextKit --build-tests -Xswiftc -warnings-as-errors
 
       - name: Test
         run: swift test --package-path NextKit
@@ -120,6 +133,33 @@ jobs:
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
+
+      # Everything above this point compiles Debug — `xcodebuild test` runs the scheme's Test
+      # action, which project.yml pins to Debug. Release is a materially different compile:
+      # whole-module optimisation instead of incremental, dead-code stripping, product
+      # validation. Nothing in this repository had ever built it.
+      #
+      # `SWIFT_TREAT_WARNINGS_AS_ERRORS` is passed on the command line rather than set in
+      # project.yml on purpose. In project.yml it would apply to every target in every
+      # configuration and to local Xcode, so a newly deprecated SDK symbol or a new macro
+      # diagnostic from a runner image update would turn main red for a reason nobody here
+      # controls — the same trap the simulator-name step above already refuses. Scoped here it
+      # gates exactly one build and is withdrawn by deleting one line.
+      #
+      # It does apply to the NextKit package targets that this build compiles, which is
+      # deliberate: NextKit is ours and is measured clean.
+      - name: Release build with warnings as errors (app + widget)
+        if: steps.probe.outputs.exists == 'true'
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project NextApp.xcodeproj \
+            -scheme NextApp \
+            -configuration Release \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
 
       - name: Upload test results
         if: always() && steps.probe.outputs.exists == 'true'
