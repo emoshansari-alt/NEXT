@@ -11,6 +11,10 @@ import XCTest
 /// rotor behaviour, real Dynamic Type rendering on device, and haptics all need hardware —
 /// `RELEASE_GATED.md` B5. A green run here is not a claim that NEXT is accessible; it is a claim
 /// that the automatable checks pass on every core screen, which is a smaller and true statement.
+// Main-actor isolated as a whole: `performAccessibilityAudit` is main-actor bound, and the
+// issue-collecting handler closes over local state, so calling it from a nonisolated context is
+// a data race the compiler correctly refuses.
+@MainActor
 final class AccessibilityUITests: XCTestCase {
 
     override func setUp() {
