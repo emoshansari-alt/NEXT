@@ -154,15 +154,35 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 
 ## Current state — Tier 2
 
-**Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` ·
-run [31315180902](https://github.com/emoshansari-alt/NEXT/actions/runs/31315180902)
+**Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` and `** BUILD SUCCEEDED **` ·
+run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 107 tests in 25 suites, passed (2 known issues — see below) |
-| `NextAppUITests` (XCTest, real Simulator) | 35 tests in 6 suites, passed |
+| `NextAppTests` (swift-testing) | 121 tests in 28 suites, passed (2 known issues — see below) |
+| `NextAppUITests` (XCTest, real Simulator) | 39 tests, passed |
 | `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
+| **Release build, app + widget, `SWIFT_TREAT_WARNINGS_AS_ERRORS`** | **builds clean — the first Release build in this repository's history** |
+| Cold start (`XCTApplicationLaunchMetric`, 5 launches) | average **3.155 s**, values 2.31–4.30 s |
+
+### What the Release build does and does not say about warnings
+
+It says the **shipped targets** — `NextApp`, `NextWidgetExtension` and the `NextKit` package
+targets they pull in — compile at `-O` with zero warnings, because a warning would have failed
+that step. That is the claim the release checklist needs, and nothing in this repository had ever
+measured it.
+
+It says nothing about the **test targets**, which that step does not build, and they are not
+clean: `GoldenPathUITests` produces `call to main actor-isolated instance method 'launch()' in a
+synchronous nonisolated context` warnings under Swift 6. Recorded rather than quietly folded into
+"no compiler warnings" — XCTest's own annotations are what makes them appear, they affect nothing
+that ships, and fixing them means annotating the suite `@MainActor`, which is a change to how the
+UI tests are scheduled and belongs in its own round.
+
+The cold-start figure is recorded and **not asserted against a threshold**. A limit invented here
+would be a number nobody chose, and a GitHub macOS runner is slower and busier than any phone a
+student owns. A 24% relative standard deviation across five launches says so plainly.
 
 ### Two known issues, and both are the same answer
 

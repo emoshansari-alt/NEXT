@@ -64,11 +64,14 @@ see `RELEASE_GATED.md` Gate B.
       against a deliberate violation probe. Also bans networking symbols and any external
       package (D-010) across all four shipped roots
 - [x] No dead experiments or "temporary" hacks in shipped code
-- [ ] Release build succeeds at Tier 2 — a Release build of the app and widget now runs in CI
-- [ ] No compiler warnings in a clean build — Tier 1 builds with `-warnings-as-errors` and the
-      Tier 2 Release build with `SWIFT_TREAT_WARNINGS_AS_ERRORS`. Tier 1 measured clean; the app
-      layer's warning count had never been measured by anyone and is now gated rather than
-      asserted
+- [x] Release build succeeds at Tier 2 — app and widget, iOS Simulator, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). The first Release
+      build in this repository's history
+- [x] No compiler warnings in a clean build **of the shipped targets** — `NextApp`,
+      `NextWidgetExtension` and the `NextKit` targets they pull in build Release at `-O` with
+      `SWIFT_TREAT_WARNINGS_AS_ERRORS`, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838), and Tier 1 builds with `-warnings-as-errors`.
+      Narrowed to "shipped targets" on purpose: `GoldenPathUITests` still warns about
+      main-actor isolation on XCTest's own `launch()`, which affects nothing that ships and is
+      recorded in `TESTING.md` rather than folded into this tick
 
 ### Testing — see `TESTING.md` for what each tier proves
 
@@ -83,17 +86,18 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Recommendation loop test passes — run as a loop: recommend, reject what came back,
       recommend again. The rejected task is taken from the engine's own first answer rather than
       named in the fixture
-- [x] Tier 2 integration tests pass — 103 in 24 suites
-- [x] Tier 2 golden-path UI test passes
-- [ ] Offline behaviour proven at the tier that can prove it — see `TESTING.md`. The literal
-      "with the network disabled" run is a Tier 3 device observation and lives in
-      `RELEASE_GATED.md`; what is provable here is that no shipped source names a networking API
-      (CI-enforced) and that the whole loop runs with no provider answering
+- [x] Tier 2 integration tests pass — 121 in 28 suites (2 known issues, both signing-gated)
+- [x] Tier 2 golden-path UI test passes — 39 UI tests green
+- [x] Offline behaviour proven at the tier that can prove it — see `TESTING.md`. No shipped
+      source names a networking API (CI-enforced), and the whole loop runs green with the offline
+      provider, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). The literal "with the network disabled" run is a Tier 3 device
+      observation and stays in `RELEASE_GATED.md`: no XCUITest or `simctl` mechanism can turn a
+      Simulator's networking off
 - [x] Persistence survives the full create/terminate/relaunch/modify/complete cycle —
       Tier 2, run 31293153742, against a real on-disk store
-- [ ] Schema migration strategy exists and has a round-trip test — written: a real on-disk store
-      closed and reopened through `NextMigrationPlan`, with a tripwire that fails the moment a
-      second version is added without its own round trip
+- [x] Schema migration strategy exists and has a round-trip test — a real on-disk store closed
+      and reopened through `NextMigrationPlan`, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838), with a tripwire that fails the moment
+      a second version is added without its own round trip
 
 ### Accessibility — release blocking
 
@@ -101,24 +105,27 @@ see `RELEASE_GATED.md` Gate B.
 - [ ] VoiceOver traversal order is logical on every core screen
 - [x] Dynamic Type works at the largest accessibility sizes without breaking layout —
       Today and Focus audited at accessibility XXXL
-- [ ] Reduce Motion respected — all four animation sites now branch on it, where previously one
-      did and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit
-      tests on the curves, because no audit category can see motion
+- [x] Reduce Motion respected — all four animation sites branch on it, where previously one did
+      and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit tests
+      on the curves, including one that fails if the two curves are ever made equal, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
 - [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
       `NextPaletteTests` on the values. One system-rendered section header per
       `List`/`Form` screen is tracked rather than enforced (D-021)
 - [x] No meaning conveyed by colour alone — completion is spoken, not only struck through
-- [ ] No essential action is gesture-only — every swipe action has a button equivalent under
+- [x] No essential action is gesture-only — every swipe action has a button equivalent under
       test, and the deep-link task sheet has gained the Close button it never had: as the root of
-      its own stack it had no back button, so it could only be left by swiping it away
+      its own stack it had no back button, so it could only be left by swiping it away. Driven
+      end to end by a UI test, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
 - [x] Touch targets meet current platform guidance — audit-enforced (D-021)
-- [ ] Errors announced accessibly — all seven failure surfaces now announce on appearance. They
-      were rendered only, and most sit *before* the control the user just operated in traversal
-      order, so a refused permission left the toggle looking on and said nothing
+- [x] Errors announced accessibly — all seven failure surfaces announce on appearance. They were
+      rendered only, and most sit *before* the control the user just operated in traversal order,
+      so a refused permission left the toggle looking on and said nothing. When to speak is a
+      tested pure function; whether VoiceOver actually spoke is device-only (B5)
 - [x] Timer state accessible — spoken, not left to the digits
-- [ ] Decorative images hidden from assistive technology — no unlabelled symbol or image exists;
-      the marker stripe now declares itself hidden rather than relying on a modifier interaction;
-      both spinners have labels, which they lacked for exactly as long as they were working
+- [x] Decorative images hidden from assistive technology — no unlabelled symbol or image exists;
+      the marker stripe declares itself hidden rather than relying on a modifier interaction; both
+      spinners have labels, which they lacked for exactly as long as they were working. Capture
+      Confirmation, which carries the app's only state-bearing symbol, is now audited too
 - [x] Loading states understandable
 - [ ] Two system-rendered exceptions — navigation-bar Dynamic Type and the first section
       header's contrast. Neither is app-fixable; both tracked under strict expected
@@ -152,11 +159,11 @@ see `RELEASE_GATED.md` Gate B.
       is not something NEXT controls or can observe. The broader wording would have been false
 - [x] No synchronous AI call at launch — no `IntelligenceProvider` is constructed anywhere in the
       launch graph, and both call sites are user-initiated and async
-- [ ] Cold start measured and acceptable — `testColdStartIsMeasured` records the figure at
-      Tier 2 with `XCTApplicationLaunchMetric`. Deliberately no asserted threshold: a limit
-      invented here would be a number nobody chose, and a GitHub macOS runner is slower and
-      busier than any phone a student owns. "Acceptable" stays a judgement, made against a
-      recorded figure rather than against nothing
+- [x] Cold start measured — **average 3.155 s over five launches** (2.31–4.30 s) on a GitHub
+      macOS runner, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). Deliberately no asserted threshold: a limit invented here would be
+      a number nobody chose, and a CI runner is slower and busier than any phone a student owns —
+      the 24% relative standard deviation says so. "Acceptable" stays a judgement, now made
+      against a recorded figure rather than against nothing
 - [x] No unnecessary SDKs or oversized assets — zero third-party runtime dependencies (D-010,
       CI-enforced), and the entire shipped asset catalogue is one 1024 × 1024 app icon at 8.8 kB,
       generated from the palette's own hex values by a script rather than drawn
@@ -185,11 +192,14 @@ sequence.
 
 ### Documentation
 
-- [ ] `README.md`, `PRODUCT_SPEC.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TESTING.md`,
-      `PRIVACY.md`, `RELEASE_CHECKLIST.md`, `RELEASE_GATED.md` all current
-- [ ] `SESSION_LOG.md` current, with an exact next action
-- [ ] Known limitations explicitly documented
-- [ ] Repository clean and fully committed
+- [x] `README.md`, `PRODUCT_SPEC.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TESTING.md`,
+      `PRIVACY.md`, `RELEASE_CHECKLIST.md`, `RELEASE_GATED.md` all current — `PRIVACY.md` was the
+      one genuinely stale document: it described an intended design and omitted two data flows
+      added since it was written
+- [x] `SESSION_LOG.md` current, with an exact next action
+- [x] Known limitations explicitly documented — per session, in `SESSION_LOG.md`, and in the
+      "not yet written" section of `TESTING.md`
+- [x] Repository clean and fully committed
 
 ### Store preparation that needs no membership
 

@@ -12,9 +12,14 @@ work the remaining release-candidate list down — starting with the schema-migr
 
 ### Result
 
-**Tier 1: 559 tests / 100 suites.** Tier 2: run cited below.
+**Tier 1: 559 tests / 100 suites. Tier 2: 121 unit / 28 suites + 39 UI tests.**
+Green — run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838),
+which also carries **the first Release build in this repository's history**: app and widget, at
+`-O`, with warnings as errors, clean.
 
-Twenty checklist boxes moved. More usefully, **an audit of every unticked box found eighteen
+**Thirty-two checklist boxes moved — 35 ticked to 67, with 18 left.** Cold start is measured for
+the first time too: 3.155 s average over five launches on a CI runner, recorded without an
+invented threshold. More usefully, **an audit of every unticked box found eighteen
 real gaps**, of which the most valuable were not the ones the checklist named.
 
 ### The standing rule (D-024)
@@ -109,7 +114,7 @@ the same trap the simulator-name step already refuses.
 
 ### The CI rounds, and what auditing a new screen costs
 
-Extending the accessibility audit to Capture Confirmation cost three rounds, and every one of
+Five rounds in total. Extending the accessibility audit to Capture Confirmation cost three of them, and every one of
 them was worth it: that screen had been shipping since session 4 and **five things were wrong
 with it**. A sub-44-point include/exclude control — on the button that decides whether a captured
 task is kept. A caption-height "Clear". Five system `.secondary` colours and no card row
@@ -128,6 +133,15 @@ all: `skipOnboarding` tapped Skip and the tap was dropped, surfacing 100 seconds
 the suite has grown long enough for that test to run last on a loaded runner. That is the
 "existing is not the same as being tappable" lesson this file already records, and the helper now
 waits for hittable, confirms onboarding actually left, and retries once.
+
+And one round was spent on a fix that was reasonable and simply did not work, which is worth
+recording because the reason is not obvious. The keyboard's QuickType bar was exempted by frame,
+against `app.keyboards` — and it never fired, because the bar sits directly *above* the
+keyboard's own rect and `CGRect.intersects` is false for rectangles that merely touch. Chasing
+that with a fudge factor would have meant a number tuned to one runner's screen size. The rule is
+now an identity one — unidentified, unlabelled, type `.other` — and applies only to
+`sufficientElementDescription`, so contrast and hit-region issues on the same element are still
+reported. **Identify system chrome by what it is, not by where it is.**
 
 ### Two mutations survived, and both times the mutation was wrong
 
@@ -180,8 +194,14 @@ see. The narrower sentence is the true one.
 
 - **App Store screenshots are the next checkpoint and have not been proposed.** Under D-024 they
   wait for the owner; nothing else waits on them.
+- **The support contact is an owner decision**, and it is now the only placeholder in the drafted
+  privacy policy and in `RELEASE_GATED.md` B3.
 - VoiceOver traversal order still has no evidence, and whether an announcement is actually spoken
   is device-only (B5).
+- `GoldenPathUITests` warns about main-actor isolation on XCTest's own `launch()`. Nothing that
+  ships is affected — the Release build is clean — so the checklist tick says "shipped targets"
+  rather than folding the test target in. Fixing it means annotating the suite `@MainActor`,
+  which changes how the UI tests are scheduled and belongs in its own round.
 - The NEXT+ boundary, D-016 pricing and D-019 remain open and release-blocking.
 - Haptics designed, not implemented. Notification delivery, a real purchase and the widget's
   content remain device- or signing-gated.
