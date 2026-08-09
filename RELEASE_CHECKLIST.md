@@ -152,7 +152,11 @@ see `RELEASE_GATED.md` Gate B.
       is not something NEXT controls or can observe. The broader wording would have been false
 - [x] No synchronous AI call at launch — no `IntelligenceProvider` is constructed anywhere in the
       launch graph, and both call sites are user-initiated and async
-- [ ] Cold start measured and acceptable
+- [ ] Cold start measured and acceptable — `testColdStartIsMeasured` records the figure at
+      Tier 2 with `XCTApplicationLaunchMetric`. Deliberately no asserted threshold: a limit
+      invented here would be a number nobody chose, and a GitHub macOS runner is slower and
+      busier than any phone a student owns. "Acceptable" stays a judgement, made against a
+      recorded figure rather than against nothing
 - [x] No unnecessary SDKs or oversized assets — zero third-party runtime dependencies (D-010,
       CI-enforced), and the entire shipped asset catalogue is one 1024 × 1024 app icon at 8.8 kB,
       generated from the palette's own hex values by a script rather than drawn

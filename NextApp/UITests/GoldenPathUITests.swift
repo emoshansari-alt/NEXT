@@ -126,6 +126,24 @@ final class GoldenPathUITests: XCTestCase {
         return app
     }
 
+    func testColdStartIsMeasured() {
+        // The release checklist asks for cold start to be *measured*, and nothing had ever
+        // measured it. This records a number rather than asserting a threshold: a limit invented
+        // here would be a number nobody chose, and the honest claim is "this is what it is on a
+        // GitHub macOS runner", which is slower and busier than any phone a student owns.
+        //
+        // What it does check, structurally, is that the launch path completes without waiting on
+        // anything — NEXT constructs no intelligence provider at launch and makes no network
+        // request, so a launch that hung would show up here as an outlier rather than as a
+        // support ticket.
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+
+        measure(metrics: [XCTApplicationLaunchMetric()]) {
+            app.launch()
+        }
+    }
+
     func testOnboardingIsThreeScreensAndAsksForNothing() {
         // PRODUCT_SPEC.md §4.1: no account, no email, no profile, no survey, no quiz. The check
         // is that there is nothing to fill in — a text field appearing here would be the defect.

@@ -283,11 +283,37 @@ element-level detail otherwise lives in an xcresult bundle that cannot be opened
 That change turned an unactionable "Hit area is too small" into a list of eight named controls in
 one CI round.
 
-**Capture Confirmation joined the audit in session 12.** It had been the one reachable screen the
-audit never visited: `testCapturePassesTheAudit` stopped at the writing stage, so the app's only
-state-carrying symbol — the include/exclude circle beside each extracted task, whose meaning is
-entirely in whether it is filled — was never put under `sufficientElementDescription`. Eleven
-screen states are now audited.
+**Capture Confirmation joined the audit in session 12**, and auditing it found five issues on a
+screen that had been shipping since session 4. It was the one reachable screen the audit never
+visited — `testCapturePassesTheAudit` stopped at the writing stage — so the app's only
+state-carrying symbol, the include/exclude circle whose meaning is entirely in whether it is
+filled, had never been put under `sufficientElementDescription`. Eleven screen states are now
+audited.
+
+What it found, and why each is worth recording:
+
+- **The include/exclude control had no minimum target.** A symbol's own bounds were the entire
+  hit area on the control that decides whether a captured task is kept at all.
+- **"Clear" was a caption-height text button**, about fourteen points tall. This is the same
+  class as the eight controls the audit's first run found, and it survived because nothing had
+  looked at this screen.
+- **The screen had never been restyled to the palette**: five system `.secondary` colours and no
+  card row background — the identical omission that produced eight failures on Settings and six
+  on Task Detail when contrast was first enforced.
+- **"Edit" failed contrast as NEXT's ink on a `.bar` material.** That is D-021's section-header
+  finding in a different place, and it generalises: *a material has no colour the palette can be
+  measured against, so any text NEXT draws on one is unverifiable by construction.* Both capture
+  bars now use `NextPalette.card`, a value `NextPaletteTests` already proves the ink tokens
+  against.
+
+**The audit skips the system keyboard, and only the system keyboard.** Capture focuses its field
+on appear, which is the right state to audit — it is the state the user is in, and the reason the
+action bar sits in a safe-area inset — but the audit walks the keyboard's own QuickType bar too:
+three unlabelled 140 × 44 slots no app can label, style or remove. An issue is skipped only if it
+overlaps the keyboard **and** its element carries no identifier. A frame test alone would have
+exempted the two action buttons an earlier round found unreachable at accessibility sizes; every
+control NEXT draws carries an identifier, so an unidentified one over the keyboard is the
+keyboard's, and an unlabelled element anywhere else still fails.
 
 Its first run found issues on all ten core screens. Eleven were fixed: eight controls below
 44 × 44 — every one a plain text button whose hit area was a line of text tall — and three clipped

@@ -107,6 +107,28 @@ In `project.yml` it would apply to every target, every configuration and local X
 diagnostic from a runner-image update would turn main red for a reason nobody here controls —
 the same trap the simulator-name step already refuses.
 
+### The CI rounds, and what auditing a new screen costs
+
+Extending the accessibility audit to Capture Confirmation cost three rounds, and every one of
+them was worth it: that screen had been shipping since session 4 and **five things were wrong
+with it**. A sub-44-point include/exclude control — on the button that decides whether a captured
+task is kept. A caption-height "Clear". Five system `.secondary` colours and no card row
+background, which is the identical omission that produced fourteen failures on Settings and Task
+Detail when contrast was first enforced. And "Edit" failing contrast as NEXT's ink on a `.bar`
+material.
+
+That last one generalises, and is the sentence worth keeping: **a material has no colour the
+palette can be measured against, so any text NEXT draws on one is unverifiable by construction.**
+D-021 already recorded it for a section header on a navigation bar and treated it as a system
+quirk. It is not a quirk, it is a rule, and both capture bars now use a real palette value.
+
+One round was a plain compile error of mine. One failure was not caused by this session's diff at
+all: `skipOnboarding` tapped Skip and the tap was dropped, surfacing 100 seconds later as
+"empty-add-button does not exist" with onboarding still on screen. It appeared now only because
+the suite has grown long enough for that test to run last on a loaded runner. That is the
+"existing is not the same as being tappable" lesson this file already records, and the helper now
+waits for hittable, confirms onboarding actually left, and retries once.
+
 ### Two mutations survived, and both times the mutation was wrong
 
 Thirteen mutations were applied to this session's new tests and all thirteen were eventually

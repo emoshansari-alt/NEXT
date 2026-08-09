@@ -123,25 +123,27 @@ final class AccessibilityUITests: XCTestCase {
     ///
     /// The handler returns `true` for every issue, meaning "handled" — so the audit itself does
     /// not throw and this method decides the verdict, having recorded all of them.
-    /// Whether an element belongs to the raised system keyboard rather than to NEXT.
+    /// Whether a "no description" issue is about system chrome rather than about NEXT.
     ///
-    /// Two conditions, and both are needed. The element must overlap the keyboard — compared by
-    /// frame, because the keyboard is not in the app's element tree and there is no ancestry to
-    /// walk — **and** it must carry no accessibility identifier.
+    /// The concrete case is the keyboard's QuickType bar. Capture focuses its field on appear, so
+    /// the keyboard is up while the audit runs — which is the right state to audit, because it is
+    /// the state the user is in and the reason the action bar sits in a safe-area inset — and the
+    /// audit walks the bar's three unlabelled 140 × 44 suggestion slots, which no app can label,
+    /// style or remove.
     ///
-    /// The second condition is what keeps this from weakening the check it sits inside. Capture's
-    /// action bar is deliberately right above the keyboard, so a frame test alone would exempt
-    /// the two controls that a previous round found unreachable at accessibility sizes. Every
-    /// control NEXT draws carries an identifier; an unidentified element overlapping the keyboard
-    /// is the keyboard's. An unlabelled element anywhere else still fails, which is the whole
-    /// point of `sufficientElementDescription`.
-    private func isInsideTheKeyboard(_ element: XCUIElement, of app: XCUIApplication) -> Bool {
-        guard element.identifier.isEmpty else { return false }
-
-        let keyboard = app.keyboards.firstMatch
-        guard keyboard.exists else { return false }
-
-        return element.frame.intersects(keyboard.frame)
+    /// **Identified by what it is, not by where it is.** A first attempt scoped this by frame
+    /// against `app.keyboards`, and it did not fire: the QuickType bar sits directly *above* the
+    /// keyboard's own rect, and `CGRect.intersects` is false for rectangles that merely touch.
+    /// Chasing that with a fudge factor would have meant a number tuned to one runner's screen
+    /// size.
+    ///
+    /// Three conditions, deliberately narrow. Every element NEXT draws that could carry a
+    /// description carries an accessibility identifier, and the check is applied only to
+    /// `sufficientElementDescription` — so contrast and hit-region issues on the same element are
+    /// still reported, and an unlabelled element of NEXT's own still fails, which is the whole
+    /// point of that audit type.
+    private func isSystemChrome(_ element: XCUIElement) -> Bool {
+        element.identifier.isEmpty && element.label.isEmpty && element.elementType == .other
     }
 
     private func audit(
@@ -166,18 +168,10 @@ final class AccessibilityUITests: XCTestCase {
                     return true
                 }
 
-                // The system keyboard is not NEXT's screen.
-                //
-                // Capture focuses its field on appear, so the keyboard is up while the audit
-                // runs — which is the right state to audit, because that is the state the user
-                // is in, and the reason the action bar sits in a safe-area inset at all. But the
-                // audit walks everything on screen, including the keyboard's own QuickType bar:
-                // three unlabelled 140 × 44 slots that report "Element has no description" and
-                // that no app can label, style or remove.
-                //
-                // Scoped by frame rather than by ignoring unlabelled elements generally, because
-                // an unlabelled element inside NEXT is exactly what this check exists to catch.
-                if let element, self.isInsideTheKeyboard(element, of: app) {
+                // The system keyboard is not NEXT's screen. See `isSystemChrome`.
+                if issue.auditType == .sufficientElementDescription,
+                   let element,
+                   self.isSystemChrome(element) {
                     return true
                 }
 

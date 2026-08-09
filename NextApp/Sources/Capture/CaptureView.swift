@@ -133,7 +133,12 @@ struct CaptureView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(.bar)
+        // The palette's surface rather than the system's material, matching the confirmation
+        // screen's footer. Both are the same flow and a user moves straight from one to the
+        // other, so two different bottom bars would read as a rendering bug. It is also what
+        // makes the ink on them measurable: a material has no colour to measure against, which
+        // is how "Edit" came to fail contrast on the next screen.
+        .background(NextPalette.card)
         // This bar is the bottom safe-area inset, so the failure text below the button the user
         // just pressed is the last thing in traversal order. Speaking it is the difference
         // between "that did not save" and silence.
