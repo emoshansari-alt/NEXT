@@ -383,6 +383,84 @@ going to need Apple.
 
 ---
 
+## D-018 — A reduced action never completes its task
+
+**Date:** 2026-08-09 · **Status:** Accepted · **One question left open, stated below**
+
+**Context.** Rescue and Minimum Win both answer with a deliberately *smaller* piece of work: a
+step shrunk out of an essay, or a rung that is explicitly less than the whole outcome. Until now
+Focus took a `TaskItem`, so the smaller action could not survive the trip — "Do that" opened
+Focus on the mountain the user had just said was too much — and Done completed the entire task.
+
+**Decision.** Focus takes a `FocusTarget`: the task, the action, where the action came from, and
+whether it is reduced. **A reduced action does not complete its task.** The primary button reads
+"Done with this step" and says what it does.
+
+**Reasoning.** Someone who spent five minutes opening the assignment instructions has not written
+the essay. Marking it complete destroys work the app cannot give back, and it contradicts the
+reason the smaller step was offered: Minimum Win exists precisely *because* the whole outcome is
+out of reach, so completing it on the strength of one rung would have NEXT argue with itself.
+
+`FocusTarget` lives in `NextKit`, not in a view, because every rule in it is about propagation —
+which task, which words, what finishing means — and those are invisible in a screenshot and
+expensive to check on a Simulator. Two of them are load-bearing and easy to get wrong:
+
+- **The task is resolved from the response, not from the screen.** Rescue's "I don't have enough
+  time" path re-ranks against the stated window and can legitimately answer about a *different*
+  task. Assuming the answer concerns whatever was recommended would open Focus on the wrong work
+  while displaying the right step.
+- **A withheld title stays withheld.** "It's too much" deliberately does not name the task, since
+  naming the mountain is what made it too much. Focus re-deriving the title from the task would
+  quietly undo the only thing that path does.
+
+**What is recorded when a step is finished.** Only what was already recorded when Focus opened:
+the task is marked started, which supersedes any earlier "Not this". Nothing further is invented.
+
+**The open question, deliberately not answered.** Should a finished reduced step become a child
+task in its own right, the way a decomposition's steps do (Session 6)? It would make progress
+visible and feed `StepShrinker` and `MinimumWinPlanner` real substeps next time. It would also
+create tasks the user never wrote, on every rescue, and if such a child were linked as a
+prerequisite it could render the parent unrecommendable until a generic suggested step was
+ticked off. That is a product decision with a real cost either way, and there is no evidence yet
+about which is right. Recording a step is strictly additive and can be introduced later; silently
+completing a task cannot be undone, which is why the conservative half is the half that shipped.
+
+---
+
+## D-019 — An empty entitlement set is treated as "owns nothing", and must be revisited before anything is gated
+
+**Date:** 2026-08-09 · **Status:** Accepted for 1.0 · **Reevaluate before NEXT+ gates anything**
+
+**Context.** `EntitlementStatus.unknown` exists so that a failed store lookup is never mistaken
+for "this person is on the free tier" (D-015). It protects against StoreKit *throwing*. It does
+not protect against StoreKit returning successfully with **no entitlements at all**, which is
+indistinguishable from a genuine free user.
+
+**Decision.** For 1.0, an empty-but-successful entitlement set resolves to the free tier. No
+speculative behaviour is added to distinguish it.
+
+**Reasoning.** Inventing a third state now would mean guessing at failure modes nobody has
+observed, on a code path that today has no user-visible consequence: `FeatureGate.oneDotZero`
+gates nothing, so the tier a person resolves to changes nothing they can see or do. StoreKit 2
+also caches entitlements locally, so the offline case — the obvious worry — generally returns the
+real answer rather than an empty one. Building a mitigation for a problem that cannot currently
+bite, against a failure mode that has not been characterised, is how speculative complexity gets
+into a codebase.
+
+**What makes this safe to defer, and what makes it unsafe to forget.** It is safe because nothing
+is gated. It becomes a real defect the moment something is: a subscriber whose entitlement set
+comes back empty would be shown a paywall for a capability they have already paid for, which is
+precisely the failure `EntitlementStatus.unknown` was introduced to prevent.
+
+**Therefore this is a prerequisite of the NEXT+ boundary decision, not a follow-up to it.**
+Whoever moves a capability behind the paywall must first decide how an empty entitlement set is
+distinguished from a real free tier — plausible options being a cached last-known entitlement, a
+distinction between "asked and got nothing" and "never successfully asked", or an explicit
+refresh before any gate is evaluated. `RELEASE_CHECKLIST.md` carries this alongside the boundary
+decision so the two are made together.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

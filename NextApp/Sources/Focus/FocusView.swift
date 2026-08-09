@@ -11,27 +11,29 @@ import SwiftUI
 /// nothing accumulates between sessions.
 struct FocusView: View {
 
-    let task: TaskItem
+    /// What is being worked on — the task *and* the action, which are not always the same thing.
+    let target: FocusTarget
+
+    /// Every task, so "I'm stuck" can re-rank without leaving Focus.
+    var allTasks: [TaskItem] = []
+
     let onDone: () -> Void
     let onStop: () -> Void
+
+    /// Called when Rescue, opened from inside Focus, offers a smaller step.
+    var onRescued: (RescueResponse) -> Void = { _ in }
 
     /// Injected so tests and previews can pin the clock.
     var timeSource: any TimeSource = SystemTimeSource()
 
     @State private var session: FocusSession?
     @State private var now: Date = .distantPast
+    @State private var showingRescue = false
 
     /// Drives the countdown. One second is enough for a display that only shows minutes and
     /// seconds, and the session itself is derived from timestamps — this only decides how often
     /// the screen re-reads it, never what the answer is.
     private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    private var actionText: String {
-        guard let next = task.nextAction?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !next.isEmpty
-        else { return task.title }
-        return next
-    }
 
     var body: some View {
         ZStack {
@@ -43,15 +45,17 @@ struct FocusView: View {
                 Spacer()
 
                 VStack(spacing: 14) {
-                    // Shown only when it adds context the action itself does not carry.
-                    if actionText != task.title {
-                        Text(task.title)
+                    // Shown only when it adds context the action does not already carry — and
+                    // taken from the target, so a path that deliberately withheld the task's name
+                    // is not undone here.
+                    if let parentTitle = target.parentTitle {
+                        Text(parentTitle)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
 
-                    Text(actionText)
+                    Text(target.action)
                         .font(.largeTitle.weight(.bold))
                         .multilineTextAlignment(.center)
                         .minimumScaleFactor(0.6)
@@ -71,6 +75,17 @@ struct FocusView: View {
         }
         .onAppear { now = timeSource.now }
         .onReceive(tick) { _ in now = timeSource.now }
+        // A smaller action is a different piece of work, so the length chosen for the previous
+        // one does not carry over. Dropping back to the chooser costs one tap and avoids putting
+        // someone on a countdown they set for something else.
+        .onChange(of: target.action) { _, _ in session = nil }
+        .sheet(isPresented: $showingRescue) {
+            RescueView(
+                task: target.task,
+                allTasks: allTasks,
+                onStart: { response in onRescued(response) }
+            )
+        }
     }
 
     // MARK: Header
@@ -81,7 +96,16 @@ struct FocusView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("focus-stop-button")
+
             Spacer()
+
+            // Required by PRODUCT_SPEC.md §4.9, and it is the moment it matters most: being
+            // stuck happens *while* working, and someone who has to leave Focus, find Today and
+            // hunt for the way out has already lost the thread.
+            Button("I'm stuck") { showingRescue = true }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("focus-im-stuck-button")
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -161,7 +185,7 @@ struct FocusView: View {
                 .accessibilityIdentifier("focus-pause-button")
 
                 Button(action: onDone) {
-                    Text("Done")
+                    Text(FocusCopy.doneLabel(for: target))
                         .font(.headline)
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
@@ -177,6 +201,20 @@ struct FocusView: View {
     private func start(minutes: Int?) {
         let startedAt = timeSource.now
         now = startedAt
-        session = FocusSession(taskID: task.id, plannedMinutes: minutes, startedAt: startedAt)
+        session = FocusSession(taskID: target.task.id, plannedMinutes: minutes, startedAt: startedAt)
+    }
+}
+
+/// Focus's few words.
+enum FocusCopy {
+
+    /// What the primary button promises.
+    ///
+    /// A reduced action gets a different label because it does a different thing: finishing a
+    /// step Rescue shrank out of an essay does not finish the essay, and a button that says
+    /// "Done" while leaving the task open — or worse, closes it — is the app being unclear about
+    /// the one action that cannot be undone by hand.
+    static func doneLabel(for target: FocusTarget) -> String {
+        target.completesTask ? "Done" : "Done with this step"
     }
 }

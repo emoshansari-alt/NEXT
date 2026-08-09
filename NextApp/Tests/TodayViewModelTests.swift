@@ -76,7 +76,7 @@ struct TodayViewModelTests {
 
         await model.startRecommended()
 
-        #expect(try #require(model.focused).id == TaskID("only"))
+        #expect(try #require(model.focus).task.id == TaskID("only"))
     }
 
     @Test("starting a task is written to the store, not held only on screen")
@@ -101,7 +101,7 @@ struct TodayViewModelTests {
 
         await model.completeFocused()
 
-        #expect(model.focused == nil)
+        #expect(model.focus == nil)
         #expect(try #require(model.recommendation).task.id == TaskID("second"))
     }
 
@@ -170,7 +170,7 @@ struct TodayViewModelTests {
 
         model.stopFocus()
 
-        #expect(model.focused == nil)
+        #expect(model.focus == nil)
         #expect(try #require(model.recommendation).task.id == TaskID("only"))
     }
 

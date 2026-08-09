@@ -17,8 +17,14 @@ final class TodayViewModel {
     /// What NEXT is currently recommending, or an explained reason there is nothing.
     private(set) var outcome: RecommendationOutcome = .nothingToDo
 
-    /// The task the user is working on, if Focus is open.
-    private(set) var focused: TaskItem?
+    /// What the user is working on, if Focus is open.
+    ///
+    /// A `FocusTarget` rather than a `TaskItem` because Focus is not always pointed at a whole
+    /// task: Rescue and Minimum Win both hand back a deliberately smaller action, and a bare task
+    /// cannot carry one. That is not a hypothetical — a rescued step used to be computed, shown,
+    /// and then dropped here, so "Do that" opened Focus on the mountain the user had just said
+    /// was too much.
+    private(set) var focus: FocusTarget?
 
     /// Everything currently in the store.
     ///
@@ -38,6 +44,7 @@ final class TodayViewModel {
 
     private let repository: any TaskRepository
     private let engine: RankingEngine
+    private let planner: MinimumWinPlanner
     private let timeSource: any TimeSource
 
     /// Called after anything is written.
@@ -59,6 +66,9 @@ final class TodayViewModel {
     ) {
         self.repository = repository
         self.engine = engine
+        // Built from the same engine, so the ladder's trigger and the screen's verdict are one
+        // judgement rather than two that can disagree.
+        self.planner = MinimumWinPlanner(engine: engine)
         self.timeSource = timeSource
         self.snapshotPublisher = snapshotPublisher
         self.onStoreChanged = onStoreChanged
@@ -102,12 +112,46 @@ final class TodayViewModel {
     func startRecommended() async {
         guard let task = outcome.recommendation?.task else { return }
 
-        focused = task
+        focus = FocusTarget(recommending: task)
         await write { try task.started(at: self.timeSource.now) }
     }
 
+    /// "Do that" — the user accepted the smaller step Rescue offered.
+    ///
+    /// The task is resolved from the response rather than from whatever is on screen, because the
+    /// "I don't have enough time" path re-ranks and can legitimately answer about a different
+    /// task. `FocusTarget.rescued` does that lookup and refuses rather than guessing when the
+    /// task is gone.
+    func focusRescued(_ response: RescueResponse) async {
+        guard let target = FocusTarget.rescued(response, among: tasks) else { return }
+
+        focus = target
+        let task = target.task
+        await write { try task.started(at: self.timeSource.now) }
+    }
+
+    /// The user picked a rung from the Minimum Win ladder.
+    func focusMinimumWin(_ rung: MinimumWinRung, in plan: MinimumWinPlan) async {
+        guard let target = FocusTarget.minimumWin(rung, in: plan, among: tasks) else { return }
+
+        focus = target
+        let task = target.task
+        await write { try task.started(at: self.timeSource.now) }
+    }
+
+    /// What is still achievable on the recommended task, when the whole of it no longer is.
+    ///
+    /// Returns `nil` unless there is genuinely a ladder to offer. Deriving this from the
+    /// recommendation's own `deadlineFeasibility` rather than recomputing it means the ladder can
+    /// never contradict the screen that offered it (PRODUCT_SPEC.md §4.12).
+    var minimumWinPlan: MinimumWinPlan? {
+        guard let recommendation = outcome.recommendation else { return nil }
+
+        return planner.plan(for: recommendation, among: tasks, now: timeSource.now).plan
+    }
+
     func stopFocus() {
-        focused = nil
+        focus = nil
     }
 
     /// Handles a widget tap or a notification tap.
@@ -131,10 +175,29 @@ final class TodayViewModel {
     }
 
     /// DONE. Completion always flows straight back into the loop (PRODUCT_SPEC.md §4.10).
+    ///
+    /// **A reduced action does not complete its task.** Someone who spent five minutes opening
+    /// the assignment instructions has not written the essay, and marking it done would destroy
+    /// work the app cannot give back. Rescue and Minimum Win both exist precisely because the
+    /// whole thing is not what is happening right now.
+    ///
+    /// What is recorded in that case is what was already recorded when Focus opened: the task was
+    /// started, which supersedes any earlier rejection. Nothing further is invented — see
+    /// `DECISIONS.md` D-018 for the open question of whether a finished step should become a
+    /// child task in its own right.
     func completeFocused() async {
-        guard let task = focused else { return }
+        guard let target = focus else { return }
 
-        focused = nil
+        focus = nil
+
+        guard target.completesTask else {
+            // Straight back into the loop, same as a completion: the store may have changed and
+            // the next recommendation is computed from a fresh read.
+            await load()
+            return
+        }
+
+        let task = target.task
         await write { try task.completed(at: self.timeSource.now) }
     }
 

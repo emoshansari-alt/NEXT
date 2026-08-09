@@ -35,8 +35,8 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Settings — reminder controls and the cloud-processing consent switch
 - [x] Notifications — scheduling planned and Tier 1 tested
 - [ ] Daily replanning, no shame language — engine recalculates, but no day-boundary behaviour
-- [ ] Minimum Win **surfaced in the UI** — the planner has no caller yet
-- [ ] "I'm stuck" reachable from inside Focus (currently Today only)
+- [x] Minimum Win **surfaced in the UI** — offered on Today when the deadline is unreachable
+- [x] "I'm stuck" reachable from inside Focus, and the smaller action replaces the current one
 - [ ] Notification delivery observed, deep link, and actions
 - [ ] Widget with working deep link
 - [ ] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
@@ -47,6 +47,9 @@ see `RELEASE_GATED.md` Gate B.
       it reachable without that decision would put something on sale that grants nothing.
 - [ ] Final NEXT+ pricing and purchase-option mix decided and justified (D-016 — the three
       products in the `.storekit` file are test fixtures, not a commitment)
+- [ ] **Decide how an empty entitlement set is told apart from a genuine free tier (D-019).**
+      A prerequisite of the boundary decision above, not a follow-up to it: the moment anything
+      is gated, a subscriber whose entitlements come back empty gets sold what they already own.
 
 ### Engineering
 

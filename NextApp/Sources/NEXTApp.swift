@@ -17,8 +17,23 @@ struct NEXTApp: App {
     /// to recommend. A test that depends on how many times it has run before is not a test.
     static let uiTestingArgument = "-ui-testing"
 
+    /// Seeds one task whose deadline is genuinely out of reach, so the Minimum Win flow can be
+    /// driven end to end by a UI test.
+    ///
+    /// Scaffolding, and confined to it: it does nothing unless `-ui-testing` is also present, so
+    /// it cannot affect a real run. It exists because Minimum Win needs a deadline that is close
+    /// *but not passed* together with an estimate that does not fit — and Task Detail's date
+    /// picker defaults to the current instant, which leaves no window at all. Driving a
+    /// `DatePicker` to a specific future time through XCUITest is both fiddly and flaky, and a
+    /// flaky test of a real flow is worse than an honest fixture for it.
+    static let seedUnreachableArgument = "-ui-seed-unreachable"
+
     private static var isUITesting: Bool {
         ProcessInfo.processInfo.arguments.contains(uiTestingArgument)
+    }
+
+    private static var shouldSeedUnreachable: Bool {
+        isUITesting && ProcessInfo.processInfo.arguments.contains(seedUnreachableArgument)
     }
 
     private let repository: any TaskRepository
@@ -43,6 +58,11 @@ struct NEXTApp: App {
         let (container, isEphemeral) = Self.makeContainer()
         repository = SwiftDataTaskRepository(modelContainer: container)
         storeIsEphemeral = isEphemeral
+
+        // Written straight into the container rather than through the repository, because the
+        // repository is an actor and the first screen reads as soon as it appears — an awaited
+        // seed would race the read it exists to satisfy.
+        if Self.shouldSeedUnreachable { Self.seedUnreachableTask(into: container) }
 
         onboarding = OnboardingState()
         if Self.isUITesting { onboarding.reset() }
@@ -98,6 +118,27 @@ struct NEXTApp: App {
             calendar: .current
         )
         await scheduler.replacePending(with: reminders)
+    }
+
+    /// Three hours of work due in forty-five minutes: unreachable, with a window still open.
+    ///
+    /// Both halves matter. Without the estimate the planner correctly declines to invent a
+    /// ladder out of a duration nobody recorded; with the deadline already passed there is no
+    /// window to fit anything into and it correctly declines again.
+    private static func seedUnreachableTask(into container: ModelContainer) {
+        let context = ModelContext(container)
+        context.insert(
+            StoredTask(
+                task: TaskItem(
+                    id: TaskID("ui-unreachable-essay"),
+                    title: "History essay",
+                    createdAt: Date(),
+                    deadline: Date().addingTimeInterval(45 * 60),
+                    estimatedMinutes: 180
+                )
+            )
+        )
+        try? context.save()
     }
 
     private static func makeContainer() -> (ModelContainer, Bool) {

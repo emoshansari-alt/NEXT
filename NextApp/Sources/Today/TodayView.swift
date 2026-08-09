@@ -31,6 +31,7 @@ struct TodayView: View {
     @State private var showingCapture = false
     @State private var showingEverything = false
     @State private var showingRescue = false
+    @State private var showingMinimumWin = false
 
     var body: some View {
         ZStack {
@@ -93,19 +94,35 @@ struct TodayView: View {
                 RescueView(
                     task: task,
                     allTasks: model.tasks,
-                    onStart: { _ in
-                        // Rescue hands back a smaller step to do right now. Focus opens on the
-                        // task it belongs to; the step itself is what the user was just shown.
-                        Task { await model.startRecommended() }
+                    onStart: { response in
+                        // Focus on the step Rescue offered, not on the task it came from. The
+                        // response also names its own task, which the "not enough time" path can
+                        // change by re-ranking — so the model resolves it rather than assuming.
+                        Task { await model.focusRescued(response) }
                     }
                 )
             }
         }
-        .fullScreenCover(item: focusBinding) { task in
+        .sheet(isPresented: $showingMinimumWin) {
+            if let plan = model.minimumWinPlan {
+                MinimumWinView(
+                    plan: plan,
+                    onChoose: { rung in
+                        Task { await model.focusMinimumWin(rung, in: plan) }
+                    }
+                )
+            }
+        }
+        .fullScreenCover(item: focusBinding) { target in
             FocusView(
-                task: task,
+                target: target,
+                allTasks: model.tasks,
                 onDone: { Task { await model.completeFocused() } },
-                onStop: { model.stopFocus() }
+                onStop: { model.stopFocus() },
+                // Being stuck happens while working. Rescue answers from inside Focus and the
+                // smaller step replaces the action in place, so the session continues rather than
+                // bouncing the user back to Today and making them start again.
+                onRescued: { response in Task { await model.focusRescued(response) } }
             )
         }
         .confirmationDialog(
@@ -180,6 +197,17 @@ struct TodayView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
+
+                if recommendation.deadlineFeasibility.suggestsMinimumWin {
+                    // A fact, not a warning and not a telling-off. The user already knows they
+                    // are short of time; what they do not know is that there is still a version
+                    // of this worth doing (PRODUCT_SPEC.md §4.12).
+                    Text("There is not enough time left to finish this.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("minimum-win-notice")
+                }
             }
             .padding(.horizontal, 28)
             // Read as one unit rather than four fragments when swiping through with VoiceOver.
@@ -211,6 +239,14 @@ struct TodayView: View {
 
     private func secondaryActions(_ recommendation: Recommendation) -> some View {
         VStack(spacing: 14) {
+            // Only when the ladder genuinely exists. Offering "what can I still do?" for work
+            // that comfortably fits would be manufacturing an emergency.
+            if model.minimumWinPlan != nil {
+                Button("What can I still do?") { showingMinimumWin = true }
+                    .font(.subheadline.weight(.medium))
+                    .accessibilityIdentifier("minimum-win-button")
+            }
+
             // "I'm stuck" sits on its own line and reads first. It is a first-class feature,
             // not a footnote — the moment someone needs it is the moment they are least likely
             // to go hunting for it.
@@ -317,9 +353,9 @@ struct TodayView: View {
 
     // MARK: Focus presentation
 
-    private var focusBinding: Binding<TaskItem?> {
+    private var focusBinding: Binding<FocusTarget?> {
         Binding(
-            get: { model.focused },
+            get: { model.focus },
             set: { if $0 == nil { model.stopFocus() } }
         )
     }
