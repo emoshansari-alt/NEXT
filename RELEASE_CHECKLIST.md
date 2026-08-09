@@ -201,7 +201,10 @@ sequence.
 - [ ] Screenshots produced from the real app — the real NEXT interface is the source of truth;
       generated imagery may support the composition but may not fabricate functionality or stand
       in for a screenshot (D-014, D-024)
-- [ ] Title, subtitle, description, keywords drafted
+- [ ] Title, subtitle, description, keywords — **drafted** in `PRODUCT_SPEC.md` §15, with
+      alternatives for the title and subtitle. The wording is chosen alongside the screenshot
+      direction rather than separately (D-024): the two have to say the same thing in the same
+      voice. Every claim in it is one the shipped app supports today
 - [x] Privacy policy text drafted — `PRIVACY.md`, written for a sixteen-year-old to read in one
       go, because a policy nobody finishes is not consent. Every sentence is a claim the
       repository currently supports; it carries an instruction to re-check it against the code

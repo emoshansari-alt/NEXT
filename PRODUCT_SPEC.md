@@ -1,7 +1,7 @@
 # NEXT — Product Specification
 
 **Status:** Authoritative. This document, not any chat transcript, defines the product.
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 ---
 
@@ -497,6 +497,52 @@ valuable signal for improving the ranking engine.
   thing. → Stuck? Make it smaller. → Plans fall apart. NEXT replans.
 
 Marketing assets must truthfully represent the real app.
+
+### Listing copy — drafted 2026-08-09, wording not yet chosen
+
+Drafted so the screenshot proposal has words to sit beside; the final wording is chosen with the
+screenshot direction rather than separately (**D-024**), because the two have to say the same
+thing in the same voice. Every claim below is one the shipped app supports today — no cloud AI,
+no account, and the offline promise are all currently true, and all three would have to be
+re-checked if that changed.
+
+**Title (30 characters max).** `NEXT — Know what to do next` fits at 27. Two alternatives worth
+seeing side by side: `NEXT: One thing at a time` (25), and plain `NEXT` with the whole promise
+carried by the subtitle.
+
+**Subtitle (30 characters max).** Candidates, all inside the limit:
+*Stop deciding. Start doing.* (27) · *One thing. The right one.* (25) · *For when it is all too
+much.* (28)
+
+**Description.** First three lines are what a student actually reads:
+
+> You have too much to do and no idea where to start. NEXT gives you one thing.
+>
+> Dump everything on your mind into it — one line each or all in one go. NEXT works out what
+> actually matters right now and shows you a single card with a single action. Start it, finish
+> it, get the next one.
+>
+> **When you are stuck, say so.** NEXT does not tell you to try harder. It makes the thing
+> smaller, gives you a first step you can do in five minutes, or finds you something else that
+> is genuinely more urgent.
+>
+> **It never nags.** No streaks, no badge counting how far behind you are, no notification
+> telling you off. Work you are late with quietly stops shouting instead of pinning itself to
+> your screen for ever.
+>
+> **Everything stays on your phone.** No account, no sign-up, no tracking, no ads. NEXT does not
+> use the internet at all, so it works on a train, in a basement, and on aeroplane mode.
+>
+> Made for students who are drowning in coursework and cannot face the list.
+
+**Keywords (100 characters, comma-separated, no spaces).** Draft at 96:
+`todo,adhd,student,focus,procrastination,overwhelm,homework,tasks,deadline,study,planner,revision`
+
+Two deliberate omissions. Nothing claims NEXT is an AI app, because the shipping intelligence is
+deterministic and offline and saying otherwise would be the exact misrepresentation D-024 and
+D-014 both forbid. And nothing claims it treats or manages a condition — `adhd` appears as a
+search keyword because it is what people search, and the copy makes no clinical claim anywhere,
+which `PRODUCT_SPEC.md` §1 rules out.
 
 ---
 
