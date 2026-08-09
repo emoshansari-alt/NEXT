@@ -4,7 +4,7 @@ Two lists. The first is work that must be finished **before** NEXT can be called
 **Local Release Candidate**. The second is everything gated on Apple, which lives in
 [`RELEASE_GATED.md`](RELEASE_GATED.md) and is only summarised here.
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 ---
 
@@ -135,7 +135,7 @@ see `RELEASE_GATED.md` Gate B.
 
 Summarised only. The authoritative list is [`RELEASE_GATED.md`](RELEASE_GATED.md).
 
-- **Gate A** — a macOS environment: compile the app, Simulator tests, local StoreKit, a11y
+- **Gate A** — a macOS environment: compile the app, Simulator tests, a11y
   audit. *No paid membership required.* Planned via GitHub Actions.
 - **Gate B** — paid membership: enrolment, signing, App Store Connect, production StoreKit,
   device verification, TestFlight, submission.

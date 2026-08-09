@@ -61,7 +61,7 @@ three verification tiers. Any status claim in this repository must name its tier
 | Tier | Environment | What it proves | Blocked by |
 |------|-------------|----------------|------------|
 | **1** | Windows + Swift toolchain (local) | `NextKit` compiles; all core logic tests genuinely pass | nothing |
-| **2** | GitHub Actions `macos-latest` runner | Full app compiles; iOS Simulator unit + UI tests; accessibility audit; local StoreKit | nothing (unsigned simulator builds need no signing) |
+| **2** | GitHub Actions `macos-latest` runner | Full app compiles; iOS Simulator unit + UI tests; accessibility audit | nothing (unsigned simulator builds need no signing) |
 | **3** | Physical device + Apple Developer Program | Device behaviour, TestFlight, App Store submission | paid membership — see [`RELEASE_GATED.md`](RELEASE_GATED.md) |
 
 **Never** describe Tier 1 or Tier 2 results as device-verified or App Store ready.

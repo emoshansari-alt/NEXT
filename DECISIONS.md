@@ -351,6 +351,38 @@ resolve. The check has been verified against a deliberate typo probe.
 
 ---
 
+## D-017 — Tier 2 does not include local StoreKit testing (corrects D-001)
+
+**Date:** 2026-08-09 · **Status:** Accepted (a measured fact, not a preference)
+
+**Context.** D-001's tier table claims Tier 2 — GitHub Actions `macos-latest`, unsigned Simulator
+builds, no membership — proves "local StoreKit". `ARCHITECTURE.md` §6 said the same. Phase 10
+tested that claim directly and it does not hold.
+
+**The measurement.** Both documented routes were tried across three CI runs. `SKTestSession` with
+the configuration in the test bundle: the file is found, the session is created, and every
+operation fails with `SKInternalErrorDomain` Code 3 — including `clearTransactions()`, which
+never reads the file. The scheme's own StoreKit configuration, attached to the run and test
+actions: `Product.products(for:)` returns an empty array. Evidence and log excerpts are in
+`RELEASE_GATED.md` B4a.
+
+**Decision.** Move local StoreKit testing from Tier 2 to Tier 3. It joins App Groups (B1a) as an
+entitlement-scoped Apple facility that an unsigned build cannot use. D-001's reasoning is
+otherwise unaffected — Tier 2 still compiles the app, runs Simulator unit and UI tests, and
+verifies the SwiftUI layer, which was and remains the point of it.
+
+**Why this is worth an entry rather than a quiet edit.** D-001 is the decision the whole
+verification strategy rests on, and one of its stated payoffs was wrong. Two of the three
+capabilities that were expected to come free at Tier 2 turned out to need signing, which is a
+pattern worth naming: **anything scoped by an entitlement should be assumed Tier 3 until
+measured.** That prediction is cheap to make now and would have saved a CI round here.
+
+**Unchanged.** Every rule that decides what a purchase entitles someone to is pure and proven at
+Tier 1. What moved to Tier 3 is the claim that Apple's side behaves as expected, which was always
+going to need Apple.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

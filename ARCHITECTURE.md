@@ -1,6 +1,6 @@
 # NEXT — Architecture
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 ---
 
@@ -185,9 +185,16 @@ state transitions, and repository semantics against the in-memory implementation
 
 ### Tier 2 — GitHub Actions `macos-latest`
 
-Full `xcodebuild` of `NextApp` and `NextWidget`, iOS Simulator unit and UI tests, accessibility
-audit, and local StoreKit `.storekit` testing. Requires **no** Apple Developer Program
-membership: simulator builds are unsigned. This is the tier that verifies the SwiftUI layer.
+Full `xcodebuild` of `NextApp` and `NextWidget`, iOS Simulator unit and UI tests, and the
+accessibility audit. Requires **no** Apple Developer Program membership: simulator builds are
+unsigned. This is the tier that verifies the SwiftUI layer.
+
+Two things once expected here turned out to need signing, and both were found by asserting them
+rather than assuming either way: **App Groups**, so the widget cannot read what the app writes
+(`RELEASE_GATED.md` B1a), and **local StoreKit testing**, so no purchase can be exercised against
+a `.storekit` configuration (B4a). Both are entitlement-scoped Apple facilities, and an unsigned
+build carries no entitlements. Everything those features decide is still proven at Tier 1;
+what is gated is only the part that requires Apple to answer.
 
 ### Tier 3 — physical device + paid membership
 

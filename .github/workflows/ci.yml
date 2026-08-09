@@ -77,6 +77,20 @@ jobs:
         if: steps.probe.outputs.exists == 'true'
         run: xcodegen generate
 
+      # Evidence for a claim that would otherwise be an assumption. RELEASE_GATED.md B4a says
+      # local StoreKit testing fails even with the configuration attached to the scheme — which
+      # is only true if XcodeGen actually put it there rather than ignoring an unknown key.
+      - name: Confirm the scheme carries the StoreKit configuration
+        if: steps.probe.outputs.exists == 'true'
+        run: |
+          SCHEME="NextApp.xcodeproj/xcshareddata/xcschemes/NextApp.xcscheme"
+          if grep -q "StoreKitConfiguration" "$SCHEME"; then
+            grep -o 'StoreKitConfigurationFileReference[^>]*' "$SCHEME" | head -2
+            echo "::notice title=StoreKit::The generated scheme references a StoreKit configuration."
+          else
+            echo "::warning title=StoreKit::The generated scheme has no StoreKit configuration reference. RELEASE_GATED.md B4a claims the scheme route was measured — if this warning appears, that claim covers only the SKTestSession route and must be corrected."
+          fi
+
       # Runner images change their bundled simulators without warning, so pinning a device
       # name here would break the build for a reason that has nothing to do with the code.
       - name: Pick an available iPhone simulator

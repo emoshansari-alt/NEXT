@@ -1,6 +1,6 @@
 # NEXT — Testing
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 ---
 
@@ -15,7 +15,7 @@ compiled" is a real statement.
 | Tier | Environment | Command | Proves |
 |------|-------------|---------|--------|
 | 1 | Windows / Linux / macOS | `.\scripts\test.ps1` | `NextKit` compiles; core logic behaves |
-| 2 | GitHub Actions `macos-latest` | CI workflow | App compiles; Simulator unit + UI tests; a11y audit; local StoreKit |
+| 2 | GitHub Actions `macos-latest` | CI workflow | App compiles; Simulator unit + UI tests; a11y audit |
 | 3 | Physical device + membership | manual | Device behaviour — see [`RELEASE_GATED.md`](RELEASE_GATED.md) |
 
 Forbidden phrasings, and what to say instead:
@@ -24,7 +24,7 @@ Forbidden phrasings, and what to say instead:
 |---|---|
 | "fully tested" | "all Tier 1 tests pass; Tier 2 not yet run" |
 | "App Store ready" | "local release candidate; Gate B outstanding" |
-| "purchase flow verified" | "local StoreKit entitlement logic passes; sandbox verification is release-gated" |
+| "purchase flow verified" | "entitlement logic passes at Tier 1; no purchase has ever been exercised — `RELEASE_GATED.md` B4a" |
 | "AI verified" | "validated against the mock provider; no production provider has been exercised" |
 | "accessible" | "automated checks pass; VoiceOver gesture verification requires a device" |
 
