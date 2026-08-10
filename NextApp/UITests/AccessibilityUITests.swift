@@ -50,7 +50,6 @@ final class AccessibilityUITests: XCTestCase {
             predicate: NSPredicate(format: "isHittable == true"), object: skip
         )
         XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed)
-        skip.tap()
 
         // Up to three taps, with a fresh expectation each time — an `XCTestExpectation` is
         // single-use and reusing one is its own bug.
