@@ -346,13 +346,22 @@ final class AccessibilityUITests: XCTestCase {
         // It matters more than a completeness argument. The App Store set includes a dark frame
         // (D-024), so "NEXT has a dark mode that looks like this" is now a public claim, and a
         // claim about appearance needs a test that looks at the appearance.
-        XCUIDevice.shared.appearance = .dark
-        defer { XCUIDevice.shared.appearance = .light }
+        forceAppearance(.dark)
+        defer { forceAppearance(.light) }
 
         let app = launch()
         skipOnboarding(app)
 
         XCTAssertTrue(app.buttons["empty-add-button"].waitForExistence(timeout: 10))
+
+        // Before auditing anything, prove the screen actually went dark. Without this the test
+        // is worthless in the exact case it exists for: the palette clears 4.5:1 in both
+        // appearances, so an audit that quietly ran in light mode passes and reports nothing.
+        XCTAssertLessThan(
+            meanBrightness(of: XCUIScreen.main.screenshot().image), 0.35,
+            "the dark appearance did not take effect, so this audit would prove nothing"
+        )
+
         audit(app, "Today empty, dark")
 
         captureOneTask(app)

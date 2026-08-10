@@ -21,6 +21,9 @@ import XCTest
 /// 3. Why this?                  6. Today on overdue work, dark appearance
 ///
 /// Only the *data* is seeded — see `NEXTApp.seedArgument`. Nothing about the interface is staged.
+// Main-actor isolated for the same reason `AccessibilityUITests` is: the appearance and
+// screenshot APIs it uses are main-actor bound.
+@MainActor
 final class ScreenshotCaptureUITests: XCTestCase {
 
     /// The portrait sizes the App Store accepts for the largest iPhones: 6.9-inch, which Apple
@@ -37,7 +40,7 @@ final class ScreenshotCaptureUITests: XCTestCase {
     }
 
     override func tearDown() {
-        XCUIDevice.shared.appearance = .light
+        forceAppearance(.light)
         super.tearDown()
     }
 
@@ -47,7 +50,8 @@ final class ScreenshotCaptureUITests: XCTestCase {
     ///
     /// `.keepAlways`, because the default lifetime deletes attachments for passing tests — and
     /// every one of these passes, so the default would throw away the entire deliverable.
-    private func capture(_ app: XCUIApplication, _ name: String) {
+    @discardableResult
+    private func capture(_ app: XCUIApplication, _ name: String) -> UIImage {
         let shot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: shot)
         attachment.name = name
@@ -64,6 +68,8 @@ final class ScreenshotCaptureUITests: XCTestCase {
         XCTContext.runActivity(
             named: "\(name): \(Int(pixels.width))x\(Int(pixels.height)) — \(label)"
         ) { _ in }
+
+        return shot.image
     }
 
     private func launch(_ extraArguments: [String] = []) -> XCUIApplication {
@@ -133,10 +139,18 @@ final class ScreenshotCaptureUITests: XCTestCase {
         // 6 — Overdue, in the dark appearance. The one frame of the six that is dark, and the
         // reason `testTheCardScreensPassTheAuditInDarkMode` exists: the listing may not claim an
         // appearance the audit has never seen.
-        XCUIDevice.shared.appearance = .dark
+        forceAppearance(.dark)
         app = launch(["-ui-seed", "overdue"])
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
         settle()
-        capture(app, "06-late")
+        let late = capture(app, "06-late")
+
+        // The first version of this shipped a light frame while every step stayed green. A
+        // listing that claims a dark mode has to be built from a dark screenshot, and the only
+        // way to know is to measure it.
+        XCTAssertLessThan(
+            meanBrightness(of: late), 0.35,
+            "frame 6 must be captured in the dark appearance, and this one is not dark"
+        )
     }
 }
