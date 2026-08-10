@@ -215,15 +215,19 @@ jobs:
             --batteryState charged \
             --batteryLevel 100
 
+      # Addressed by identifier, not by name. The status bar is pinned on one specific simulator,
+      # and a runner image can carry the same device name on two runtimes — so `name=` is free to
+      # resolve to a different device than the one that was pinned, which is exactly what it did:
+      # the step reported success and the frames came back with a live clock reading 9:01 and 9:02.
       - name: Capture the App Store screenshots
-        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.udid != ''
         env:
           CAPTURE_SCREENSHOTS: "1"
         run: |
           xcodebuild test \
             -project NextApp.xcodeproj \
             -scheme NextApp \
-            -destination "platform=iOS Simulator,name=${{ steps.bigsim.outputs.device }}" \
+            -destination "platform=iOS Simulator,id=${{ steps.bigsim.outputs.udid }}" \
             -only-testing:NextAppUITests/ScreenshotCaptureUITests \
             -resultBundlePath Screenshots.xcresult \
             CODE_SIGNING_ALLOWED=NO \
@@ -231,7 +235,7 @@ jobs:
             CAPTURE_SCREENSHOTS=1
 
       - name: Export the screenshots as files
-        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.udid != ''
         run: |
           mkdir -p screenshots
           xcrun xcresulttool export attachments \
@@ -251,7 +255,7 @@ jobs:
           fi
 
       - name: Upload the App Store screenshots
-        if: always() && steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        if: always() && steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.udid != ''
         uses: actions/upload-artifact@v4
         with:
           name: app-store-screenshots
