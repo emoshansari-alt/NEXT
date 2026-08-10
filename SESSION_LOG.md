@@ -5,10 +5,10 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
-## 2026-08-10 — Session 14: Dark mode worked the whole time
+## 2026-08-10 — Session 14: Dark mode worked the whole time, and the store set is composited
 
 **Objective.** Find the actual root cause of Dark mode rather than attempt a fifth implementation,
-then ship it only if its behaviour could be proven.
+then ship it only if its behaviour could be proven. Then composite the App Store set.
 
 ### Result
 
@@ -94,8 +94,44 @@ a button that no longer existed. The same edit was made correctly in the other f
 green at 7 of 7 — and that asymmetry is what identified it immediately. **Two copies of one helper
 are a liability right up until one of them is the control.**
 
+### The App Store set is composited, and compositing found two defects in it
+
+`scripts/compose-store-screenshots.py` puts each captured frame on its colour field and writes the
+six images at 1320 × 2868. The geometry is arithmetic rather than taste: a 32-point inset at 3× is
+96 pixels, the frame and the canvas share an aspect ratio, so insetting all four edges while
+keeping the whole screen makes the frame width-limited and splits the leftover height evenly. One
+geometry for all six — the property the owner asked for when the varying "chin" was noticed.
+
+**The six ground colours are a reconstruction, not a recovery.** Chroma was selected in session 13
+and the values were never committed; `SESSION_LOG.md` preserves the geometry and "six saturated
+grounds" and no hex appears in any document. That is D-028's shape again — a settled decision whose
+specification exists only in a chat artifact — so they sit in one table with the reasoning beside
+them. `02-today` carries `NextPalette.biro` exactly; `06-late` is deliberately not red, because
+that frame shows overdue work and D-020's whole position is that lateness stops shouting.
+
+Looking at the composed set is what found both defects, and neither was visible in the frames on
+their own:
+
+- **The first frame of the listing was an Apple tutorial.** A fresh simulator shows QuickPath's
+  "Speed up your typing by sliding your finger across the letters" card the first time a keyboard
+  appears, and it covered the keyboard entirely with NEXT visible above it.
+- **The set disagreed about the time** — 4:53 on five frames and 4:54 on the sixth.
+
+The status-bar fix then failed in the most familiar way available: the step pinned 9:41 on one
+simulator by identifier, the capture asked for a device by *name*, a runner image carries the same
+name on more than one runtime, and they were different simulators. Green step, live clock, no
+effect. Addressing both by identifier fixed it. **Two names for one thing is the same defect as
+two copies of one helper**, which this session had already been caught by once.
+
+The frames carry no caption text. The listing wording is still an open owner decision, and baking
+a draft of it into the images would be taking that decision on the way past.
+
 ### Known limitations
 
+- **The composited set is not committed.** Six PNGs at a quarter of a megabyte each do not belong
+  in a source repository; the script is committed and the frames are a CI artifact, so the set is
+  reproducible from either. Nothing claims the images cannot drift from the app — D-028 is what
+  happens when that claim is made without a mechanism.
 - **Everything, Task Detail and Settings still exclude contrast from their enforced set.** The
   artifact that kept them out is now handled, so they could move across — but that may surface
   real failures on screens nothing has held to this bar, and it is not Dark mode's round.
@@ -109,12 +145,16 @@ are a liability right up until one of them is the control.**
 
 ### Exact next action
 
-**Composite the six captured frames into the flat Chroma layout and deliver the set** — unchanged
-from session 13, and no longer blocked by anything: the listing may now claim a dark mode.
+**Two things wait on the owner and nothing else does.** The Chroma ground colours are a
+reconstruction and should be confirmed or replaced — one table in
+`scripts/compose-store-screenshots.py`, and re-running it is one command. And the **listing
+wording** is still unchosen (`PRODUCT_SPEC.md` §15 drafts it with alternatives); the set carries no
+captions until it is, since D-024 pairs the wording with the direction.
 
-Then, in order: the **NEXT+ capability boundary** (D-015, owner, release-blocking); moving those
-three `List`/`Form` screens into the contrast-enforced set now that the audit's false positives
-are handled; the icon script D-028 asks for; VoiceOver traversal order; and the typography pass.
+Needing nobody: the **NEXT+ capability boundary** (D-015, release-blocking, and an owner decision
+in its own right); moving the three `List`/`Form` screens into the contrast-enforced set now that
+the audit's false positives are handled; the icon script D-028 asks for; VoiceOver traversal order;
+and the typography pass.
 
 ---
 

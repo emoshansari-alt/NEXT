@@ -225,8 +225,13 @@ sequence.
       release-candidate work does not wait on this.
 - [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
 - [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
-      running app by `ScreenshotCaptureUITests` and exported by CI, run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604). Not yet
-      composited into the chosen Chroma layout, which is the remaining step
+      running app by `ScreenshotCaptureUITests` and exported by CI, and **composited into the
+      Chroma layout** by `scripts/compose-store-screenshots.py`, run [31432584294](https://github.com/emoshansari-alt/NEXT/actions/runs/31432584294).
+      The six ground colours in that script are a **reconstruction**: Chroma was selected in
+      session 13 and its values were never committed, so they are the one part of the set worth a
+      second opinion. The frames carry **no caption text**, because the listing wording is still
+      an open decision on the line below and baking a draft of it into the images would take that
+      decision on the way past
 - [ ] Title, subtitle, description, keywords — **drafted** in `PRODUCT_SPEC.md` §15, with
       alternatives for the title and subtitle. The wording is chosen alongside the screenshot
       direction rather than separately (D-024): the two have to say the same thing in the same
