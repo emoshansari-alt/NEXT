@@ -64,12 +64,19 @@ struct AppearancePreferenceTests {
         // Not on dismiss. The user watches the whole app change colour the moment they tap, and
         // an app that visibly changed and then forgot after a relaunch is worse than one that
         // never offered.
-        let settings = store()
-        let state = await AppearanceState(store: settings)
+        // Built and used entirely on the main actor, because `AppearanceState` is isolated to it
+        // and `AppSettingsStore` is not `Sendable` — handing one across would be a data race the
+        // compiler is right to refuse. Only the suite name crosses, which is a `String`.
+        let name = "next.appearance.tests.\(UUID().uuidString)"
+        await MainActor.run {
+            let settings = AppSettingsStore(defaults: UserDefaults(suiteName: name) ?? .standard)
+            AppearanceState(store: settings).preference = .dark
+        }
 
-        await MainActor.run { state.preference = .dark }
+        // Read back through a *different* store instance, which is what a relaunch does.
+        let reread = AppSettingsStore(defaults: UserDefaults(suiteName: name) ?? .standard)
 
-        #expect(settings.appearance == .dark)
+        #expect(reread.appearance == .dark)
     }
 
     @Test("every option is offered, and named in words rather than in jargon")
