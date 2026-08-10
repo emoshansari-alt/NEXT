@@ -15,7 +15,11 @@ struct NEXTApp: App {
     /// Without it the UI tests would share the simulator's real database: the golden-path test
     /// completes a task, that completion persists, and after enough runs there is nothing left
     /// to recommend. A test that depends on how many times it has run before is not a test.
-    static let uiTestingArgument = "-ui-testing"
+    /// `nonisolated` because `App` is a main-actor protocol, so every member of this type is
+    /// main-actor isolated by default — and `AppearanceAvailability` is a plain enum that reads
+    /// this while deciding its gate. An immutable `String` has nothing to isolate, and the
+    /// alternative was a second spelling of `-ui-testing` in a second file.
+    nonisolated static let uiTestingArgument = "-ui-testing"
 
     /// Seeds one task whose deadline is genuinely out of reach, so the Minimum Win flow can be
     /// driven end to end by a UI test.
