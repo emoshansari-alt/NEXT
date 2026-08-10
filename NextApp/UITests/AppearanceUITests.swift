@@ -8,17 +8,17 @@ import XCTest
 @MainActor
 final class AppearanceUITests: XCTestCase {
 
-    func testTheDarkModeSwitchIsStillHidden() throws {
-        // When this fails, somebody has made Dark mode reachable — and the test that proves it
-        // works has to come back with it. It is preserved in the git history of this file:
-        // launch light, open Settings, flip `settings-dark-mode-toggle`, return to Today, and
-        // assert `meanBrightness` is below 0.35. Do not re-enable the switch without it; the
-        // whole reason this is gated is that everything except a pixel measurement passed.
-        XCTAssertFalse(
-            AppearanceAvailability.isDarkModeReachable,
-            "Dark mode is reachable again — restore the brightness test from this file's history"
-        )
-
+    func testTheDarkModeSwitchIsStillHidden() {
+        // Asserted through the interface rather than against `AppearanceAvailability`, because
+        // a UI test runs out of process and cannot import the app module — which is also why
+        // this is the right check: it fails when the *user* can see the switch, whatever the
+        // flag says.
+        //
+        // When it fails, somebody has made Dark mode reachable, and the test that proves it
+        // works has to come back with it. That test is in this file's git history: launch light,
+        // open Settings, flip `settings-dark-mode-toggle`, return to Today, and assert
+        // `meanBrightness` is below 0.35. Do not re-enable the switch without it — the whole
+        // reason this is gated is that everything except a pixel measurement passed.
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launch()
