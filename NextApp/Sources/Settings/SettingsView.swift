@@ -21,7 +21,7 @@ struct SettingsView: View {
                     }
                 }
 
-                appearanceSection
+                if AppearanceAvailability.isDarkModeReachable { appearanceSection }
                 remindersSection
                 dailySection
                 intelligenceSection

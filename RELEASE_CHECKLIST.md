@@ -33,10 +33,11 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Rescue — all four paths
 - [x] Minimum Win — planner built and Tier 1 tested
 - [x] Settings — reminder controls and the cloud-processing consent switch
-- [ ] Dark mode — a switch in Settings, off by default (D-027). **Built, not yet verified.**
-      The first run found it applying to SwiftUI's environment but not the window, so half the
-      colours switched and `inkSecondary` failed contrast on Today. Fixed by overriding the
-      window's user-interface style; awaiting a green run before this is ticked
+- [ ] Dark mode — **built, tested where it can be, and deliberately unreachable** (D-027,
+      `AppearanceAvailability`). Four implementations all left the rendered screen unchanged, to
+      sixteen digits of measured brightness. The switch is hidden rather than shipped doing
+      nothing, NEXT follows the phone as it did before, and the store set's sixth frame is
+      captured in light. Release-blocking only if the owner wants the feature in 1.0
 - [x] Notifications — scheduling planned and Tier 1 tested
 - [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
       the screen for ever (D-020)
@@ -112,11 +113,10 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Reduce Motion respected — all four animation sites branch on it, where previously one did
       and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit tests
       on the curves, including one that fails if the two curves are ever made equal, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
-- [x] The dark appearance is audited, not assumed — the full enforced set runs on Today (empty
-      and recommending), Rescue and Focus with NEXT's own Dark mode on, and the test asserts the
-      screen's mean brightness before auditing. Without that assertion the audit proves nothing:
-      the palette clears 4.5:1 in both appearances, so one that quietly ran in the wrong
-      appearance would report no issues at all
+- [ ] The dark appearance is audited — **not currently possible.** There is no way to put this
+      app in dark on the runner: `XCUIDevice.shared.appearance` has no effect and NEXT's own
+      setting is gated. An audit that cannot prove which appearance it ran in would pass in light
+      and report a dark screen as healthy, which is how it passed before anyone measured a pixel
 - [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
       `NextPaletteTests` on the values. One system-rendered section header per
       `List`/`Form` screen is tracked rather than enforced (D-021)

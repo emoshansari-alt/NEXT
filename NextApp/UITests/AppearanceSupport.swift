@@ -8,6 +8,11 @@ import XCTest
 
 /// The mean brightness of a captured screen, 0 (black) to 1 (white).
 ///
+/// Currently unused, and kept deliberately. It is the only check that ever told the truth about
+/// this app's appearance, and it comes back the moment Dark mode is reachable again — see
+/// `AppearanceAvailability`. Deleting it would leave the next attempt with the same blind spot
+/// that produced four green-looking rounds.
+///
 /// There is no API that reports whether an appearance change actually took, and the failure is
 /// invisible to everything else: NEXT's palette clears 4.5:1 in **both** appearances, so a dark
 /// audit that quietly ran in light mode passes and reports nothing, and a light screenshot in a

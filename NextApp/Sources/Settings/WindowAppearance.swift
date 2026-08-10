@@ -43,8 +43,12 @@ extension View {
     /// Applied on appear *and* on every change: on appear because the first launch has to be
     /// right before anything is drawn, and on change because the switch is three levels down in
     /// a sheet and the window will not hear about it otherwise.
-    func appearance(_ preference: AppearancePreference) -> some View {
-        preferredColorScheme(preference.colorScheme)
-            .task(id: preference) { WindowAppearance.apply(preference) }
+    /// `nil` means "do not override" — the app follows the phone, as it did before the switch
+    /// existed and as it does while `AppearanceAvailability.isDarkModeReachable` is false.
+    func appearance(_ preference: AppearancePreference?) -> some View {
+        preferredColorScheme(preference?.colorScheme)
+            .task(id: preference) {
+                if let preference { WindowAppearance.apply(preference) }
+            }
     }
 }

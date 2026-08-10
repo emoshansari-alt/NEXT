@@ -338,50 +338,14 @@ final class AccessibilityUITests: XCTestCase {
     }
 
     // MARK: The dark appearance
-
-    func testTheCardScreensPassTheAuditInDarkMode() {
-        // Until this existed, nothing had ever *rendered* NEXT in dark. `NextPaletteTests`
-        // resolves every token pair in both appearances and asserts 4.5:1 against the values,
-        // which is a claim about the palette, not about the screens — and the audit's own first
-        // run proved how far apart those two things can be: the palette was correct throughout
-        // while four classes of defect sat in the rendering.
-        //
-        // It matters more than a completeness argument. The App Store set includes a dark frame
-        // (D-024), so "NEXT has a dark mode that looks like this" is now a public claim, and a
-        // claim about appearance needs a test that looks at the appearance.
-        // Driven by NEXT's own Dark mode setting rather than the simulator's appearance.
-        // `XCUIDevice.shared.appearance = .dark` does not take effect on this runner even with a
-        // wait — the brightness check below measured 0.81, fully light, on the round that proved
-        // it. The app's own switch is both the thing users have and the thing that works.
-        let app = launch(appearance: "dark")
-        skipOnboarding(app)
-
-        XCTAssertTrue(app.buttons["empty-add-button"].waitForExistence(timeout: 10))
-
-        // Before auditing anything, prove the screen actually went dark. Without this the test
-        // is worthless in the exact case it exists for: the palette clears 4.5:1 in both
-        // appearances, so an audit that quietly ran in light mode passes and reports nothing.
-        XCTAssertLessThan(
-            meanBrightness(of: XCUIScreen.main.screenshot().image), 0.35,
-            "dark mode did not take effect, so this audit would prove nothing"
-        )
-
-        audit(app, "Today empty, dark")
-
-        captureOneTask(app)
-        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
-        audit(app, "Today recommending, dark")
-
-        app.buttons["im-stuck-button"].tap()
-        XCTAssertTrue(app.buttons["rescue-path-tooMuch"].waitForExistence(timeout: 5))
-        audit(app, "Rescue, dark")
-
-        app.buttons["rescue-close-button"].tap()
-        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 5))
-        app.buttons["start-button"].tap()
-        XCTAssertTrue(app.buttons["focus-start-button"].waitForExistence(timeout: 5))
-        audit(app, "Focus, dark")
-    }
+    //
+    // There is no dark audit here for as long as `AppearanceAvailability.isDarkModeReachable` is
+    // false. There were two ways to put the app in dark and neither works on this runner:
+    // `XCUIDevice.shared.appearance` has no effect, and NEXT's own setting changes nothing that
+    // is rendered. An audit that cannot prove which appearance it ran in is not a weaker audit,
+    // it is a misleading one — the palette clears 4.5:1 in both, so it would pass in light and
+    // report a dark screen as healthy. That is precisely how it passed before anyone measured a
+    // pixel. It comes back with the switch.
 
     // MARK: Contrast and Dynamic Type — tracked, not yet enforced
 

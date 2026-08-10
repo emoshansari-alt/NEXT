@@ -822,7 +822,8 @@ implementation belongs with the first archive, where it can be seen to work.
 
 ## D-027 — NEXT ships a Dark mode switch, and stops following the system appearance
 
-**Date:** 2026-08-10 · **Status:** Accepted (owner decision) · **Revisit if a third option is wanted**
+**Date:** 2026-08-10 · **Status:** Accepted as a decision, **not shipped** — the switch is built
+and unreachable (`AppearanceAvailability`), for the reason in the outcome note at the end.
 
 **Context.** Every colour in `NextPalette` has always declared both appearances, so NEXT has
 always *rendered* in dark — it simply followed the phone, and there was no way to ask. The owner
@@ -860,6 +861,20 @@ trip, an unrecognised stored value, the bool conversion the `Toggle` depends on,
 count. All of them would pass against a preference that is stored perfectly and applied to
 nothing — so `AppearanceUITests` flips the real switch, returns to Today, and **measures the mean
 brightness of the screen**, then relaunches and measures again.
+
+**Outcome, recorded because the decision is sound and the implementation is not.** The switch is
+built, stored, tested where it can be tested, and **hidden**. Four CI rounds measured a mean
+screen brightness of 0.8067215686274509 — identical to sixteen digits — before and after flipping
+it, across four implementations: `preferredColorScheme` at the scene root; a `UIViewRepresentable`
+window override that never ran because the view was never attached; `UIApplication.connectedScenes`,
+which needs no attachment; and moving the read out of `NEXTApp.body` into `RootView`, since
+`@Observable` tracking is unreliable in an `App` body. A number that does not move is not an
+insufficient fix — it is a fix that changes nothing about what is drawn.
+
+Shipping the row anyway was rejected: a switch that does nothing is the product-side version of
+fabricating functionality, which is what D-024 forbids in marketing. The same shape as D-015 —
+complete, tested, unreachable, and honestly recorded. The App Store set's sixth frame is therefore
+captured in **light**, and the listing may not claim a dark mode until the switch works.
 
 That measurement exists because of a real failure: `XCUIDevice.shared.appearance = .dark` does
 not take effect on the CI runner, even with a wait. The dark accessibility audit added in the

@@ -430,8 +430,8 @@ struct RootView: View {
                 }
             }
         }
-        // Applied to the window as well as to SwiftUI's environment — see `WindowAppearance`
-        // for why half a switch is worse than none.
-        .appearance(appearance.preference)
+        // Only while the switch is reachable. Until then NEXT follows the phone, which is what
+        // it did before this feature and is a working behaviour rather than a broken one.
+        .appearance(AppearanceAvailability.isDarkModeReachable ? appearance.preference : nil)
     }
 }
