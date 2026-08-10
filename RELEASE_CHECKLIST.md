@@ -35,7 +35,8 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Settings — reminder controls and the cloud-processing consent switch
 - [x] Dark mode — **shipped and measured** (D-027, corrected by D-029). One switch in Settings,
       light by default. `AppearanceUITests` drives the real control and reads the pixels: light
-      0.808, dark on 0.119, dark off 0.808, and 0.119 again after a relaunch told nothing at all.
+      0.808, dark on 0.119, dark off 0.808, and 0.119 again after a relaunch told nothing at all —
+      run [31407733469](https://github.com/emoshansari-alt/NEXT/actions/runs/31407733469).
       The gate is gone. The four rounds that concluded it was applied to nothing had never flipped
       the switch — `toggle.tap()` does not work on a `Toggle` in a `Form`
 - [x] Notifications — scheduling planned and Tier 1 tested

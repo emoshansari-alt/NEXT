@@ -13,10 +13,12 @@ then ship it only if its behaviour could be proven.
 ### Result
 
 **Tier 1: 559 tests / 100 suites. Tier 2: 128 unit / 29 suites + 47 UI tests.**
+Green — run [31407733469](https://github.com/emoshansari-alt/NEXT/actions/runs/31407733469).
 
 **Dark mode ships.** `AppearanceAvailability` is deleted, the switch is in Settings, and every
 claim below is a measurement of what was drawn: light 0.808, dark on 0.119, dark off 0.808, and
-0.119 again after a relaunch that was told nothing at all.
+0.119 again after a relaunch that was told nothing at all. The last of those runs with no launch
+argument beyond `-ui-testing`, so it is the shipped control being driven, not a test-only one.
 
 ### The app was never broken
 
@@ -78,6 +80,19 @@ when those clear the bar with margin. It is the third filter in that handler and
 backed by a measurement rather than an argument; it can only ever remove a verdict its own
 evidence contradicts, and every overruled one is printed with its ratio. The strict
 `XCTExpectFailure` this retired failed for *not* failing, which is exactly what it was built to do.
+
+### Three CI rounds were mine, and one is worth keeping
+
+Nine rounds in total. Two were plain compile errors that a machine with an iOS toolchain would
+have caught in seconds — a main-actor constant read from a nonisolated enum, and a type checker
+giving up on a shift mapped over a literal array.
+
+The third is the one worth recording. Hardening the dropped-tap retry into a three-tap loop
+produced **thirteen** "Failed to tap" failures, because the loop was added *below* the original
+`skip.tap()` rather than replacing it: the first tap dismissed onboarding and the loop then tapped
+a button that no longer existed. The same edit was made correctly in the other file, which stayed
+green at 7 of 7 — and that asymmetry is what identified it immediately. **Two copies of one helper
+are a liability right up until one of them is the control.**
 
 ### Known limitations
 
