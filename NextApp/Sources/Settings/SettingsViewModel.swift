@@ -21,6 +21,9 @@ final class SettingsViewModel {
     /// Set when the user turned reminders on but the system said no.
     private(set) var notice: String?
 
+    /// Read and written directly by the picker; the root applies it.
+    let appearance: AppearanceState
+
     private let store: AppSettingsStore
     private let scheduler: any NotificationScheduling
     private let repository: any TaskRepository
@@ -31,9 +34,11 @@ final class SettingsViewModel {
         store: AppSettingsStore = AppSettingsStore(),
         scheduler: any NotificationScheduling = SystemNotificationScheduler(),
         repository: any TaskRepository,
+        appearance: AppearanceState = AppearanceState(),
         timeSource: any TimeSource = SystemTimeSource(),
         calendar: Calendar = .current
     ) {
+        self.appearance = appearance
         self.store = store
         self.scheduler = scheduler
         self.repository = repository

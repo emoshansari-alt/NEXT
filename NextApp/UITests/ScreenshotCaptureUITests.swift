@@ -136,18 +136,19 @@ final class ScreenshotCaptureUITests: XCTestCase {
         settle()
         capture(app, "05-stuck")
 
-        // 6 — Overdue, in the dark appearance. The one frame of the six that is dark, and the
-        // reason `testTheCardScreensPassTheAuditInDarkMode` exists: the listing may not claim an
-        // appearance the audit has never seen.
-        forceAppearance(.dark)
-        app = launch(["-ui-seed", "overdue"])
+        // 6 — Overdue, in dark mode. Produced by NEXT's own Appearance setting rather than by
+        // the simulator, which matters: the listing shows a dark frame, so the dark it shows has
+        // to be the one a user can actually turn on. The phone is deliberately left light to
+        // prove the setting is doing it.
+        forceAppearance(.light)
+        app = launch(["-ui-seed", "overdue", "-ui-appearance", "dark"])
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
         settle()
         let late = capture(app, "06-late")
 
         // The first version of this shipped a light frame while every step stayed green. A
-        // listing that claims a dark mode has to be built from a dark screenshot, and the only
-        // way to know is to measure it.
+        // listing that claims a dark mode has to be built from a dark screenshot, and since no
+        // API reports whether an appearance took, the pixels are the only witness.
         XCTAssertLessThan(
             meanBrightness(of: late), 0.35,
             "frame 6 must be captured in the dark appearance, and this one is not dark"

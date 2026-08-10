@@ -43,6 +43,14 @@ struct NEXTApp: App {
     /// point of the last frame.
     static let seedArgument = "-ui-seed"
 
+    /// Followed by `light` or `dark`, presets the appearance the Settings picker controls.
+    ///
+    /// Test scaffolding for one job: capturing the App Store set's dark frame from the feature
+    /// the listing advertises. Two earlier attempts drove the *simulator's* appearance instead
+    /// and silently produced a light screenshot, which is a marketing claim the app would not
+    /// have kept.
+    static let appearanceArgument = "-ui-appearance"
+
     /// Opens whatever Today is recommending as though a notification or the widget had been
     /// tapped, so the deep-link sheet can be reached from a UI test.
     ///
@@ -82,6 +90,19 @@ struct NEXTApp: App {
 
     private static var shouldOpenRecommended: Bool {
         isUITesting && ProcessInfo.processInfo.arguments.contains(openRecommendedArgument)
+    }
+
+    /// The appearance given after `-ui-appearance`, or `nil`.
+    private static var forcedAppearance: AppearancePreference? {
+        guard isUITesting else { return nil }
+
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: appearanceArgument),
+              case let next = arguments.index(after: flag),
+              next < arguments.endIndex
+        else { return nil }
+
+        return AppearancePreference(rawValue: arguments[next])
     }
 
     /// The name given after `-ui-seed`, or `nil`.
@@ -126,6 +147,10 @@ struct NEXTApp: App {
     private let repository: any TaskRepository
     private let onboarding: OnboardingState
 
+    /// The user's chosen appearance. Owned here because `preferredColorScheme` only takes effect
+    /// at the scene root, and Settings — where it is chosen — is a sheet well below it.
+    private let appearance: AppearanceState
+
     /// Finishes transactions that arrive from outside a purchase — renewals, an Ask to Buy
     /// approval that lands days later, a purchase made on another device. An unfinished
     /// transaction is re-delivered indefinitely, so this has to run for the life of the app and
@@ -162,6 +187,12 @@ struct NEXTApp: App {
         onboarding = OnboardingState()
         if Self.isUITesting { onboarding.reset() }
 
+        appearance = AppearanceState()
+        // Presets the same stored preference the Settings picker writes, so a captured
+        // screenshot of dark mode is produced by the shipping feature rather than by the
+        // simulator's appearance — which is the thing the listing actually claims.
+        if let forced = Self.forcedAppearance { appearance.preference = forced }
+
         notifications = NotificationRouter(inbox: inbox)
         notifications.start()
     }
@@ -169,6 +200,9 @@ struct NEXTApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(onboarding: onboarding) { today }
+                // The one place the choice can be applied. `nil` for "match my phone" means no
+                // override at all, so changing the system setting while NEXT is open still works.
+                .preferredColorScheme(appearance.preference.colorScheme)
                 // One accent, set once. Every system control — pickers, switches, the navigation
                 // bar's own buttons — inherits it, so ballpoint blue is the only accent in the app
                 // without each screen having to say so.
@@ -198,7 +232,7 @@ struct NEXTApp: App {
             makeDetailModel: { task in
                 TaskDetailViewModel(task: task, repository: repository)
             },
-            makeSettingsModel: { SettingsViewModel(repository: repository) },
+            makeSettingsModel: { SettingsViewModel(repository: repository, appearance: appearance) },
             inbox: inbox
         )
     }
