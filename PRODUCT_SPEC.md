@@ -191,6 +191,20 @@ Low-confidence or ambiguous deadlines ask the user rather than inventing certain
 
 ---
 
+### 4.6a Settings — appearance
+
+One switch: **Dark mode**, off by default (`DECISIONS.md` D-027).
+
+NEXT does **not** follow the system appearance. That is a deliberate consequence of a two-state
+switch rather than an oversight — an off position cannot mean both "light" and "whatever the
+phone is doing" — and it is why the switch exists at all: someone whose eyes hurt in a bright app
+should not have to change their whole phone to read a task.
+
+The home-screen widget still follows the phone, because the system draws it. Settings says so
+rather than leaving it to be discovered.
+
+---
+
 ### 4.7 Everything
 
 Secondary screen giving visibility and control. Sections: Today, Upcoming, No deadline,

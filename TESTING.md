@@ -64,6 +64,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Everything | date bucketing into sections, ordering, partitioning |
 | Monetisation | entitlement rules, expiry boundary, bounded billing-retry grace, per-receipt revocation, the capability gate, the 1.0 tripwire, the purchase contract, purchase tone |
 | Design | every palette pair's contrast ratio in both appearances, the card's separation from the desk (Tier 2 — the colours are app-layer) |
+| Appearance | the Dark mode switch: its default, its round trip, an unrecognised stored value, and the bool conversion the `Toggle` depends on (Tier 2 — D-027) |
 
 The suite also runs on `macos-latest` in CI under Apple Swift 6.3.3, so it passes on two
 toolchains and two operating systems.
@@ -267,6 +268,28 @@ It was moved there because the earlier version could not do this: it lived in `N
 which `NextAppTests` cannot import, so the claim that it bound both implementations was untrue.
 It throws rather than using `#expect`, because importing `Testing` would restrict the target to
 test bundles and defeat the purpose.
+
+### Dark mode, and the check that had to measure pixels
+
+`AppearanceUITests` turns Dark mode on through the real switch, returns to Today, and asserts the
+**mean brightness of the screen**; then relaunches with no arguments and asserts it is still dark.
+`AccessibilityUITests` audits four screens with Dark mode on, and asserts the screen is genuinely
+dark *before* auditing anything.
+
+That looks like belt and braces and is not. Three separate failures in one session all had the
+same shape — something claimed an appearance and nothing could tell it was wrong:
+
+- `XCUIDevice.shared.appearance = .dark` **does not take effect on the CI runner**, even with a
+  wait. A screen that had just asked for dark measured 0.81 — fully light. `forceAppearance` was
+  deleted and every test now drives NEXT's own setting, which is both what users have and what
+  works.
+- The dark accessibility audit had been passing while proving nothing, because the palette clears
+  4.5:1 in **both** appearances. An audit in the wrong appearance reports no issues and looks
+  healthy.
+- The App Store set's dark frame was captured in light, with every CI step green.
+
+**Where an appearance cannot be read back, the pixels are the only witness.** No API reports
+whether an appearance change took, so any test that claims a dark screen measures one.
 
 ### The accessibility audit
 

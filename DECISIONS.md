@@ -820,6 +820,57 @@ implementation belongs with the first archive, where it can be seen to work.
 
 ---
 
+## D-027 — NEXT ships a Dark mode switch, and stops following the system appearance
+
+**Date:** 2026-08-10 · **Status:** Accepted (owner decision) · **Revisit if a third option is wanted**
+
+**Context.** Every colour in `NextPalette` has always declared both appearances, so NEXT has
+always *rendered* in dark — it simply followed the phone, and there was no way to ask. The owner
+asked for a Dark mode the user can turn on, giving the reason plainly: some people's eyes hurt in
+a bright app, and telling them to change their whole phone is not an answer.
+
+**Decision.** One switch in Settings — **Dark mode, off by default**. Two states, no
+follow-the-system option.
+
+**What this costs, stated rather than buried.** NEXT no longer tracks the system appearance at
+all. Someone whose phone is in dark mode now opens NEXT in light until they turn the switch on.
+That is inherent to a two-state control: an off position cannot mean both "light" and "whatever
+the phone is doing".
+
+An intermediate version offered three options — Match my phone / Light / Dark — and the owner cut
+it to two. That is recorded because the trade is real and a future session should not
+"fix" it by quietly reintroducing the third option: it was considered, built, and removed on
+purpose. `AppearancePreference` is stored as a raw string rather than a bool precisely so a third
+state could be added later without reinterpreting anybody's saved value, and a test asserts there
+are exactly two cases so that adding one fails loudly rather than being swallowed by a switch
+that can only show two.
+
+**Where it is applied.** `preferredColorScheme` at the scene root, because Settings is a sheet
+several levels below it. `AppearanceState` is the one observable value connecting the control to
+the root, and it writes through to `UserDefaults` as the switch is flipped rather than on dismiss
+— an app that visibly changes colour and then forgets after a relaunch is worse than one that
+never offered.
+
+**What it deliberately does not cover.** The home-screen widget still follows the phone. WidgetKit
+draws it in another process and an app cannot override its appearance. The Settings footer says
+so, because that is the kind of thing a user otherwise discovers and files as a bug.
+
+**How it is verified, and why both halves are needed.** Unit tests cover the default, the round
+trip, an unrecognised stored value, the bool conversion the `Toggle` depends on, and the case
+count. All of them would pass against a preference that is stored perfectly and applied to
+nothing — so `AppearanceUITests` flips the real switch, returns to Today, and **measures the mean
+brightness of the screen**, then relaunches and measures again.
+
+That measurement exists because of a real failure: `XCUIDevice.shared.appearance = .dark` does
+not take effect on the CI runner, even with a wait. The dark accessibility audit added in the
+same session had been passing while proving nothing — NEXT's palette clears 4.5:1 in *both*
+appearances, so an audit that quietly ran in the wrong one reports no issues and looks healthy.
+The App Store set's dark frame was captured light for the same reason, with every CI step green.
+**Where an appearance cannot be read back, the pixels are the only witness**, and every test that
+claims a dark screen now measures one.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

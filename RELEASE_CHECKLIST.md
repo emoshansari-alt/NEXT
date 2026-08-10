@@ -33,6 +33,10 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Rescue — all four paths
 - [x] Minimum Win — planner built and Tier 1 tested
 - [x] Settings — reminder controls and the cloud-processing consent switch
+- [ ] Dark mode — a switch in Settings, off by default (D-027). **Built, not yet verified.**
+      The first run found it applying to SwiftUI's environment but not the window, so half the
+      colours switched and `inkSecondary` failed contrast on Today. Fixed by overriding the
+      window's user-interface style; awaiting a green run before this is ticked
 - [x] Notifications — scheduling planned and Tier 1 tested
 - [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
       the screen for ever (D-020)

@@ -188,10 +188,12 @@ struct NEXTApp: App {
         if Self.isUITesting { onboarding.reset() }
 
         appearance = AppearanceState()
-        // Presets the same stored preference the Settings picker writes, so a captured
-        // screenshot of dark mode is produced by the shipping feature rather than by the
-        // simulator's appearance — which is the thing the listing actually claims.
-        if let forced = Self.forcedAppearance { appearance.preference = forced }
+        if Self.isUITesting {
+            // The preference lives in the real `UserDefaults`, which `-ui-testing` does not
+            // reset — so without this, one test turning dark mode on silently changes the
+            // appearance of every test that runs after it. Light unless a test says otherwise.
+            appearance.preference = Self.forcedAppearance ?? .light
+        }
 
         notifications = NotificationRouter(inbox: inbox)
         notifications.start()
@@ -200,9 +202,9 @@ struct NEXTApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(onboarding: onboarding) { today }
-                // The one place the choice can be applied. `nil` for "match my phone" means no
-                // override at all, so changing the system setting while NEXT is open still works.
-                .preferredColorScheme(appearance.preference.colorScheme)
+                // Applied to the window as well as to SwiftUI's environment — see
+                // `WindowAppearance` for why half a switch is worse than none.
+                .appearance(appearance.preference)
                 // One accent, set once. Every system control — pickers, switches, the navigation
                 // bar's own buttons — inherits it, so ballpoint blue is the only accent in the app
                 // without each screen having to say so.
