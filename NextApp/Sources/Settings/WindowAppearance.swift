@@ -24,6 +24,11 @@ import UIKit
 /// and no attachment. It is the one lookup that cannot silently do nothing.
 enum WindowAppearance {
 
+    // Main-actor isolated: `UIApplication.shared`, `connectedScenes`, `windows` and
+    // `overrideUserInterfaceStyle` all are. Debug only warned about this; the Release step's
+    // `SWIFT_TREAT_WARNINGS_AS_ERRORS` is what turned it into a failure, which is the whole
+    // reason that step exists.
+    @MainActor
     static func apply(_ preference: AppearancePreference) {
         let style: UIUserInterfaceStyle = preference == .dark ? .dark : .light
 
