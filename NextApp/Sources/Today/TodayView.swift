@@ -40,7 +40,6 @@ struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var showingRejectionReasons = false
-    @State private var showingExplanation = false
     @State private var showingCapture = false
     @State private var showingEverything = false
     @State private var showingRescue = false
@@ -237,11 +236,27 @@ struct TodayView: View {
                     // without anyone connecting the change to this stripe.
                     .accessibilityHidden(true)
 
-                if !metaLine(for: recommendation).isEmpty {
-                    Text(metaLine(for: recommendation))
+                let copy = RecommendationCardCopy.lines(for: recommendation)
+
+                if !copy.facts.isEmpty {
+                    Text(copy.facts)
                         .font(NextType.meta)
                         .foregroundStyle(NextPalette.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // The answer to "why this one", on the card rather than behind a control.
+                //
+                // It appears only when the fact line above does not already carry it, which is
+                // every reason that is not the deadline. `Why this?` used to be the only place
+                // these sentences were shown, and a modal repeating the card the rest of the
+                // time — so this is strictly more of the explanation, in fewer taps.
+                if let reason = copy.reason {
+                    Text(reason)
+                        .font(NextType.meta)
+                        .foregroundStyle(NextPalette.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("recommendation-reason")
                 }
 
                 if recommendation.wasRecentlyRejected {
@@ -289,7 +304,7 @@ struct TodayView: View {
             .accessibilityIdentifier("start-button")
             .accessibilityHint("Opens Focus for this action.")
 
-            secondaryActions(recommendation)
+            secondaryActions()
                 .padding(.top, 16)
                 .padding(.bottom, 8)
         }
@@ -300,7 +315,18 @@ struct TodayView: View {
         .animation(NextMotion.cardChange(reduceMotion: reduceMotion), value: recommendation.task.id)
     }
 
-    private func secondaryActions(_ recommendation: Recommendation) -> some View {
+    /// Two groups, and the grouping is the point.
+    ///
+    /// Everything that acts on **this recommendation** sits directly under START; the two ways out
+    /// of the screen sit apart from it, at the bottom, in the plainer style. This is the layout
+    /// `PRODUCT_SPEC.md` §4.2 has always described — the implementation had flattened it into one
+    /// row of four peers, which at marketing scale read as four fragments of one undifferentiated
+    /// set. They were never one set: two acted on the card, one navigated, one created.
+    ///
+    /// The separation is carried by position and by the underline the quiet style already owns,
+    /// and by nothing else. A toolbar, an icon row or a menu here would each be a worse answer
+    /// than the problem.
+    private func secondaryActions() -> some View {
         VStack(spacing: 10) {
             // Only when the ladder genuinely exists. Offering "what can I still do?" for work
             // that comfortably fits would be manufacturing an emergency.
@@ -310,22 +336,22 @@ struct TodayView: View {
                     .accessibilityIdentifier("minimum-win-button")
             }
 
-            // "I'm stuck" sits on its own line and reads first. It is a first-class feature,
-            // not a footnote — the moment someone needs it is the moment they are least likely
-            // to go hunting for it.
-            Button("I'm stuck") { showingRescue = true }
-                .buttonStyle(.quietText)
-                .accessibilityIdentifier("im-stuck-button")
-
+            // This card. Two ways of saying the same thing for two different reasons — "I can't
+            // do this" and "not this one" — so they belong beside each other, where somebody who
+            // is already stuck is looking.
             HStack(spacing: 4) {
-                Button("Not this") { showingRejectionReasons = true }
-                    .buttonStyle(.quietTextPlain)
-                    .accessibilityIdentifier("not-this-button")
+                Button("I'm stuck") { showingRescue = true }
+                    .buttonStyle(.quietText)
+                    .accessibilityIdentifier("im-stuck-button")
 
-                Button("Why this?") { showingExplanation = true }
-                    .buttonStyle(.quietTextPlain)
-                    .accessibilityIdentifier("why-this-button")
+                Button("Something else") { showingRejectionReasons = true }
+                    .buttonStyle(.quietText)
+                    .accessibilityIdentifier("something-else-button")
+            }
 
+            // The app. Plainer and further away, because leaving this screen is not one of the
+            // answers to the question it is asking.
+            HStack(spacing: 4) {
                 Button("Everything") { showingEverything = true }
                     .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("everything-button")
@@ -334,30 +360,8 @@ struct TodayView: View {
                     .buttonStyle(.quietTextPlain)
                     .accessibilityIdentifier("add-button")
             }
+            .padding(.top, 2)
         }
-        .alert(
-            "Why this?",
-            isPresented: $showingExplanation,
-            actions: { Button("OK", role: .cancel) {} },
-            message: { Text(recommendation.explanation.sentence) }
-        )
-    }
-
-    /// "Due in 2 days · ~20 min", assembled from whatever the task actually knows.
-    /// Uses a middle dot rather than colour or an icon to separate facts, because meaning must
-    /// never depend on colour alone.
-    private func metaLine(for recommendation: Recommendation) -> String {
-        var parts: [String] = []
-
-        if recommendation.task.deadline != nil {
-            parts.append(
-                recommendation.explanation.sentence.replacingOccurrences(of: ".", with: "")
-            )
-        }
-        if let minutes = recommendation.task.estimatedMinutes {
-            parts.append("~\(minutes) min")
-        }
-        return parts.joined(separator: " · ")
     }
 
     /// Said once each, so the screen and the spoken label cannot drift apart.
@@ -459,7 +463,12 @@ struct TodayView: View {
     }
 }
 
-/// Labels for the five "Not this" reasons. Each is about circumstance, never about the user.
+/// Labels for the five "Something else" reasons. Each is about circumstance, never about the
+/// user.
+///
+/// `.other` reads "Another reason" rather than "Something else", which is what it said until the
+/// control above it took that name. A button and one of the options it opens cannot share a
+/// label — the user would tap "Something else" and be offered "Something else".
 enum RejectionCopy {
     static func label(for reason: RejectionReason) -> String {
         switch reason {
@@ -467,7 +476,7 @@ enum RejectionCopy {
         case .missingWhatINeed: "Don't have what I need"
         case .needSomethingShorter: "Need something shorter"
         case .needLessEffort: "Need less effort"
-        case .other: "Something else"
+        case .other: "Another reason"
         }
     }
 }

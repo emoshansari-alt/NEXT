@@ -124,15 +124,25 @@ The dominant object on screen is the single recommended action.
 
               [  START  ]
 
-  I'm stuck   Not this   Why this?
-        Everything    Add
+     I'm stuck   Something else
+
+         Everything    Add
 ```
 
 No dashboard clutter. No metric tiles. No list competing with the recommendation.
 
+**The two secondary rows are grouped by what they act on**, and the grouping carries meaning the
+labels cannot. The first row is about *this recommendation*: two ways of saying it is not working.
+The second is about the app, and is quieter and further away, because leaving this screen is not
+one of the answers to the question the screen is asking.
+
+That distinction is not cosmetic. Rendered as one row of four peers — which is what shipped
+between sessions 5 and 14 — the four read as one undifferentiated set, and nothing on screen
+indicated that two of them changed what you were looking at while the other two left it.
+
 ---
 
-### 4.3 Not this
+### 4.3 Something else
 
 The user must be able to reject the recommendation. Reasons offered:
 
@@ -140,7 +150,14 @@ The user must be able to reject the recommendation. Reasons offered:
 - Don't have what I need
 - Need something shorter
 - Need less effort
-- Something else
+- Another reason
+
+The control was labelled `Not this` until session 14. The behaviour behind it is unchanged — the
+reasons, the record, the penalty and its decay are all the same — and only the label moved, to one
+that says what happens rather than naming a verdict. The fifth reason was renamed at the same time
+and for a mechanical rather than an aesthetic reason: it read `Something else`, which is now the
+name of the control that opens the list, and a button cannot share a label with one of the options
+it offers.
 
 A rejection applies a temporary penalty or contextual exclusion so the same task is not
 immediately re-recommended without good reason. If no viable alternative exists, NEXT says so
@@ -148,7 +165,7 @@ plainly rather than recycling the rejected task silently.
 
 ---
 
-### 4.4 Why this?
+### 4.4 Why this one
 
 NEXT must always be able to explain itself in one short, intelligible sentence:
 
@@ -157,6 +174,16 @@ NEXT must always be able to explain itself in one short, intelligible sentence:
 
 The recommendation is never presented as an unknowable oracle. The explanation is generated
 from the deterministic ranking factors, so it is always available — including offline.
+
+**It is shown on the card, not behind a control** (session 14). There was a `Why this?` link, and
+for any task with a deadline it opened an alert repeating a line already printed on the card — the
+card read `Due in 2 days · ~20 min` and the alert said `Due in 2 days.` It earned its place only
+when a task had no deadline, which made it a control whose value could not be predicted before
+tapping it.
+
+The reason now takes whichever of the card's two slots fits its shape: a deadline joins the fact
+line beside the estimate, and every other reason gets a line of its own as a sentence. Exactly one
+slot, decided in one place, so it can be neither lost nor said twice.
 
 ---
 

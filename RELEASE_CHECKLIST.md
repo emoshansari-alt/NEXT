@@ -21,8 +21,11 @@ see `RELEASE_GATED.md` Gate B.
 
 - [x] Onboarding — three screens, no account, contextual permissions
 - [x] Today / NEXT — single dominant recommendation
-- [x] Not this — rejection with reasons and a temporary penalty
-- [x] Why this? — deterministic explanation, works offline
+- [x] Something else — rejection with reasons and a temporary penalty. Labelled `Not this`
+      until session 14; the behaviour is unchanged
+- [x] Why this one — deterministic explanation, works offline, and shown **on the card** rather
+      than behind a control (PRODUCT_SPEC.md §4.4). The `Why this?` link is retired: it repeated
+      the card for any task with a deadline
 - [x] Capture — manual entry
 - [x] Capture — brain dump with extraction
 - [x] Capture Confirmation — deadlines confirmable, low confidence asks

@@ -539,7 +539,8 @@ every core screen found issues on all ten of them, in five categories.
 **What it found, and who owns it.**
 
 Genuinely NEXT's, and fixed: **eight controls below the 44 × 44 minimum** — "Skip", "Stop",
-"I'm stuck" on both Today and Focus, "Not this", "Why this?", "Everything" and "Add". Every one is
+"I'm stuck" on both Today and Focus, "Not this" (now "Something else"), "Why this?" (since
+retired), "Everything" and "Add". Every one is
 a plain text button, so its hit area was the height of a line of text: "Everything" measured
 73 × 18. That reads correctly as a quiet secondary action and is genuinely hard to hit with a
 tremor, on a bus, or one-handed — and "I'm stuck" is used precisely when someone is already having

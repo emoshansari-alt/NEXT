@@ -322,6 +322,18 @@ struct NEXTApp: App {
                 nextAction: "Find three sources."
             )
 
+        case "reason":
+            // No deadline on purpose. It is the state where the card's reason line is the only
+            // place the explanation appears — the case the retired "Why this?" alert used to be
+            // the sole route to, and the reason the third store frame exists.
+            task = TaskItem(
+                id: TaskID("ui-seed-reason"),
+                title: "Physics problem set",
+                createdAt: now,
+                estimatedMinutes: 15,
+                nextAction: "Read question 1 and write down what it is asking."
+            )
+
         case "overdue":
             task = TaskItem(
                 id: TaskID("ui-seed-overdue"),

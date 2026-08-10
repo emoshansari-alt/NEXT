@@ -286,18 +286,30 @@ final class GoldenPathUITests: XCTestCase {
         )
     }
 
-    func testWhyThisAlwaysHasAnAnswer() {
-        // The recommendation is never an unknowable oracle — PRODUCT_SPEC.md §4.4.
+    func testTheCardAlwaysSaysWhyThisOne() {
+        // The recommendation is never an unknowable oracle — PRODUCT_SPEC.md §4.4. What changed
+        // is where the answer is: it used to be an alert behind a "Why this?" link, and that link
+        // was a modal repeating the card for any task with a deadline. The explanation is now on
+        // the card itself, so this asserts it is *visible* rather than that a control produces it.
+        //
+        // A captured task has no deadline and no estimate, which is the case the old alert was
+        // the only place to see — so this is also the state that used to hide its reason from a
+        // user who never tapped.
         let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
-        let why = app.buttons["why-this-button"]
-        XCTAssertTrue(why.waitForExistence(timeout: 10))
-        why.tap()
+        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
 
+        let reason = app.staticTexts["recommendation-reason"]
         XCTAssertTrue(
-            app.alerts.firstMatch.waitForExistence(timeout: 5),
-            "Why this? must always produce an explanation"
+            reason.waitForExistence(timeout: 5),
+            "the card must explain itself without being asked"
+        )
+        XCTAssertFalse(reason.label.isEmpty, "an empty explanation is not an explanation")
+
+        XCTAssertFalse(
+            app.buttons["why-this-button"].exists,
+            "Why this? is retired — the card carries the reason now"
         )
     }
 
@@ -307,7 +319,7 @@ final class GoldenPathUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 10))
         for identifier in [
-            "im-stuck-button", "not-this-button", "why-this-button",
+            "im-stuck-button", "something-else-button",
             "everything-button", "add-button"
         ] {
             let button = app.buttons[identifier]
@@ -317,15 +329,15 @@ final class GoldenPathUITests: XCTestCase {
     }
 
     func testTheOnlyTaskComesBackSayingItWasPassedOver() {
-        // The other half of "Not this", and the sentence that stops NEXT looking like it was not
+        // The other half of "Something else", and the sentence that stops NEXT looking like it was not
         // listening. With one task there is nothing else to offer, so the engine returns it —
         // finite penalty, by design — and the screen has to say so rather than re-serving it as
         // though nothing happened. The string existed and no test at any tier had ever read it.
         let app = launchPastOnboarding()
         captureOneTask(app, text: "Email Professor Adeyemi")
 
-        XCTAssertTrue(app.buttons["not-this-button"].waitForExistence(timeout: 10))
-        app.buttons["not-this-button"].tap()
+        XCTAssertTrue(app.buttons["something-else-button"].waitForExistence(timeout: 10))
+        app.buttons["something-else-button"].tap()
 
         let reason = app.buttons["Can't do it right now"]
         XCTAssertTrue(reason.waitForExistence(timeout: 5))

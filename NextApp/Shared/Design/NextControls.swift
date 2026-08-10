@@ -82,7 +82,7 @@ private extension View {
     }
 }
 
-/// A quiet text action — "I'm stuck", "Not this", "Everything".
+/// A quiet text action — "I'm stuck", "Something else", "Everything".
 ///
 /// Underlined, which is the annotation vernacular the Margin direction contributed and also the
 /// most unambiguously tappable treatment plain text has.
