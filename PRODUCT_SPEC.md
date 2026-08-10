@@ -191,24 +191,10 @@ Low-confidence or ambiguous deadlines ask the user rather than inventing certain
 
 ---
 
-### 4.6a Settings — appearance
-
-One switch: **Dark mode**, off by default (`DECISIONS.md` D-027).
-
-NEXT does **not** follow the system appearance. That is a deliberate consequence of a two-state
-switch rather than an oversight — an off position cannot mean both "light" and "whatever the
-phone is doing" — and it is why the switch exists at all: someone whose eyes hurt in a bright app
-should not have to change their whole phone to read a task.
-
-The home-screen widget still follows the phone, because the system draws it. Settings says so
-rather than leaving it to be discovered.
-
----
-
 ### 4.7 Everything
 
-Secondary screen giving visibility and control. Sections: Today, Upcoming, No deadline,
-Overdue, Completed.
+Secondary screen giving visibility and control. Sections, in the order they appear and each shown
+only when it holds something: Overdue, Today, Upcoming, No deadline, Completed, Archived.
 
 **Explicitly excluded:** Kanban boards, Gantt charts, nested workspaces, custom database
 surfaces, tag engines, project-management structure.
@@ -279,6 +265,25 @@ This must never be used to encourage dishonesty or the submission of fabricated 
 
 Unfinished work is recalculated on a new day. No shame language. A new day simply reassesses
 what matters now.
+
+---
+
+### 4.14 Settings
+
+Short, and every control says plainly what it does. For 1.0 it holds exactly:
+
+- **Appearance** — one `Dark mode` switch, **off by default**. Two states, no follow-the-system
+  option (**D-027**): NEXT does not track the phone's appearance, so somebody whose phone is dark
+  opens NEXT in light until they turn this on. The home-screen widget still follows the phone —
+  WidgetKit draws it in another process and an app cannot override it — and the footer says so.
+- **Deadlines** — deadline reminders on or off, and how far ahead.
+- **Daily** — the optional daily reminder on or off, and the hour.
+- **Intelligence** — a cloud-processing consent switch, off by default, gating nothing today
+  because nothing leaves the device.
+- **Privacy** — where tasks are stored, and that there is no account.
+- **NEXT+** — absent from a normal build for as long as NEXT+ unlocks nothing (**D-015**).
+
+Reached from Everything, not from Today. Today's job is to show one thing.
 
 ---
 
@@ -425,6 +430,10 @@ Typography and hierarchy carry most of the identity. Motion reinforces
 `NEXT → START → DONE → NEXT`, is functionally restrained, respects Reduce Motion, and never
 becomes a barrier to operation.
 
+**Two appearances.** Every palette token declares a light and a dark value, and every text pair
+clears 4.5:1 in both. Which one is shown is the user's choice in Settings rather than the phone's,
+and light is the default — see §4.14 and **D-027**.
+
 Product UI is native SwiftUI. Generated imagery is for marketing, onboarding illustration where
 justified, and App Store assets — not for coating every screen.
 
@@ -438,7 +447,7 @@ Before release-candidate status, all of the following must hold:
 - VoiceOver traversal order is logical
 - Dynamic Type works, including the largest sizes, without destroying key screens
 - Reduce Motion is respected
-- contrast is adequate
+- contrast is adequate in both the light and the dark appearance
 - no meaning is conveyed by colour alone
 - no essential action is gesture-only
 - touch targets meet current platform guidance
@@ -507,8 +516,12 @@ valuable signal for improving the ranking engine.
 - Line: *Know what to do next.*
 - Description concept: *Dump everything on your mind. NEXT turns the mess into one thing you
   can actually start.*
-- Screenshot narrative: Too much to do? → Dump it here. → NEXT finds what matters. → Do one
-  thing. → Stuck? Make it smaller. → Plans fall apart. NEXT replans.
+- Screenshot narrative — the six frames CI captures from the running app
+  (`ScreenshotCaptureUITests`), in listing order: Dump it here (Capture, mid-dump) → NEXT finds
+  what matters (Today, recommending) → and it tells you why (Why this?) → Do one thing (Focus,
+  running) → Stuck? Make it smaller (Rescue) → Plans fall apart, NEXT replans (Today on overdue
+  work, in dark mode). The frames are real; composition and captions are chosen at the D-024
+  checkpoint.
 
 Marketing assets must truthfully represent the real app.
 

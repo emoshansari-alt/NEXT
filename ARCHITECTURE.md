@@ -186,8 +186,9 @@ state transitions, and repository semantics against the in-memory implementation
 
 ### Tier 2 — GitHub Actions `macos-latest`
 
-Full `xcodebuild` of `NextApp` and `NextWidget`, iOS Simulator unit and UI tests, and the
-accessibility audit. Requires **no** Apple Developer Program membership: simulator builds are
+Full `xcodebuild` of `NextApp` and `NextWidget`, iOS Simulator unit and UI tests, the
+accessibility audit in **both** appearances, a Release build with warnings as errors, and the App
+Store screenshot capture. Requires **no** Apple Developer Program membership: simulator builds are
 unsigned. This is the tier that verifies the SwiftUI layer.
 
 Two things once expected here turned out to need signing, and both were found by asserting them

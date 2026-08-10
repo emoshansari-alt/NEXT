@@ -871,6 +871,36 @@ claims a dark screen now measures one.
 
 ---
 
+## D-028 — The icon-rendering script is not in the repository (corrects D-023)
+
+**Date:** 2026-08-10 · **Status:** Accepted
+
+**Context.** D-023 states that the app icon is "rendered from the palette's own hex values by a
+script at 3× and downsampled, so the asset cannot drift from the app's colours." A documentation
+audit went looking for that script. It is not in `scripts/`, it is not anywhere else in the
+repository, and nothing compares the committed PNG to `NextPalette`.
+
+**What is true.** The asset is real and ships:
+`NextApp/Resources/Assets.xcassets/AppIcon.appiconset/Icon.png`, one 1024 × 1024 file at 8.8 kB.
+Its colours were derived from the palette when it was made. Nothing enforces that they still are.
+
+**Decision.** The guarantee is **withdrawn** until the script is committed. D-023's sentence
+describes an intention that was carried out once and not preserved, and the difference matters:
+"cannot drift" is a claim about a mechanism, and there is no mechanism. Re-rendering the icon
+today means writing the script again from scratch.
+
+**Why this is recorded rather than quietly fixed.** Writing the script is half an hour; the
+interesting part is that a guarantee survived several sessions of review because it read as
+plausible and nobody went looking for the thing it named. That is the same class of defect as a
+test that cannot fail, and the same answer applies — the claim gets checked or it gets removed.
+
+**What closes this.** Commit the generator under `scripts/`, have it read the hex values from
+`NextPalette.swift` rather than restating them, and either regenerate in CI or add a guardrail
+that fails when the PNG's key colours no longer match. Until then D-023's icon paragraph should
+be read as history.
+
+---
+
 ## D-012 — Licence undecided
 
 **Date:** 2026-08-08 · **Status:** Open

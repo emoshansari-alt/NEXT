@@ -5,6 +5,112 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-10 — Session 13: the App Store direction, and a feature the marketing asked for
+
+**Objective.** Take the App Store screenshot checkpoint through D-024's sequence, then produce the
+set. It became three rounds of art direction, a new product feature, and several failures that all
+had the same shape.
+
+### Result
+
+**Tier 1: 559 tests / 100 suites, green.** Tier 2 green through the screenshot capture —
+run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). The **Dark
+mode feature is built but not yet verified**; see the exact next action.
+
+### Three rounds to a direction
+
+Round one offered Desk, Card and Strip. The owner took Card's concept and rejected its execution
+as a generic startup design system. Round two rebuilt Card three ways from NEXT's own vocabulary —
+index card, ballpoint, highlighter — and all three were rejected again, for being defensible
+rather than desirable: a catalogue exhibit, minimalist stationery, a design portfolio.
+
+The instruction that unlocked it: **judge the visual result first, and stop optimising for a
+concept that can be explained afterwards.** Round three reset with no mandatory ingredients, after
+researching current App Store practice, and produced Spotlight, Chroma and In Place. **Chroma was
+selected** — saturated colour fields, the real light UI, six frames — then the tilt was removed on
+request, and then the crops, when the owner noticed the "chin" under each screen varied. It did:
+each screen was cropped to a different depth, so the app content ran out inside its own window and
+the colour showed through underneath. One geometry now, whole screen, no crop.
+
+**Higgsfield was genuinely used** for the first time here. Six environment plates for direction
+03: three good, one an odd miniature set, one containing a human silhouette after being asked for
+no people. A tool to look at rather than trust — but the three that worked had real light in them,
+which is what the first two rounds lacked.
+
+### The screenshots come from the app, and it took four attempts
+
+`ScreenshotCaptureUITests` drives the six real states; CI runs it on a Pro Max and exports the
+frames at 1320 × 2868. Three of the four attempts were the same mistake in different clothes:
+
+1. `CAPTURE_SCREENSHOTS=1` as a step `env:` — sets it on the runner, not in the test. Skipped
+   silently, **and every step stayed green**.
+2. `TEST_RUNNER_CAPTURE_SCREENSHOTS=1` — never reached `ProcessInfo` either.
+3. Scheduling moved into the workflow where it is visible: `-skip-testing` on the main step,
+   `-only-testing` on the capture step.
+
+The guard added after the first is what caught the second: the export step counts what it produced
+and fails below six. **A capture step that hands back nothing must not be green.**
+
+### Dark mode, and four failures with one shape
+
+The owner asked for it plainly: bright apps hurt some people's eyes, and changing the whole phone
+is not an answer. Built as **one switch in Settings, off by default** (D-027) — three options were
+built first and cut to two.
+
+Then the same failure happened four times, and it is the lesson of the session:
+
+- The captured dark frame came out **light**, with every CI step green.
+- The dark accessibility audit added in the same session had been **passing while proving
+  nothing** — the palette clears 4.5:1 in *both* appearances, so an audit in the wrong one reports
+  no issues and looks healthy. I told the owner it was verified before it was.
+- `XCUIDevice.shared.appearance = .dark` **does not take effect on the CI runner**, even with a
+  wait: a screen that had just asked for dark measured 0.81 brightness.
+- `preferredColorScheme` sets SwiftUI's environment but not the window's `UITraitCollection`, and
+  every colour in `NextPalette` is a `UIColor` trait provider — so SwiftUI switched, UIKit-backed
+  containers did not, and the app rendered **half in each appearance**. The audit reported
+  `inkSecondary` failing contrast on Today, which is exactly what light ink on a light desk looks
+  like. Half a switch is worse than none: it fails in states neither appearance fails alone.
+
+**Where an appearance cannot be read back, the pixels are the only witness.** Every test claiming
+a dark screen now measures its mean brightness, and that measurement caught all four.
+
+### A documentation audit, and a guarantee that was never true
+
+Five agents audited every document against the code. The oldest gap is the one worth keeping:
+**D-023 promised the app icon "cannot drift" from the palette because a script renders it from the
+hex values. No such script was ever committed.** The asset is real; the mechanism is not. D-028
+withdraws the guarantee rather than quietly writing the script, because the interesting part is
+that the claim survived several sessions of review by reading as plausible while nobody looked for
+the thing it named — the same class of defect as a test that cannot fail.
+
+Also closed: `PRODUCT_SPEC.md` had no section for Settings at all and never said NEXT has two
+appearances; its Everything section omitted Archived; `ARCHITECTURE.md` §6 described a Tier 2 that
+no longer matches CI.
+
+### Known limitations
+
+- **Dark mode is unverified.** The window-override fix is committed; the run proving it had not
+  finished when this was written.
+- The six frames are captured but **not yet composited** into the chosen Chroma layout.
+- `GoldenPathUITests` warns about main-actor isolation on XCTest's own `launch()`. Nothing that
+  ships is affected, which is why the warnings tick says "shipped targets".
+- About eighteen places still name a system text style rather than a `NextType` token.
+- VoiceOver traversal order has no evidence. Notification delivery, a real purchase, the widget's
+  content and haptics remain device-gated.
+
+### Exact next action
+
+**Confirm run [31360566854](https://github.com/emoshansari-alt/NEXT/actions/runs/31360566854).**
+That is what turns Dark mode from built into verified: `AppearanceUITests` measures the screen
+after flipping the switch and again after a relaunch, and the dark audit measures before it
+audits. If it is red, the failure is in `WindowAppearance` and nowhere else.
+
+Then **composite the six captured frames into the flat Chroma layout** and deliver the set. After
+that the largest remaining item is the NEXT+ capability boundary (D-015) — an owner decision, and
+release-blocking.
+
+---
+
 ## 2026-08-09 — Session 12: the standing visual rule, and an audit of every unticked box
 
 **Objective.** Record the owner's standing rule about which visual decisions need approval, then

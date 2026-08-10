@@ -112,6 +112,11 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Reduce Motion respected — all four animation sites branch on it, where previously one did
       and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit tests
       on the curves, including one that fails if the two curves are ever made equal, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
+- [x] The dark appearance is audited, not assumed — the full enforced set runs on Today (empty
+      and recommending), Rescue and Focus with NEXT's own Dark mode on, and the test asserts the
+      screen's mean brightness before auditing. Without that assertion the audit proves nothing:
+      the palette clears 4.5:1 in both appearances, so one that quietly ran in the wrong
+      appearance would report no issues at all
 - [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
       `NextPaletteTests` on the values. One system-rendered section header per
       `List`/`Form` screen is tracked rather than enforced (D-021)
@@ -197,10 +202,13 @@ sequence.
 ### Documentation
 
 - [x] `README.md`, `PRODUCT_SPEC.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TESTING.md`,
-      `PRIVACY.md`, `RELEASE_CHECKLIST.md`, `RELEASE_GATED.md` all current — `PRIVACY.md` was the
-      one genuinely stale document: it described an intended design and omitted two data flows
-      added since it was written
-- [x] `SESSION_LOG.md` current, with an exact next action
+      `PRIVACY.md`, `RELEASE_CHECKLIST.md`, `RELEASE_GATED.md` all current. A documentation audit
+      in session 13 found four real gaps and all four are closed: `PRODUCT_SPEC.md` had no
+      section for Settings at all and did not mention that NEXT has two appearances; its
+      Everything section omitted Archived; `ARCHITECTURE.md` §6 described a Tier 2 that no longer
+      matches CI; and D-023's promise that the icon "cannot drift" from the palette named a
+      script that was never committed (**D-028** withdraws it)
+- [x] `SESSION_LOG.md` current, with an exact next action — session 13
 - [x] Known limitations explicitly documented — per session, in `SESSION_LOG.md`, and in the
       "not yet written" section of `TESTING.md`
 - [x] Repository clean and fully committed
