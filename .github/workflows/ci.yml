@@ -210,6 +210,15 @@ jobs:
           find screenshots -type f | head -40
           ls -la screenshots || true
 
+          # A capture step that produces nothing must not report success. The first run of this
+          # did exactly that: the test skipped itself and every step stayed green.
+          COUNT=$(find screenshots -type f \( -name '*.png' -o -name '*.jpeg' -o -name '*.jpg' \) | wc -l | tr -d ' ')
+          echo "Exported $COUNT image(s)."
+          if [ "$COUNT" -lt 6 ]; then
+            echo "::error title=Screenshots::Expected 6 frames, exported $COUNT. The capture test most likely skipped — check TEST_RUNNER_CAPTURE_SCREENSHOTS."
+            exit 1
+          fi
+
       - name: Upload the App Store screenshots
         if: always() && steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
         uses: actions/upload-artifact@v4
