@@ -8,9 +8,9 @@ import Testing
 ///
 /// Every colour in `NextPalette` has always declared both appearances, so dark *rendered* long
 /// before this existed — what did not exist was a way to ask for it without changing the whole
-/// phone. These cover the part that can be got wrong off-screen; `SettingsUITests` drives the
+/// phone. These cover the part that can be got wrong off-screen; `AppearanceUITests` drives the
 /// switch and measures the actual pixels, because a preference that is stored correctly and
-/// never applied would pass everything here.
+/// never applied would pass everything here — and for four CI rounds, that is exactly what it did.
 @Suite("Appearance — the choice")
 struct AppearancePreferenceTests {
 

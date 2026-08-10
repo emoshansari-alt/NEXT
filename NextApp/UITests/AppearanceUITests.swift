@@ -1,41 +1,288 @@
 import XCTest
 
-/// Dark mode's user-facing half, which is currently unreachable on purpose.
+/// Dark mode, driven the way a user drives it, and judged on the pixels.
 ///
-/// `AppearanceAvailability.isDarkModeReachable` is false: the switch is not shown, because four
-/// CI rounds proved the choice never changes what is rendered. The full diagnosis lives on that
-/// type. What is left here is a tripwire, so the gate cannot be opened quietly.
+/// The unit tests store the choice and map it to a `ColorScheme`; both would pass against a
+/// setting that is saved perfectly and applied to nothing — and for four CI rounds, that is
+/// exactly what shipped. So every claim here is a measurement of what was drawn.
+///
+/// The switch is not reachable in a shipped build. `-ui-dark-mode-proof` opens it for a
+/// UI-testing launch only, so these tests drive the real control without the control being
+/// released; `AppearanceAvailability` holds the shipped answer and
+/// `testTheDarkModeSwitchIsHiddenInANormalBuild` holds it to that.
+///
+/// ## The order these run in is the argument they make
+///
+/// Each test rules out one explanation for the previous rounds, so a failure says which link
+/// broke rather than only that the screen was the wrong colour:
+///
+/// 1. the measurement can tell two screens apart at all — otherwise every number below is void;
+/// 2. an appearance chosen **at launch** reaches the pixels — that is the mechanism;
+/// 3. an appearance chosen **at runtime** reaches the pixels — that is the switch;
+/// 4. and back again, because a one-way switch is not a switch;
+/// 5. and it survives being killed.
+///
+/// Every measurement also prints `AppearanceProbe`'s readout of the whole chain — the preference
+/// the root saw, SwiftUI's `colorScheme`, the window's override, the current trait collection and
+/// the palette's resolved values. That is diagnosis, not evidence: the pixels are the evidence.
 @MainActor
 final class AppearanceUITests: XCTestCase {
 
-    func testTheDarkModeSwitchIsStillHidden() {
-        // Asserted through the interface rather than against `AppearanceAvailability`, because
-        // a UI test runs out of process and cannot import the app module — which is also why
-        // this is the right check: it fails when the *user* can see the switch, whatever the
-        // flag says.
-        //
-        // When it fails, somebody has made Dark mode reachable, and the test that proves it
-        // works has to come back with it. That test is in this file's git history: launch light,
-        // open Settings, flip `settings-dark-mode-toggle`, return to Today, and assert
-        // `meanBrightness` is below 0.35. Do not re-enable the switch without it — the whole
-        // reason this is gated is that everything except a pixel measurement passed.
-        let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
-        app.launch()
+    /// A screen NEXT considers dark is well under this; the light desk measures around 0.8.
+    private static let dark: CGFloat = 0.35
+    private static let light: CGFloat = 0.5
 
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+    }
+
+    // MARK: Driving the app
+
+    private func launch(_ extraArguments: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-ui-testing", "-ui-seed", "essay",
+            "-ui-dark-mode-proof", "-ui-appearance-probe"
+        ] + extraArguments
+        app.launch()
+        skipOnboarding(app)
+        XCTAssertTrue(
+            app.buttons["start-button"].waitForExistence(timeout: 15),
+            "the seeded task should be recommended"
+        )
+        return app
+    }
+
+    private func skipOnboarding(_ app: XCUIApplication) {
         let skip = app.buttons["onboarding-skip-button"]
         XCTAssertTrue(skip.waitForExistence(timeout: 15))
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"), object: skip
+        )
+        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed)
         skip.tap()
 
+        // Existing is not the same as being tappable, and a dropped Skip surfaces much later as
+        // a missing button on a screen that never appeared. One retry rather than a longer wait.
+        let gone = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"), object: skip
+        )
+        if XCTWaiter().wait(for: [gone], timeout: 10) != .completed {
+            skip.tap()
+            XCTAssertEqual(
+                XCTWaiter().wait(for: [gone], timeout: 10), .completed,
+                "onboarding should be gone after Skip"
+            )
+        }
+    }
+
+    private func openSettings(_ app: XCUIApplication) {
         app.buttons["everything-button"].tap()
         let settings = app.buttons["settings-button"]
         XCTAssertTrue(settings.waitForExistence(timeout: 8))
         settings.tap()
         XCTAssertTrue(app.buttons["settings-close-button"].waitForExistence(timeout: 8))
+    }
+
+    private func closeSettingsAndEverything(_ app: XCUIApplication) {
+        app.buttons["settings-close-button"].tap()
+        XCTAssertTrue(app.buttons["everything-close-button"].waitForExistence(timeout: 8))
+        app.buttons["everything-close-button"].tap()
+        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 8))
+    }
+
+    /// Flips the switch, and **checks that it flipped**.
+    ///
+    /// The version of this that ran for four rounds tapped and moved on. A tap that is silently
+    /// dropped and a fix that silently does nothing produce the identical failure — a light
+    /// screen — and there was nothing in the suite that could tell them apart.
+    private func setDarkMode(_ on: Bool, in app: XCUIApplication) {
+        let toggle = app.switches["settings-dark-mode-toggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 8), "Settings should offer Dark mode")
+
+        // Read first, so asking for a state it is already in is a no-op rather than a reversal.
+        if isOn(toggle) != on { toggle.tap() }
+
+        let expected = NSPredicate(format: "value == %@", on ? "1" : "0")
+        let settled = XCTNSPredicateExpectation(predicate: expected, object: toggle)
+        XCTAssertEqual(
+            XCTWaiter().wait(for: [settled], timeout: 5), .completed,
+            "the Dark mode switch should now read \(on ? "on" : "off"), not \(toggle.value ?? "nothing")"
+        )
+    }
+
+    private func isOn(_ toggle: XCUIElement) -> Bool {
+        (toggle.value as? String) == "1"
+    }
+
+    // MARK: Measuring
+
+    private func settle() {
+        _ = XCTWaiter().wait(for: [XCTestExpectation(description: "settle")], timeout: 0.9)
+    }
+
+    /// Brightness of what is on screen, with the probe's readout recorded beside it.
+    ///
+    /// Both screenshot routes are measured. `XCUIScreen.main.screenshot()` was the second suspect
+    /// `AppearanceAvailability` named — whether this runner hands back the app's window or a
+    /// cached compositor frame — and `app.screenshot()` asks a different question of a different
+    /// object. If those two ever disagree, the disagreement is the finding.
+    @discardableResult
+    private func measure(_ app: XCUIApplication, _ moment: String) -> CGFloat {
+        settle()
+        let screen = meanBrightness(of: XCUIScreen.main.screenshot().image)
+        let window = meanBrightness(of: app.screenshot().image)
+
+        let probe = app.staticTexts["appearance-probe"]
+        let readout = probe.exists ? probe.label : "probe absent"
+        let line = "APPEARANCE [\(moment)] screen=\(screen) app=\(window) \(readout)"
+        print(line)
+        XCTContext.runActivity(named: line) { _ in }
+
+        return screen
+    }
+
+    // MARK: 1 — the measurement itself
+
+    func testTheMeasurementCanTellTwoScreensApart() {
+        // Every other number in this file is void if the capture is a frozen frame, and a frozen
+        // frame is indistinguishable from "the fix did nothing" — which is the exact ambiguity
+        // four rounds of identical readings could not resolve. Two screens, one appearance, no
+        // dark mode involved: if these come back equal, the screenshot is the broken thing.
+        let app = launch()
+        let today = measure(app, "today, light")
+
+        app.buttons["start-button"].tap()
+        XCTAssertTrue(app.buttons["focus-start-button"].waitForExistence(timeout: 10))
+        let focus = measure(app, "focus, light")
+
+        XCTAssertGreaterThan(
+            abs(today - focus), 0.005,
+            "two visibly different screens measured the same — the capture is not live"
+        )
+    }
+
+    // MARK: 2 — the mechanism
+
+    func testLaunchingInDarkRendersDark() {
+        // Separated from the switch deliberately. The preference is set in `NEXTApp.init`, before
+        // any body runs, so this exercises applying an appearance without exercising observing a
+        // change to one. When this passes and the next test fails, the fault is in the change.
+        let app = launch(["-ui-appearance", "dark"])
+        XCTAssertLessThan(
+            measure(app, "today, launched dark"), Self.dark,
+            "an app told at launch to be dark must render dark"
+        )
+    }
+
+    func testLaunchingInLightRendersLight() {
+        let app = launch(["-ui-appearance", "light"])
+        XCTAssertGreaterThan(
+            measure(app, "today, launched light"), Self.light,
+            "light is the default and must render light"
+        )
+    }
+
+    // MARK: 3 and 4 — the switch, both ways
+
+    func testTurningOnDarkModeDarkensTheWholeApp() {
+        let app = launch(["-ui-appearance", "light"])
+        XCTAssertGreaterThan(
+            measure(app, "before"), Self.light,
+            "Today should start light, because light is the default"
+        )
+
+        openSettings(app)
+        setDarkMode(true, in: app)
+
+        // Back on Today, where the change has to be visible — not only inside the sheet that set
+        // it. The choice is made three levels down; it is applied at the scene root precisely so
+        // that every screen hears about it.
+        closeSettingsAndEverything(app)
+
+        XCTAssertLessThan(
+            measure(app, "after turning dark on"), Self.dark,
+            "turning on Dark mode must darken Today itself, not only the Settings sheet"
+        )
+    }
+
+    func testTurningDarkModeOffLightensTheWholeApp() {
+        // A switch that only goes one way is not a switch, and the failure is worse than not
+        // shipping one: somebody who tries dark and dislikes it would be stuck in it.
+        let app = launch(["-ui-appearance", "dark"])
+        XCTAssertLessThan(measure(app, "before"), Self.dark)
+
+        openSettings(app)
+        setDarkMode(false, in: app)
+        closeSettingsAndEverything(app)
+
+        XCTAssertGreaterThan(
+            measure(app, "after turning dark off"), Self.light,
+            "turning Dark mode off must return the whole app to light"
+        )
+    }
+
+    // MARK: 5 — across a relaunch
+
+    func testTheChosenAppearanceSurvivesARelaunch() {
+        // A setting that visibly changes the app and then forgets is worse than one never
+        // offered, which is why the choice is written through as it is made rather than on
+        // dismiss.
+        //
+        // The earlier version of this test was deleted as unprovable, and it was: every
+        // `-ui-testing` launch reset the preference, so a relaunch could only ever measure the
+        // harness. `-ui-keep-appearance` makes the harness *stop interfering* instead of
+        // supplying the answer — the second launch is told nothing at all, so the only thing that
+        // can make it dark is what the first one stored.
+        let app = launch(["-ui-appearance", "light"])
+        openSettings(app)
+        setDarkMode(true, in: app)
+        closeSettingsAndEverything(app)
+        XCTAssertLessThan(measure(app, "dark, before terminating"), Self.dark)
+        app.terminate()
+
+        let relaunched = XCUIApplication()
+        relaunched.launchArguments = [
+            "-ui-testing", "-ui-seed", "essay",
+            "-ui-dark-mode-proof", "-ui-appearance-probe", "-ui-keep-appearance"
+        ]
+        relaunched.launch()
+        skipOnboarding(relaunched)
+        XCTAssertTrue(relaunched.buttons["start-button"].waitForExistence(timeout: 15))
+
+        XCTAssertLessThan(
+            measure(relaunched, "dark, after relaunching"), Self.dark,
+            "Dark mode should still be on after a relaunch"
+        )
+
+        // Put it back. Every other test resets the preference on launch, so this is belt and
+        // braces rather than load-bearing — but a test that leaves the simulator in a state it
+        // did not find it in is one bad launch argument away from darkening someone else's run.
+        openSettings(relaunched)
+        setDarkMode(false, in: relaunched)
+        relaunched.buttons["settings-close-button"].tap()
+    }
+
+    // MARK: The gate
+
+    func testTheDarkModeSwitchIsHiddenInANormalBuild() {
+        // Asserted through the interface rather than against `AppearanceAvailability`, because a
+        // UI test runs out of process and cannot import the app module — which is also why it is
+        // the right check: it fails when the *user* can see the switch, whatever the flag says.
+        //
+        // No `-ui-dark-mode-proof` here. That argument is the only thing that opens the gate, and
+        // nothing a user can do sets a launch argument.
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launch()
+
+        skipOnboarding(app)
+        openSettings(app)
 
         XCTAssertFalse(
             app.switches["settings-dark-mode-toggle"].exists,
-            "Settings must not offer a switch that changes nothing"
+            "Dark mode is reachable in a shipped build — the tests above must be green for that"
         )
     }
 }

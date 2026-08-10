@@ -80,7 +80,17 @@ struct NEXTApp: App {
     /// point of the later ones is to find what the earlier ones left behind.
     static let resetStoreArgument = "-ui-reset-store"
 
-    private static var isUITesting: Bool {
+    /// Stops a UI-testing launch from resetting the appearance, so a relaunch can be asked what
+    /// it remembers.
+    ///
+    /// Opt-*out* rather than opt-in, deliberately. Every other test keeps the reset and therefore
+    /// keeps its known starting state; only the relaunch test declines it, and it passes no
+    /// `-ui-appearance` either — so the single thing that can make that launch dark is what the
+    /// previous one wrote. The harness stops interfering rather than becoming the witness, which
+    /// is the distinction that made the earlier relaunch test unprovable and delete-worthy.
+    static let keepAppearanceArgument = "-ui-keep-appearance"
+
+    static var isUITesting: Bool {
         ProcessInfo.processInfo.arguments.contains(uiTestingArgument)
     }
 
@@ -90,6 +100,10 @@ struct NEXTApp: App {
 
     private static var shouldOpenRecommended: Bool {
         isUITesting && ProcessInfo.processInfo.arguments.contains(openRecommendedArgument)
+    }
+
+    private static var keepsAppearance: Bool {
+        ProcessInfo.processInfo.arguments.contains(keepAppearanceArgument)
     }
 
     /// The appearance given after `-ui-appearance`, or `nil`.
@@ -188,16 +202,14 @@ struct NEXTApp: App {
         if Self.isUITesting { onboarding.reset() }
 
         appearance = AppearanceState()
-        if Self.isUITesting {
+        if Self.isUITesting, !Self.keepsAppearance {
             // The preference lives in the real `UserDefaults`, which `-ui-testing` does not
             // reset, so one test turning dark mode on would otherwise change the appearance of
             // every test that runs after it. Reset to light unless the launch says otherwise.
             //
-            // The cost is that a UI test cannot observe the preference surviving a relaunch —
-            // this reset is indistinguishable from having forgotten it. Persistence is proven at
-            // the unit level instead (`theChoiceIsPersistedAsItIsMade`), which is the honest
-            // division: the harness owns the starting state, so the harness cannot also be the
-            // witness that the state was kept.
+            // `-ui-keep-appearance` is the one exception, and it exists so relaunch persistence
+            // can be proven rather than asserted: that launch is told nothing at all, so the only
+            // thing that can make it dark is what the previous one stored.
             appearance.preference = Self.forcedAppearance ?? .light
         }
 
@@ -419,6 +431,16 @@ struct RootView: View {
         _hasOnboarded = State(initialValue: onboarding.hasCompleted)
     }
 
+    /// What the root is currently asking for, or `nil` while the switch is unreachable — in which
+    /// case NEXT follows the phone, which is what it did before this feature and is a working
+    /// behaviour rather than a broken one.
+    ///
+    /// Named rather than written inline, so the modifier and the probe cannot drift apart on
+    /// which value they were given.
+    private var chosen: AppearancePreference? {
+        AppearanceAvailability.isDarkModeReachable ? appearance.preference : nil
+    }
+
     var body: some View {
         Group {
             if hasOnboarded {
@@ -430,8 +452,10 @@ struct RootView: View {
                 }
             }
         }
-        // Only while the switch is reachable. Until then NEXT follows the phone, which is what
-        // it did before this feature and is a working behaviour rather than a broken one.
-        .appearance(AppearanceAvailability.isDarkModeReachable ? appearance.preference : nil)
+        .appearance(chosen)
+        // Test-only, and absent from every other launch — see `AppearanceProbe`.
+        .overlay(alignment: .top) {
+            if AppearanceProbe.isEnabled { AppearanceProbe(preference: chosen) }
+        }
     }
 }

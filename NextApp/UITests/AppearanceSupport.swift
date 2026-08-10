@@ -6,12 +6,16 @@ import XCTest
 // on a screen that had just asked for dark. NEXT's own Dark mode setting is both what users have
 // and what actually works, so every test drives that instead.
 
-/// The mean brightness of a captured screen, 0 (black) to 1 (white).
+/// The side of the grid a screen is averaged over before its brightness is computed.
 ///
-/// Currently unused, and kept deliberately. It is the only check that ever told the truth about
-/// this app's appearance, and it comes back the moment Dark mode is reachable again — see
-/// `AppearanceAvailability`. Deleting it would leave the next attempt with the same blind spot
-/// that produced four green-looking rounds.
+/// It used to be 1 — the whole screen drawn into a single pixel. That was cheap and it was also
+/// one of the two suspects `AppearanceAvailability` named, because Core Graphics does not promise
+/// a box filter over three million pixels at a reduction that extreme, and a measurement nobody
+/// trusts cannot settle an argument. A 32 × 32 grid is still one draw call and it is an average
+/// no one has to take on faith.
+private let brightnessGrid = 32
+
+/// The mean brightness of a captured screen, 0 (black) to 1 (white).
 ///
 /// There is no API that reports whether an appearance change actually took, and the failure is
 /// invisible to everything else: NEXT's palette clears 4.5:1 in **both** appearances, so a dark
@@ -22,26 +26,31 @@ import XCTest
 func meanBrightness(of image: UIImage) -> CGFloat {
     guard let source = image.cgImage else { return 1 }
 
-    // Averaged by drawing the whole screen into a single pixel: exact, and cheap enough to run
-    // on every captured frame. The buffer is owned here rather than borrowed from an array,
-    // because the context writes into it after any `withUnsafeMutableBytes` closure would end.
-    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-    buffer.initialize(repeating: 0, count: 4)
+    let side = brightnessGrid
+    let count = side * side
+    // The buffer is owned here rather than borrowed from an array, because the context writes
+    // into it after any `withUnsafeMutableBytes` closure would end.
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: count * 4)
+    buffer.initialize(repeating: 0, count: count * 4)
     defer { buffer.deallocate() }
 
     guard let context = CGContext(
         data: buffer,
-        width: 1, height: 1,
-        bitsPerComponent: 8, bytesPerRow: 4,
+        width: side, height: side,
+        bitsPerComponent: 8, bytesPerRow: side * 4,
         space: CGColorSpaceCreateDeviceRGB(),
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
     ) else { return 1 }
 
     context.interpolationQuality = .medium
-    context.draw(source, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+    context.draw(source, in: CGRect(x: 0, y: 0, width: side, height: side))
 
-    let r = CGFloat(buffer[0]) / 255
-    let g = CGFloat(buffer[1]) / 255
-    let b = CGFloat(buffer[2]) / 255
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    var total: CGFloat = 0
+    for cell in 0..<count {
+        let r = CGFloat(buffer[cell * 4]) / 255
+        let g = CGFloat(buffer[cell * 4 + 1]) / 255
+        let b = CGFloat(buffer[cell * 4 + 2]) / 255
+        total += 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    return total / CGFloat(count)
 }
