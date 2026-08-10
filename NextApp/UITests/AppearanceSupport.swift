@@ -54,3 +54,90 @@ func meanBrightness(of image: UIImage) -> CGFloat {
     }
     return total / CGFloat(count)
 }
+
+/// What an element is **actually drawn in**: its two commonest colours and the ratio between them.
+///
+/// `performAccessibilityAudit` reports `Contrast failed` and nothing else — no measured ratio and
+/// no colours — so a failure on a pair whose palette values clear 6.7:1 cannot be told apart from
+/// a failure caused by the wrong appearance being rendered. The audit already reports each issue's
+/// element and frame for exactly this reason; this goes one level further and reads the pixels
+/// inside that frame.
+///
+/// Quantised to five bits per channel before counting, so the anti-aliased fringe around a glyph
+/// collects into the two colours a reader sees rather than fragmenting into hundreds.
+@MainActor
+func drawnContrast(in frame: CGRect, of image: UIImage) -> String {
+    guard let source = image.cgImage else { return "no image" }
+
+    let scale = image.scale
+    let pixels = CGRect(
+        x: frame.minX * scale, y: frame.minY * scale,
+        width: frame.width * scale, height: frame.height * scale
+    ).integral
+
+    guard pixels.width >= 1, pixels.height >= 1,
+          let crop = source.cropping(to: pixels)
+    else { return "frame outside the screenshot" }
+
+    let width = crop.width
+    let height = crop.height
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: width * height * 4)
+    buffer.initialize(repeating: 0, count: width * height * 4)
+    defer { buffer.deallocate() }
+
+    guard let context = CGContext(
+        data: buffer,
+        width: width, height: height,
+        bitsPerComponent: 8, bytesPerRow: width * 4,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return "could not read the pixels" }
+
+    context.draw(crop, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+    var counts: [UInt32: Int] = [:]
+    for pixel in 0..<(width * height) {
+        let r = UInt32(buffer[pixel * 4] & 0xF8)
+        let g = UInt32(buffer[pixel * 4 + 1] & 0xF8)
+        let b = UInt32(buffer[pixel * 4 + 2] & 0xF8)
+        counts[r << 16 | g << 8 | b, default: 0] += 1
+    }
+
+    let ranked = counts.sorted { $0.value > $1.value }
+    guard let background = ranked.first else { return "no pixels" }
+    // The commonest colour is the ground; the ink is the commonest colour that is not simply a
+    // near-neighbour of it, so an anti-aliasing band does not get reported as the text colour.
+    guard let foreground = ranked.dropFirst().first(where: { distance($0.key, background.key) > 96 })
+    else { return "one colour only: \(hex(background.key))" }
+
+    let ratio = contrast(foreground.key, background.key)
+    return String(
+        format: "%@ on %@ = %.2f:1", hex(foreground.key), hex(background.key), ratio
+    )
+}
+
+private func hex(_ packed: UInt32) -> String {
+    let value = String(packed, radix: 16, uppercase: true)
+    return String(repeating: "0", count: max(0, 6 - value.count)) + value
+}
+
+private func distance(_ a: UInt32, _ b: UInt32) -> Int {
+    let channels = [16, 8, 0].map { shift in
+        abs(Int((a >> UInt32(shift)) & 0xFF) - Int((b >> UInt32(shift)) & 0xFF))
+    }
+    return channels.reduce(0, +)
+}
+
+private func luminance(_ packed: UInt32) -> CGFloat {
+    let channels = [16, 8, 0].map { shift -> CGFloat in
+        let value = CGFloat((packed >> UInt32(shift)) & 0xFF) / 255
+        return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+}
+
+private func contrast(_ a: UInt32, _ b: UInt32) -> CGFloat {
+    let first = luminance(a)
+    let second = luminance(b)
+    return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+}

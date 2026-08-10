@@ -109,26 +109,22 @@ final class AppearanceUITests: XCTestCase {
         // Read first, so asking for a state it is already in is a no-op rather than a reversal.
         guard isOn(toggle) != on else { return }
 
-        toggle.tap()
-        if settles(toggle, to: on) {
-            print("APPEARANCE [switch] tapping the element flipped it")
-            return
-        }
-
-        // A `Toggle` in a `Form` is exposed as **one** Switch spanning the whole row, so `.tap()`
-        // lands in the middle of the row — on the label — rather than on the control. This is
-        // where a finger actually goes, so it is a more faithful interaction than the first one,
-        // not a weaker one.
-        print("APPEARANCE [switch] the element tap left it reading \(toggle.value ?? "nothing")")
+        // Tapped by coordinate, on the switch itself — and this is the whole reason Dark mode
+        // looked broken for four rounds.
+        //
+        // `toggle.tap()` does **not** flip it, which is measured rather than assumed. A `Toggle`
+        // in a `Form` is exposed as one Switch element spanning the entire row, `.tap()` lands in
+        // the middle of that — on the label — and in run 31390918616 it left the switch reading
+        // its old value on every one of five attempts. Deterministic, not flaky. The old test
+        // tapped and moved on, so a tap that never landed and a fix that changed nothing produced
+        // the identical light screen, and nothing in the suite could tell them apart.
+        //
+        // This is where a finger goes, so it is the more faithful interaction, not a workaround.
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
 
         XCTAssertTrue(
             settles(toggle, to: on),
-            """
-            the Dark mode switch should now read \(on ? "on" : "off"), not \
-            \(toggle.value ?? "nothing"). Neither tap moved it — read the relaunch test's \
-            measurement to find out whether the write landed and only the redraw was lost.
-            """
+            "the Dark mode switch should now read \(on ? "on" : "off"), not \(toggle.value ?? "nothing")"
         )
     }
 

@@ -160,6 +160,10 @@ final class AccessibilityUITests: XCTestCase {
     ) {
         var issues: [String] = []
 
+        // Taken once, before the audit walks anything, so every contrast issue is read against
+        // the same frame the audit judged rather than against a screen that has since moved on.
+        let screen = XCUIScreen.main.screenshot().image
+
         do {
             try app.performAccessibilityAudit(for: types) { issue in
                 let element = issue.element
@@ -180,6 +184,17 @@ final class AccessibilityUITests: XCTestCase {
                     return true
                 }
 
+                // What it is actually drawn in. The audit says "Contrast failed" and stops
+                // there, which cannot distinguish a pair that is genuinely too close from a
+                // screen rendering half in each appearance — and this suite has already been
+                // fooled by the second of those.
+                let drawn: String
+                if issue.auditType == .contrast, let frame = element?.frame {
+                    drawn = "\n        drawn: \(drawnContrast(in: frame, of: screen))"
+                } else {
+                    drawn = ""
+                }
+
                 issues.append(
                     """
                     • \(issue.auditType)
@@ -187,7 +202,7 @@ final class AccessibilityUITests: XCTestCase {
                         label: \(element?.label ?? "—")
                         type: \(element.map { "\($0.elementType.rawValue)" } ?? "—")
                         frame: \(element.map { "\($0.frame)" } ?? "—")
-                        detail: \(issue.compactDescription)
+                        detail: \(issue.compactDescription)\(drawn)
                     """
                 )
                 return true
@@ -307,15 +322,21 @@ final class AccessibilityUITests: XCTestCase {
 
         audit(app, "Everything", for: Self.enforcedWithoutContrast)
 
-        // Waits for hittable rather than merely existing. This tap was dropped once on a loaded
-        // runner and surfaced 80 seconds later as "detail-save-button does not exist", which is
-        // the flake this suite has already been bitten by twice on other screens.
+        // This tap has been dropped twice on a loaded runner and reported 80 seconds later as a
+        // missing save button. `isHittable` is *not* the verdict, deliberately: waiting on it
+        // failed for ten seconds on a row that has been tapped successfully for six sessions, so
+        // making a predicate that is wrong the reason a test fails only moves the flake. What is
+        // asserted is the thing the test needs — that Task Detail opened — with one retry,
+        // because the failure mode is a swallowed tap and waiting longer for one that never
+        // registered just makes the report slower.
         let row = app.buttons["task-row"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 8))
-        let hittable = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "isHittable == true"), object: row
+        _ = XCTWaiter().wait(
+            for: [XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "isHittable == true"), object: row
+            )],
+            timeout: 5
         )
-        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 10), .completed)
         row.tap()
 
         let save = app.buttons["detail-save-button"]
