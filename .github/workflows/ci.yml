@@ -131,6 +131,7 @@ jobs:
             -scheme NextApp \
             -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.device }}" \
             -resultBundlePath TestResults.xcresult \
+            -skip-testing:NextAppUITests/ScreenshotCaptureUITests \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO
 
@@ -215,7 +216,7 @@ jobs:
           COUNT=$(find screenshots -type f \( -name '*.png' -o -name '*.jpeg' -o -name '*.jpg' \) | wc -l | tr -d ' ')
           echo "Exported $COUNT image(s)."
           if [ "$COUNT" -lt 6 ]; then
-            echo "::error title=Screenshots::Expected 6 frames, exported $COUNT. The capture test most likely skipped — check TEST_RUNNER_CAPTURE_SCREENSHOTS."
+            echo "::error title=Screenshots::Expected 6 frames, exported $COUNT. Check that the capture test actually ran rather than being skipped."
             exit 1
           fi
 

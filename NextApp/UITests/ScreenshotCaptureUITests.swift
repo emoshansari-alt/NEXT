@@ -6,9 +6,13 @@ import XCTest
 /// reproduction of NEXT. Every earlier mockup was CSS built from `NextPalette` and `NextType`;
 /// accurate about colour and metrics and still a drawing. These are the app.
 ///
-/// **Skipped unless `CAPTURE_SCREENSHOTS=1`.** It is in the ordinary UI target so it compiles and
-/// stays honest with every other test, but capturing takes minutes and produces no assertion
-/// anybody needs on a normal run, so CI drives it in a step of its own.
+/// **Kept out of the ordinary run by `-skip-testing`, not by a flag inside the test.** Two
+/// attempts to gate this on an environment variable both skipped silently — `env:` on the step
+/// sets it on the runner machine, and `TEST_RUNNER_CAPTURE_SCREENSHOTS` did not reach
+/// `ProcessInfo` either. Whether that is an Xcode 26 change or a misuse on my part stopped
+/// mattering after the second round: the destination is something CI states explicitly, so the
+/// scheduling decision belongs in the workflow where it is visible, not in a runtime read that
+/// can fail to nothing. The main test step skips this class; the capture step runs only it.
 ///
 /// Frames, in the order the listing tells them (D-024):
 ///
@@ -19,16 +23,17 @@ import XCTest
 /// Only the *data* is seeded — see `NEXTApp.seedArgument`. Nothing about the interface is staged.
 final class ScreenshotCaptureUITests: XCTestCase {
 
-    /// The 6.7-inch portrait frame the App Store expects.
-    private let expectedSize = CGSize(width: 1290, height: 2796)
+    /// The portrait sizes the App Store accepts for the largest iPhones: 6.9-inch, which Apple
+    /// now wants as the primary, and 6.7-inch. Which one comes out depends on which Pro Max the
+    /// runner image happens to carry, so the size is recorded rather than demanded.
+    private let acceptedSizes = [
+        CGSize(width: 1320, height: 2868),
+        CGSize(width: 1290, height: 2796)
+    ]
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
-        try XCTSkipUnless(
-            ProcessInfo.processInfo.environment["CAPTURE_SCREENSHOTS"] == "1",
-            "Set CAPTURE_SCREENSHOTS=1 to capture the App Store set."
-        )
     }
 
     override func tearDown() {
@@ -55,9 +60,10 @@ final class ScreenshotCaptureUITests: XCTestCase {
         let size = shot.image.size
         let scale = shot.image.scale
         let pixels = CGSize(width: size.width * scale, height: size.height * scale)
-        if pixels != expectedSize {
-            XCTContext.runActivity(named: "\(name): captured \(Int(pixels.width))x\(Int(pixels.height)), expected 1290x2796") { _ in }
-        }
+        let label = acceptedSizes.contains(pixels) ? "store size" : "NOT a store size"
+        XCTContext.runActivity(
+            named: "\(name): \(Int(pixels.width))x\(Int(pixels.height)) — \(label)"
+        ) { _ in }
     }
 
     private func launch(_ extraArguments: [String] = []) -> XCUIApplication {
