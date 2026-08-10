@@ -55,6 +55,15 @@ func meanBrightness(of image: UIImage) -> CGFloat {
     return total / CGFloat(count)
 }
 
+/// What an element is drawn in, and how far apart the two colours are.
+///
+/// `ratio` is `nil` when the pixels could not be read or the frame holds a single colour, so
+/// "no evidence" cannot be mistaken for "measured and fine".
+struct DrawnContrast {
+    let description: String
+    let ratio: CGFloat?
+}
+
 /// What an element is **actually drawn in**: its two commonest colours and the ratio between them.
 ///
 /// `performAccessibilityAudit` reports `Contrast failed` and nothing else — no measured ratio and
@@ -64,10 +73,14 @@ func meanBrightness(of image: UIImage) -> CGFloat {
 /// inside that frame.
 ///
 /// Quantised to five bits per channel before counting, so the anti-aliased fringe around a glyph
-/// collects into the two colours a reader sees rather than fragmenting into hundreds.
+/// collects into the two colours a reader sees rather than fragmenting into hundreds. That
+/// quantisation moves a ratio by a percent or two in either direction, which is why the caller
+/// that overrules the audit on this evidence demands a margin rather than a bare 4.5:1.
 @MainActor
-func drawnContrast(in frame: CGRect, of image: UIImage) -> String {
-    guard let source = image.cgImage else { return "no image" }
+func drawnContrast(in frame: CGRect, of image: UIImage) -> DrawnContrast {
+    func unreadable(_ why: String) -> DrawnContrast { DrawnContrast(description: why, ratio: nil) }
+
+    guard let source = image.cgImage else { return unreadable("no image") }
 
     let scale = image.scale
     let pixels = CGRect(
@@ -77,7 +90,7 @@ func drawnContrast(in frame: CGRect, of image: UIImage) -> String {
 
     guard pixels.width >= 1, pixels.height >= 1,
           let crop = source.cropping(to: pixels)
-    else { return "frame outside the screenshot" }
+    else { return unreadable("frame outside the screenshot") }
 
     let width = crop.width
     let height = crop.height
@@ -91,7 +104,7 @@ func drawnContrast(in frame: CGRect, of image: UIImage) -> String {
         bitsPerComponent: 8, bytesPerRow: width * 4,
         space: CGColorSpaceCreateDeviceRGB(),
         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return "could not read the pixels" }
+    ) else { return unreadable("could not read the pixels") }
 
     context.draw(crop, in: CGRect(x: 0, y: 0, width: width, height: height))
 
@@ -104,15 +117,19 @@ func drawnContrast(in frame: CGRect, of image: UIImage) -> String {
     }
 
     let ranked = counts.sorted { $0.value > $1.value }
-    guard let background = ranked.first else { return "no pixels" }
+    guard let background = ranked.first else { return unreadable("no pixels") }
     // The commonest colour is the ground; the ink is the commonest colour that is not simply a
     // near-neighbour of it, so an anti-aliasing band does not get reported as the text colour.
+    // Picking a blend by mistake understates the ratio, which is the safe direction to be wrong in.
     guard let foreground = ranked.dropFirst().first(where: { distance($0.key, background.key) > 96 })
-    else { return "one colour only: \(hex(background.key))" }
+    else { return unreadable("one colour only: \(hex(background.key))") }
 
     let ratio = contrast(foreground.key, background.key)
-    return String(
-        format: "%@ on %@ = %.2f:1", hex(foreground.key), hex(background.key), ratio
+    return DrawnContrast(
+        description: String(
+            format: "%@ on %@ = %.2f:1", hex(foreground.key), hex(background.key), ratio
+        ),
+        ratio: ratio
     )
 }
 

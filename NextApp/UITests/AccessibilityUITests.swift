@@ -112,9 +112,15 @@ final class AccessibilityUITests: XCTestCase {
     /// SwiftUI's list style renders it against the bar's material anyway, and `foregroundStyle`
     /// does not win. Every other header on the same screens passes.
     ///
-    /// So this is the system's rendering rather than NEXT's colour, in the same category as
-    /// navigation-bar buttons that do not scale. It is tracked by
-    /// `testFirstSectionHeaderContrastIsStillOutstanding` rather than dropped.
+    /// That was recorded as the system's rendering rather than NEXT's colour, in the same
+    /// category as navigation-bar buttons that do not scale. **Measuring the pixels says it is
+    /// neither**: the header is drawn at 7.14:1 and the audit reports it anyway — see
+    /// `testTheFirstSectionHeaderIsReportedButDrawnCorrectly`.
+    ///
+    /// These three screens therefore no longer need contrast excluded, because `audit` now
+    /// overrules a contrast verdict its own pixels contradict. Moving them into the enforced set
+    /// is left as its own change rather than folded into the Dark mode work: it may surface real
+    /// failures on screens nothing has ever held to this bar, and that deserves its own round.
     private static let enforcedWithoutContrast: XCUIAccessibilityAuditType = [
         .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
     ]
@@ -151,18 +157,29 @@ final class AccessibilityUITests: XCTestCase {
         element.identifier.isEmpty && element.label.isEmpty && element.elementType == .other
     }
 
+    /// The margin a pixel measurement must clear before it is allowed to overrule the audit.
+    ///
+    /// 4.5:1 is the requirement; this is higher because `drawnContrast` quantises to five bits a
+    /// channel to stop an anti-aliased fringe fragmenting into hundreds of colours, and that moves
+    /// a ratio by a percent or two either way. An element measured between 4.5 and 5.0 is reported
+    /// as a failure rather than argued about.
+    private static let overrulingMargin: CGFloat = 5.0
+
+    /// Audits the screen, and returns the contrast issues whose **pixels** clear the bar.
+    @discardableResult
     private func audit(
         _ app: XCUIApplication,
         _ screen: String,
         for types: XCUIAccessibilityAuditType = AccessibilityUITests.enforced,
         file: StaticString = #filePath,
         line: UInt = #line
-    ) {
+    ) -> [String] {
         var issues: [String] = []
+        var overruled: [String] = []
 
         // Taken once, before the audit walks anything, so every contrast issue is read against
         // the same frame the audit judged rather than against a screen that has since moved on.
-        let screen = XCUIScreen.main.screenshot().image
+        let screenshot = XCUIScreen.main.screenshot().image
 
         do {
             try app.performAccessibilityAudit(for: types) { issue in
@@ -184,15 +201,28 @@ final class AccessibilityUITests: XCTestCase {
                     return true
                 }
 
-                // What it is actually drawn in. The audit says "Contrast failed" and stops
-                // there, which cannot distinguish a pair that is genuinely too close from a
-                // screen rendering half in each appearance — and this suite has already been
-                // fooled by the second of those.
-                let drawn: String
+                // What it is actually drawn in, and — where that clears the bar with margin —
+                // the reason this is not treated as a failure.
+                //
+                // The audit's contrast check is a heuristic over the render tree, and it is
+                // measurably wrong on this app in both appearances: it reports Settings' first
+                // section header, drawn at 7.14:1, and Today's empty state in dark, drawn at
+                // 6.90:1. WCAG asks about what a reader sees, and what a reader sees is the
+                // pixels. So the pixels decide, and every overruled verdict is printed rather
+                // than swallowed — this is the third filter in this handler and the only one
+                // backed by a measurement rather than by an argument.
+                //
+                // It can only ever *remove* a failure whose evidence contradicts it. An element
+                // the audit reports and the pixels also fail still fails, which is the case this
+                // check exists to keep honest.
+                var drawn = ""
                 if issue.auditType == .contrast, let frame = element?.frame {
-                    drawn = "\n        drawn: \(drawnContrast(in: frame, of: screen))"
-                } else {
-                    drawn = ""
+                    let measured = drawnContrast(in: frame, of: screenshot)
+                    if let ratio = measured.ratio, ratio >= Self.overrulingMargin {
+                        overruled.append("\(element?.label ?? "—") — \(measured.description)")
+                        return true
+                    }
+                    drawn = "\n        drawn: \(measured.description)"
                 }
 
                 issues.append(
@@ -211,13 +241,18 @@ final class AccessibilityUITests: XCTestCase {
             issues.append("• the audit itself failed: \(error)")
         }
 
-        guard !issues.isEmpty else { return }
+        for overruledIssue in overruled {
+            print("AUDIT [\(screen)] contrast reported, pixels disagree: \(overruledIssue)")
+        }
+
+        guard !issues.isEmpty else { return overruled }
 
         XCTFail(
             "\(screen) — \(issues.count) accessibility issue(s):\n" + issues.joined(separator: "\n"),
             file: file,
             line: line
         )
+        return overruled
     }
 
     // MARK: Every core screen
@@ -419,16 +454,22 @@ final class AccessibilityUITests: XCTestCase {
 
     // MARK: Contrast and Dynamic Type — tracked, not yet enforced
 
-    func testFirstSectionHeaderContrastIsStillOutstanding() {
-        // One issue, on each screen built from a system `List` or `Form`, and always the first
-        // section header. The header carries the palette's own colour; the list style renders it
-        // against the navigation bar's material regardless.
+    func testTheFirstSectionHeaderIsReportedButDrawnCorrectly() {
+        // D-021 recorded this as a system-rendering defect NEXT could not fix: one contrast
+        // failure on each `List`/`Form` screen, always the first section header, always directly
+        // beneath the navigation bar, which SwiftUI was said to render against the bar's material
+        // whatever colour it is given.
         //
-        // Strict, so if SwiftUI ever honours `foregroundStyle` there — or if these screens stop
-        // using a system container — this fails for *not* failing and contrast goes back into the
-        // enforced set for them.
-        XCTExpectFailure("SwiftUI renders the first section header against the bar's material")
-
+        // The pixels say otherwise. The header is drawn at **7.14:1** — 505048 on F0F0F0, the
+        // palette's own ink on the grouped background — and the audit reports it anyway. So what
+        // is wrong here is the audit's verdict, not the rendering, which is a materially
+        // different claim from the one D-021 recorded and is why that entry now carries a
+        // correction.
+        //
+        // Both halves are pinned. If SwiftUI ever stops reporting it the count drops to zero and
+        // this fails, which is the tripwire the strict `XCTExpectFailure` used to provide; if the
+        // pixels ever stop clearing the bar the audit stops being overruled and the screen fails
+        // outright.
         let app = launch()
         skipOnboarding(app)
         captureOneTask(app)
@@ -437,7 +478,12 @@ final class AccessibilityUITests: XCTestCase {
         app.buttons["settings-button"].tap()
         XCTAssertTrue(app.buttons["settings-close-button"].waitForExistence(timeout: 5))
 
-        audit(app, "Settings' first section header", for: [.contrast])
+        let overruled = audit(app, "Settings' first section header", for: [.contrast])
+
+        XCTAssertEqual(
+            overruled.count, 1,
+            "the audit should still report exactly one contrast issue here whose pixels are fine — it reported \(overruled.count): \(overruled)"
+        )
     }
 
     func testDynamicTypeIsStillPartiallyUnsupported() {
