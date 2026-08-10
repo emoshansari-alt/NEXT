@@ -1,36 +1,37 @@
 import SwiftUI
 import UIKit
 
-/// Applies the chosen appearance to the **window**, not just to SwiftUI's environment.
+/// Applies the chosen appearance to every window, not just to SwiftUI's environment.
 ///
-/// `preferredColorScheme` alone is not enough here, and the accessibility audit is what proved
-/// it. Every colour in `NextPalette` is a `UIColor` with a trait-based provider — chosen
-/// deliberately, so one definition serves the app, the widget and `resolvedColor(with:)` in a
-/// test. `preferredColorScheme` sets SwiftUI's `colorScheme` but does not change the window's
-/// `UITraitCollection`, so UIKit-backed containers keep resolving the old style. The result is
-/// not "dark mode does not work"; it is worse — **half the screen switches**. The audit reported
-/// `inkSecondary` text failing contrast on Today, which is exactly what light-grey ink on a light
-/// desk looks like, and the screen measured 0.81 brightness while claiming to be dark.
+/// ## Why the window and not only `preferredColorScheme`
 ///
-/// Overriding the window makes UIKit and SwiftUI agree on one answer, which is the only state
-/// where a palette built from trait providers is coherent.
-struct WindowAppearance: UIViewRepresentable {
+/// Every colour in `NextPalette` is a `UIColor` with a trait-based provider — chosen deliberately,
+/// so one definition serves the app, the widget and `resolvedColor(with:)` in a test.
+/// `preferredColorScheme` sets SwiftUI's `colorScheme` but does not change a window's
+/// `UITraitCollection`, so UIKit-backed containers keep resolving the old style. The failure is
+/// not "dark mode does nothing"; it is worse — **half the screen switches**, and the accessibility
+/// audit reported `inkSecondary` failing contrast on Today, which is what light ink on a light
+/// desk looks like.
+///
+/// ## Why this asks the scene rather than a view
+///
+/// The first attempt was a `UIViewRepresentable` that set `view.window?.overrideUserInterfaceStyle`.
+/// It never fired: the view was zero-sized and hidden, so it was never attached to a window and
+/// `view.window` was always `nil`. Two CI rounds measured the identical brightness — 0.8067, to
+/// the digit — which is what "the code never ran" looks like when a test only checks the outcome.
+///
+/// Asking `UIApplication` for its connected scenes needs no view in the hierarchy, no layout pass
+/// and no attachment. It is the one lookup that cannot silently do nothing.
+enum WindowAppearance {
 
-    let style: UIUserInterfaceStyle
+    static func apply(_ preference: AppearancePreference) {
+        let style: UIUserInterfaceStyle = preference == .dark ? .dark : .light
 
-    func makeUIView(context: Context) -> UIView {
-        // A zero-size, non-interactive view whose only job is to find the window it is in.
-        let view = UIView(frame: .zero)
-        view.isUserInteractionEnabled = false
-        view.isHidden = true
-        return view
-    }
-
-    func updateUIView(_ view: UIView, context: Context) {
-        // Deferred, because on the first pass the view is not in a window yet. Re-applied on
-        // every update so a change while the app is running lands too.
-        DispatchQueue.main.async {
-            view.window?.overrideUserInterfaceStyle = style
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                window.overrideUserInterfaceStyle = style
+            }
         }
     }
 }
@@ -38,12 +39,12 @@ struct WindowAppearance: UIViewRepresentable {
 extension View {
 
     /// Pins the whole app to one appearance, in both SwiftUI's and UIKit's terms.
+    ///
+    /// Applied on appear *and* on every change: on appear because the first launch has to be
+    /// right before anything is drawn, and on change because the switch is three levels down in
+    /// a sheet and the window will not hear about it otherwise.
     func appearance(_ preference: AppearancePreference) -> some View {
         preferredColorScheme(preference.colorScheme)
-            .background(
-                WindowAppearance(style: preference == .dark ? .dark : .light)
-                    .frame(width: 0, height: 0)
-                    .accessibilityHidden(true)
-            )
+            .task(id: preference) { WindowAppearance.apply(preference) }
     }
 }
