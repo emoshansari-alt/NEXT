@@ -64,20 +64,20 @@ final class AppearanceUITests: XCTestCase {
             predicate: NSPredicate(format: "isHittable == true"), object: skip
         )
         XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed)
-        skip.tap()
 
         // Existing is not the same as being tappable, and a dropped Skip surfaces much later as
-        // a missing button on a screen that never appeared. One retry rather than a longer wait.
-        let gone = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "exists == false"), object: skip
-        )
-        if XCTWaiter().wait(for: [gone], timeout: 10) != .completed {
+        // a missing button on a screen that never appeared. Up to three taps, with a fresh
+        // expectation each time, for the reason spelled out in `AccessibilityUITests`.
+        for attempt in 1...3 {
             skip.tap()
-            XCTAssertEqual(
-                XCTWaiter().wait(for: [gone], timeout: 10), .completed,
-                "onboarding should be gone after Skip"
+            let gone = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"), object: skip
             )
+            if XCTWaiter().wait(for: [gone], timeout: 8) == .completed { return }
+            print("ONBOARDING skip tap \(attempt) did not register")
         }
+
+        XCTFail("onboarding is still on screen after three taps on Skip")
     }
 
     private func openSettings(_ app: XCUIApplication) {

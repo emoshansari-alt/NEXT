@@ -52,18 +52,24 @@ final class AccessibilityUITests: XCTestCase {
         XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 15), .completed)
         skip.tap()
 
-        let gone = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "exists == false"), object: skip
-        )
-        if XCTWaiter().wait(for: [gone], timeout: 10) != .completed {
-            // One retry rather than a longer timeout: the failure mode is a dropped tap, and
-            // waiting longer for a tap that never registered only makes the report slower.
+        // Up to three taps, with a fresh expectation each time — an `XCTestExpectation` is
+        // single-use and reusing one is its own bug.
+        //
+        // The failure mode is a tap that XCUITest synthesises and the app never receives on a
+        // loaded runner, and this suite has now seen it at three different points: Skip here,
+        // an Everything row, and Task Detail's save button. Waiting longer for a tap that never
+        // registered only makes the report slower, so the answer is to tap again. The assertion
+        // is unchanged and is the one that matters: onboarding has to actually leave.
+        for attempt in 1...3 {
             skip.tap()
-            XCTAssertEqual(
-                XCTWaiter().wait(for: [gone], timeout: 10), .completed,
-                "onboarding should be gone after Skip"
+            let gone = XCTNSPredicateExpectation(
+                predicate: NSPredicate(format: "exists == false"), object: skip
             )
+            if XCTWaiter().wait(for: [gone], timeout: 8) == .completed { return }
+            print("ONBOARDING skip tap \(attempt) did not register")
         }
+
+        XCTFail("onboarding is still on screen after three taps on Skip")
     }
 
     private func captureOneTask(_ app: XCUIApplication, text: String = "Finish the history essay") {
