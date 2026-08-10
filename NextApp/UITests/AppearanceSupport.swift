@@ -121,19 +121,32 @@ private func hex(_ packed: UInt32) -> String {
     return String(repeating: "0", count: max(0, 6 - value.count)) + value
 }
 
+/// Written out rather than mapped over a literal array of shifts: the closure version made the
+/// type checker give up outright — "unable to type-check this expression in reasonable time" —
+/// on the mix of `UInt32` shifting, `Int` subtraction and `abs`.
+private func channels(_ packed: UInt32) -> (r: Int, g: Int, b: Int) {
+    let r = Int((packed >> 16) & 0xFF)
+    let g = Int((packed >> 8) & 0xFF)
+    let b = Int(packed & 0xFF)
+    return (r, g, b)
+}
+
 private func distance(_ a: UInt32, _ b: UInt32) -> Int {
-    let channels = [16, 8, 0].map { shift in
-        abs(Int((a >> UInt32(shift)) & 0xFF) - Int((b >> UInt32(shift)) & 0xFF))
-    }
-    return channels.reduce(0, +)
+    let first = channels(a)
+    let second = channels(b)
+    return abs(first.r - second.r) + abs(first.g - second.g) + abs(first.b - second.b)
 }
 
 private func luminance(_ packed: UInt32) -> CGFloat {
-    let channels = [16, 8, 0].map { shift -> CGFloat in
-        let value = CGFloat((packed >> UInt32(shift)) & 0xFF) / 255
-        return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+    let raw = channels(packed)
+
+    func component(_ value: Int) -> CGFloat {
+        let scaled = CGFloat(value) / 255
+        if scaled <= 0.03928 { return scaled / 12.92 }
+        return pow((scaled + 0.055) / 1.055, 2.4)
     }
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+
+    return 0.2126 * component(raw.r) + 0.7152 * component(raw.g) + 0.0722 * component(raw.b)
 }
 
 private func contrast(_ a: UInt32, _ b: UInt32) -> CGFloat {
