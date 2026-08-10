@@ -307,8 +307,22 @@ final class AccessibilityUITests: XCTestCase {
 
         audit(app, "Everything", for: Self.enforcedWithoutContrast)
 
-        app.buttons["task-row"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["detail-save-button"].waitForExistence(timeout: 8))
+        // Waits for hittable rather than merely existing. This tap was dropped once on a loaded
+        // runner and surfaced 80 seconds later as "detail-save-button does not exist", which is
+        // the flake this suite has already been bitten by twice on other screens.
+        let row = app.buttons["task-row"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8))
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"), object: row
+        )
+        XCTAssertEqual(XCTWaiter().wait(for: [hittable], timeout: 10), .completed)
+        row.tap()
+
+        let save = app.buttons["detail-save-button"]
+        if !save.waitForExistence(timeout: 8) {
+            row.tap()
+            XCTAssertTrue(save.waitForExistence(timeout: 8), "the task should open")
+        }
 
         audit(app, "Task Detail", for: Self.enforcedWithoutContrast)
     }

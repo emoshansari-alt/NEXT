@@ -34,7 +34,12 @@ final class AppearanceUITests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        continueAfterFailure = false
+        // Deliberately *not* false, which is what the rest of the suite uses. Every assertion
+        // here is a measurement, and stopping at the first one throws away the readings that say
+        // why it failed — which is how four rounds produced one number and no diagnosis. A
+        // failed switch should still be carried through to a relaunch, because what the relaunch
+        // renders is what says whether the write landed and only the render was lost.
+        continueAfterFailure = true
     }
 
     // MARK: Driving the app
@@ -102,14 +107,36 @@ final class AppearanceUITests: XCTestCase {
         XCTAssertTrue(toggle.waitForExistence(timeout: 8), "Settings should offer Dark mode")
 
         // Read first, so asking for a state it is already in is a no-op rather than a reversal.
-        if isOn(toggle) != on { toggle.tap() }
+        guard isOn(toggle) != on else { return }
 
-        let expected = NSPredicate(format: "value == %@", on ? "1" : "0")
-        let settled = XCTNSPredicateExpectation(predicate: expected, object: toggle)
-        XCTAssertEqual(
-            XCTWaiter().wait(for: [settled], timeout: 5), .completed,
-            "the Dark mode switch should now read \(on ? "on" : "off"), not \(toggle.value ?? "nothing")"
+        toggle.tap()
+        if settles(toggle, to: on) {
+            print("APPEARANCE [switch] tapping the element flipped it")
+            return
+        }
+
+        // A `Toggle` in a `Form` is exposed as **one** Switch spanning the whole row, so `.tap()`
+        // lands in the middle of the row — on the label — rather than on the control. This is
+        // where a finger actually goes, so it is a more faithful interaction than the first one,
+        // not a weaker one.
+        print("APPEARANCE [switch] the element tap left it reading \(toggle.value ?? "nothing")")
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+
+        XCTAssertTrue(
+            settles(toggle, to: on),
+            """
+            the Dark mode switch should now read \(on ? "on" : "off"), not \
+            \(toggle.value ?? "nothing"). Neither tap moved it — read the relaunch test's \
+            measurement to find out whether the write landed and only the redraw was lost.
+            """
         )
+    }
+
+    private func settles(_ toggle: XCUIElement, to on: Bool) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", on ? "1" : "0"), object: toggle
+        )
+        return XCTWaiter().wait(for: [expectation], timeout: 3) == .completed
     }
 
     private func isOn(_ toggle: XCUIElement) -> Bool {

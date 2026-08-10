@@ -53,7 +53,13 @@ struct AppearanceProbe: View {
             "window=\(Self.name(keyWindowStyle))",
             "trait=\(Self.name(UITraitCollection.current.userInterfaceStyle))",
             "desk=\(hex(NextPalette.desk))",
-            "ink=\(hex(NextPalette.ink))"
+            "card=\(hex(NextPalette.card))",
+            "ink=\(hex(NextPalette.ink))",
+            // The dark audit fails on exactly two elements and both are `inkSecondary` on the
+            // card, where the values clear 6.5:1. Either it resolves to the light value while
+            // the card resolves to the dark one — the half-switched signature — or the audit is
+            // measuring something the palette does not describe. These two together say which.
+            "inkSecondary=\(hex(NextPalette.inkSecondary))"
         ].joined(separator: " ")
     }
 
