@@ -161,6 +161,65 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
 
+      # The App Store set, captured from the app rather than reproduced (D-024). Run on a Pro Max
+      # because that is the only simulator whose screen is the 1290 × 2796 the listing wants; if
+      # the runner image has none, the step says so loudly and skips rather than quietly handing
+      # back frames of the wrong size.
+      - name: Pick a Pro Max simulator
+        if: steps.probe.outputs.exists == 'true'
+        id: bigsim
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          found = [d["name"]
+                   for runtime, entries in devices.items() if "iOS" in runtime
+                   for d in entries if d.get("isAvailable") and "Pro Max" in d["name"]]
+          print(sorted(found)[-1] if found else "")
+          ')
+          if [ -z "$DEVICE" ]; then
+            echo "::warning title=Screenshots::No Pro Max simulator on this runner, so the App Store set was not captured."
+          else
+            echo "Capturing on: $DEVICE"
+          fi
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Capture the App Store screenshots
+        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        env:
+          CAPTURE_SCREENSHOTS: "1"
+        run: |
+          xcodebuild test \
+            -project NextApp.xcodeproj \
+            -scheme NextApp \
+            -destination "platform=iOS Simulator,name=${{ steps.bigsim.outputs.device }}" \
+            -only-testing:NextAppUITests/ScreenshotCaptureUITests \
+            -resultBundlePath Screenshots.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CAPTURE_SCREENSHOTS=1
+
+      - name: Export the screenshots as files
+        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        run: |
+          mkdir -p screenshots
+          xcrun xcresulttool export attachments \
+            --path Screenshots.xcresult \
+            --output-path screenshots || \
+            echo "::warning title=Screenshots::xcresulttool could not export attachments; the raw bundle is still uploaded."
+          find screenshots -type f | head -40
+          ls -la screenshots || true
+
+      - name: Upload the App Store screenshots
+        if: always() && steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-store-screenshots
+          path: |
+            screenshots
+            Screenshots.xcresult
+          if-no-files-found: warn
+
       - name: Upload test results
         if: always() && steps.probe.outputs.exists == 'true'
         uses: actions/upload-artifact@v4

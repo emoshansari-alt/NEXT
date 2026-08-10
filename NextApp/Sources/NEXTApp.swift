@@ -28,6 +28,21 @@ struct NEXTApp: App {
     /// flaky test of a real flow is worse than an honest fixture for it.
     static let seedUnreachableArgument = "-ui-seed-unreachable"
 
+    /// Followed by a name, seeds one realistic task so a captured screenshot shows a populated
+    /// screen rather than a first run.
+    ///
+    /// Only the *data* is a fixture. Every pixel above it is the shipping interface rendering that
+    /// data the way it would render anything else, which is the line `DECISIONS.md` D-024 draws:
+    /// marketing may not fabricate functionality, and a task a student could plausibly have typed
+    /// is not fabricated functionality. Typing the same task through Capture would leave it with
+    /// no deadline and no estimate, so the meta line would be empty — a less honest picture of the
+    /// app, not a more honest one.
+    ///
+    /// `essay` is due in two days and drives the recommendation, Focus and Why-this screens.
+    /// `overdue` is two days late, which is the one state no competitor screenshots and the whole
+    /// point of the last frame.
+    static let seedArgument = "-ui-seed"
+
     /// Opens whatever Today is recommending as though a notification or the widget had been
     /// tapped, so the deep-link sheet can be reached from a UI test.
     ///
@@ -67,6 +82,19 @@ struct NEXTApp: App {
 
     private static var shouldOpenRecommended: Bool {
         isUITesting && ProcessInfo.processInfo.arguments.contains(openRecommendedArgument)
+    }
+
+    /// The name given after `-ui-seed`, or `nil`.
+    private static var seedName: String? {
+        guard isUITesting else { return nil }
+
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: seedArgument),
+              case let next = arguments.index(after: flag),
+              next < arguments.endIndex
+        else { return nil }
+
+        return arguments[next]
     }
 
     /// Where a named UI-testing store lives, or `nil` for the ordinary in-memory one.
@@ -129,6 +157,7 @@ struct NEXTApp: App {
         // repository is an actor and the first screen reads as soon as it appears — an awaited
         // seed would race the read it exists to satisfy.
         if Self.shouldSeedUnreachable { Self.seedUnreachableTask(into: container) }
+        if let seed = Self.seedName { Self.seed(seed, into: container) }
 
         onboarding = OnboardingState()
         if Self.isUITesting { onboarding.reset() }
@@ -213,6 +242,46 @@ struct NEXTApp: App {
                 )
             )
         )
+        try? context.save()
+    }
+
+    /// One named task, written straight into the container for the same reason the unreachable
+    /// seed is: the first screen reads as soon as it appears, and an awaited write would race it.
+    private static func seed(_ name: String, into container: ModelContainer) {
+        let now = Date()
+        let task: TaskItem?
+
+        switch name {
+        case "essay":
+            task = TaskItem(
+                id: TaskID("ui-seed-essay"),
+                title: "History essay",
+                createdAt: now,
+                deadline: now.addingTimeInterval(2 * 24 * 3600),
+                estimatedMinutes: 20,
+                nextAction: "Find three sources."
+            )
+
+        case "overdue":
+            task = TaskItem(
+                id: TaskID("ui-seed-overdue"),
+                title: "Chemistry worksheet",
+                createdAt: now.addingTimeInterval(-6 * 24 * 3600),
+                deadline: now.addingTimeInterval(-2 * 24 * 3600),
+                estimatedMinutes: 25,
+                nextAction: "Do questions 1 to 5."
+            )
+
+        default:
+            // An unrecognised name seeds nothing rather than guessing. A screenshot of the wrong
+            // state is worse than a screenshot of an empty one, because it is not obviously wrong.
+            task = nil
+        }
+
+        guard let task else { return }
+
+        let context = ModelContext(container)
+        context.insert(StoredTask(task: task))
         try? context.save()
     }
 
