@@ -86,30 +86,12 @@ final class AppearanceUITests: XCTestCase {
         )
     }
 
-    func testDarkModeSurvivesARelaunch() {
-        // A setting that visibly changes the app and then forgets is worse than one never
-        // offered, which is why the choice is written through as it is made rather than on
-        // dismiss.
-        let app = launch(startingIn: "light")
-        XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
-        openSettings(app)
-        setDarkMode(true, in: app)
-        closeSettingsAndEverything(app)
-        app.terminate()
-
-        // Relaunched with no appearance argument at all, so the only thing that can make this
-        // dark is what was persisted.
-        let relaunched = launch()
-        XCTAssertTrue(relaunched.buttons["start-button"].waitForExistence(timeout: 12))
-
-        XCTAssertLessThan(
-            brightnessOfTheScreen(), 0.35,
-            "dark mode should still be on after a relaunch"
-        )
-
-        // Put it back, so this cannot darken whatever runs next.
-        openSettings(relaunched)
-        setDarkMode(false, in: relaunched)
-        relaunched.buttons["settings-close-button"].tap()
-    }
+    // There is deliberately no "survives a relaunch" UI test.
+    //
+    // Under `-ui-testing` the app resets the preference to light on launch unless the launch
+    // states otherwise, so that one test turning dark mode on cannot change the appearance of
+    // every test after it. That reset is indistinguishable from having forgotten the setting, so
+    // a UI test here could only ever measure the harness. Persistence is proven at the unit level
+    // by `theChoiceIsPersistedAsItIsMade`, which writes through one store and reads back through
+    // another — which is what a relaunch actually does.
 }

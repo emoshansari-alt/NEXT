@@ -190,8 +190,14 @@ struct NEXTApp: App {
         appearance = AppearanceState()
         if Self.isUITesting {
             // The preference lives in the real `UserDefaults`, which `-ui-testing` does not
-            // reset — so without this, one test turning dark mode on silently changes the
-            // appearance of every test that runs after it. Light unless a test says otherwise.
+            // reset, so one test turning dark mode on would otherwise change the appearance of
+            // every test that runs after it. Reset to light unless the launch says otherwise.
+            //
+            // The cost is that a UI test cannot observe the preference surviving a relaunch —
+            // this reset is indistinguishable from having forgotten it. Persistence is proven at
+            // the unit level instead (`theChoiceIsPersistedAsItIsMade`), which is the honest
+            // division: the harness owns the starting state, so the harness cannot also be the
+            // witness that the state was kept.
             appearance.preference = Self.forcedAppearance ?? .light
         }
 
@@ -201,10 +207,12 @@ struct NEXTApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(onboarding: onboarding) { today }
-                // Applied to the window as well as to SwiftUI's environment — see
-                // `WindowAppearance` for why half a switch is worse than none.
-                .appearance(appearance.preference)
+            // The appearance is applied inside `RootView`, not here. `@Observable` tracking is
+            // not reliable in an `App` body: reading `appearance.preference` at this level meant
+            // flipping the switch never re-rendered the root, and three different ways of
+            // applying it all measured the same brightness to sixteen digits — which is what
+            // "never re-rendered" looks like from the outside.
+            RootView(onboarding: onboarding, appearance: appearance) { today }
                 // One accent, set once. Every system control — pickers, switches, the navigation
                 // bar's own buttons — inherits it, so ballpoint blue is the only accent in the app
                 // without each screen having to say so.
@@ -393,24 +401,37 @@ struct RootView: View {
 
     let onboarding: OnboardingState
 
+    /// Read here rather than in `NEXTApp.body`, so the observation actually tracks.
+    let appearance: AppearanceState
+
     @ViewBuilder let today: () -> TodayView
 
     @State private var hasOnboarded: Bool
 
-    init(onboarding: OnboardingState, @ViewBuilder today: @escaping () -> TodayView) {
+    init(
+        onboarding: OnboardingState,
+        appearance: AppearanceState,
+        @ViewBuilder today: @escaping () -> TodayView
+    ) {
         self.onboarding = onboarding
+        self.appearance = appearance
         self.today = today
         _hasOnboarded = State(initialValue: onboarding.hasCompleted)
     }
 
     var body: some View {
-        if hasOnboarded {
-            today()
-        } else {
-            OnboardingView {
-                onboarding.markCompleted()
-                hasOnboarded = true
+        Group {
+            if hasOnboarded {
+                today()
+            } else {
+                OnboardingView {
+                    onboarding.markCompleted()
+                    hasOnboarded = true
+                }
             }
         }
+        // Applied to the window as well as to SwiftUI's environment — see `WindowAppearance`
+        // for why half a switch is worse than none.
+        .appearance(appearance.preference)
     }
 }
