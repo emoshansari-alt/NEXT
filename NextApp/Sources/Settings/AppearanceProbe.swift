@@ -29,7 +29,7 @@ struct AppearanceProbe: View {
     /// Passed in rather than read here, so this reports what **`RootView`'s own body** saw. A
     /// probe that read the observable itself could re-render while the root did not, and would
     /// then report a change that never reached the screen.
-    let preference: AppearancePreference?
+    let preference: AppearancePreference
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.self) private var environment
@@ -48,7 +48,7 @@ struct AppearanceProbe: View {
 
     private var report: String {
         [
-            "pref=\(preference?.rawValue ?? "none")",
+            "pref=\(preference.rawValue)",
             "scheme=\(colorScheme == .dark ? "dark" : "light")",
             "window=\(Self.name(keyWindowStyle))",
             "trait=\(Self.name(UITraitCollection.current.userInterfaceStyle))",

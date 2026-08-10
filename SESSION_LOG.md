@@ -5,6 +5,104 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-10 — Session 14: Dark mode worked the whole time
+
+**Objective.** Find the actual root cause of Dark mode rather than attempt a fifth implementation,
+then ship it only if its behaviour could be proven.
+
+### Result
+
+**Tier 1: 559 tests / 100 suites. Tier 2: 128 unit / 29 suites + 47 UI tests.**
+
+**Dark mode ships.** `AppearanceAvailability` is deleted, the switch is in Settings, and every
+claim below is a measurement of what was drawn: light 0.808, dark on 0.119, dark off 0.808, and
+0.119 again after a relaunch that was told nothing at all.
+
+### The app was never broken
+
+`toggle.tap()` does not flip a SwiftUI `Toggle` inside a `Form`. The control is exposed to
+XCUITest as one Switch element spanning the whole row, the tap lands in the middle of it — on the
+label — and the switch does not move. It failed that way on **every one of five attempts** in one
+run. Deterministic, not flaky. Tapping the switch itself flips it and the whole app changes.
+
+So a working feature was hidden from users for a session, on evidence that was real and read the
+wrong way round. Three of the four implementations D-027 lists were probably fine.
+
+**Four rounds could not see it because the test tapped and moved on.** A tap that never landed and
+an implementation that changes nothing produce the identical light screen. Each round therefore
+replaced a working mechanism with another working mechanism, measured a screen nobody had asked to
+change, and read the unchanged number as confirmation the new mechanism had failed too. The number
+was identical to sixteen digits every time because *nothing was ever asked to happen* — and that
+stability read as a strong signal.
+
+**A test that drives a control must assert the control moved** (D-029). Not the outcome — the
+control. Without it those two failures are indistinguishable. It is the same defect class as the
+four tests this project has already found incapable of failing, in a new place: not a test that
+cannot fail, but one that cannot fail for the right reason.
+
+### What separated it, in one round instead of a fifth attempt
+
+Not another implementation. Three things that could each be wrong alone, measured apart:
+
+- **a control test** — two different screens in one appearance must measure differently (0.808 vs
+  0.924). Otherwise a frozen screenshot is indistinguishable from a fix that does nothing, which
+  is precisely the ambiguity four identical readings could not resolve.
+- **the launch path measured apart from the runtime path.** `-ui-appearance dark` came back at
+  0.119 with the whole chain dark, so the mechanism was sound while the switch was not. Reading
+  the old CI logs said this before any code was written: the dark audit's own brightness
+  precondition had been *passing* in the last failed round, which nobody had noticed.
+- **`AppearanceProbe`**, reporting the preference the root's own body saw, SwiftUI's `colorScheme`,
+  the window's override, the trait collection and what `NextPalette` resolves to. Diagnosis, not
+  evidence — every value in it is something the app says about itself, which is the failure mode
+  that produced a green dark audit running in light.
+
+One hypothesis was killed locally for nothing: `AppearanceState.preference` is the only `didSet` in
+the shipped codebase and it is the one property whose invalidation never worked, which is a good
+suspect. Forty lines against `withObservationTracking` — the same machinery SwiftUI installs around
+a `body` — showed `didSet` does not break `@Observable`. Two minutes instead of a half-hour round.
+
+### The audit's contrast verdict is wrong, in both appearances
+
+The dark audit reported two elements on Today. Their palette values clear 6.7:1, so the obvious
+next move was to tune the palette. Reading the pixels inside the reported frames instead said
+`B0A8A0` on `202028` — **6.90:1**, `inkSecondary` on `card`, at the palette's own dark values.
+Nothing to fix.
+
+The same measurement then contradicted something older. **D-021 has carried an exception for three
+sessions**: one contrast failure per `List`/`Form` screen, always the first section header,
+attributed to SwiftUI rendering it against the navigation bar's material. It is drawn at
+**7.14:1** on the grouped background. The rendering was fine and nothing had ever measured it.
+
+So a contrast verdict is now checked against the pixels it is a claim about, and is not a failure
+when those clear the bar with margin. It is the third filter in that handler and the only one
+backed by a measurement rather than an argument; it can only ever remove a verdict its own
+evidence contradicts, and every overruled one is printed with its ratio. The strict
+`XCTExpectFailure` this retired failed for *not* failing, which is exactly what it was built to do.
+
+### Known limitations
+
+- **Everything, Task Detail and Settings still exclude contrast from their enforced set.** The
+  artifact that kept them out is now handled, so they could move across — but that may surface
+  real failures on screens nothing has held to this bar, and it is not Dark mode's round.
+- Which appearance the App Store set's sixth frame shows is now a free choice rather than a
+  constraint. It stays light until D-024's sequence decides otherwise, with the owner.
+- The home-screen widget still follows the phone. WidgetKit draws it in another process.
+- Tapping a Settings row's *label* does not flip its switch, only the switch itself does. Standard
+  for this container; noted because it is what cost four rounds.
+- VoiceOver traversal order still has no evidence. Notification delivery, a real purchase and the
+  widget's content remain device-gated.
+
+### Exact next action
+
+**Composite the six captured frames into the flat Chroma layout and deliver the set** — unchanged
+from session 13, and no longer blocked by anything: the listing may now claim a dark mode.
+
+Then, in order: the **NEXT+ capability boundary** (D-015, owner, release-blocking); moving those
+three `List`/`Form` screens into the contrast-enforced set now that the audit's false positives
+are handled; the icon script D-028 asks for; VoiceOver traversal order; and the typography pass.
+
+---
+
 ## 2026-08-10 — Session 13: the App Store direction, and a feature the marketing asked for
 
 **Objective.** Take the App Store screenshot checkpoint through D-024's sequence, then produce the

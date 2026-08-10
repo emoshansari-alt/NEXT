@@ -131,9 +131,11 @@ final class ScreenshotCaptureUITests: XCTestCase {
         settle()
         capture(app, "05-stuck")
 
-        // 6 — Overdue. Captured in **light**, because Dark mode is not reachable
-        // (`AppearanceAvailability`). The listing may not show a dark frame until the switch
-        // works: a screenshot is a claim, and this one would be a claim the app does not keep.
+        // 6 — Overdue. Still captured in **light**, and now by choice rather than by constraint:
+        // Dark mode ships and `AppearanceUITests` measures it, so the listing may claim it. Which
+        // appearance this frame shows is a D-024 decision about the set, made with the owner, and
+        // changing it here would be taking that decision on the way past. Add `-ui-appearance
+        // dark` when it is taken.
         app = launch(["-ui-seed", "overdue"])
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
         settle()

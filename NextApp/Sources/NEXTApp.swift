@@ -16,9 +16,9 @@ struct NEXTApp: App {
     /// completes a task, that completion persists, and after enough runs there is nothing left
     /// to recommend. A test that depends on how many times it has run before is not a test.
     /// `nonisolated` because `App` is a main-actor protocol, so every member of this type is
-    /// main-actor isolated by default — and `AppearanceAvailability` is a plain enum that reads
-    /// this while deciding its gate. An immutable `String` has nothing to isolate, and the
-    /// alternative was a second spelling of `-ui-testing` in a second file.
+    /// main-actor isolated by default — and this constant is read from types that are not. An
+    /// immutable `String` has nothing to isolate, and the alternative was a second spelling of
+    /// `-ui-testing` in a second file.
     nonisolated static let uiTestingArgument = "-ui-testing"
 
     /// Seeds one task whose deadline is genuinely out of reach, so the Minimum Win flow can be
@@ -435,16 +435,6 @@ struct RootView: View {
         _hasOnboarded = State(initialValue: onboarding.hasCompleted)
     }
 
-    /// What the root is currently asking for, or `nil` while the switch is unreachable — in which
-    /// case NEXT follows the phone, which is what it did before this feature and is a working
-    /// behaviour rather than a broken one.
-    ///
-    /// Named rather than written inline, so the modifier and the probe cannot drift apart on
-    /// which value they were given.
-    private var chosen: AppearancePreference? {
-        AppearanceAvailability.isDarkModeReachable ? appearance.preference : nil
-    }
-
     var body: some View {
         Group {
             if hasOnboarded {
@@ -456,10 +446,12 @@ struct RootView: View {
                 }
             }
         }
-        .appearance(chosen)
+        // Read here rather than in `NEXTApp.body` — this is a `View`, where `@Observable`
+        // tracking works.
+        .appearance(appearance.preference)
         // Test-only, and absent from every other launch — see `AppearanceProbe`.
         .overlay(alignment: .top) {
-            if AppearanceProbe.isEnabled { AppearanceProbe(preference: chosen) }
+            if AppearanceProbe.isEnabled { AppearanceProbe(preference: appearance.preference) }
         }
     }
 }

@@ -48,12 +48,13 @@ extension View {
     /// Applied on appear *and* on every change: on appear because the first launch has to be
     /// right before anything is drawn, and on change because the switch is three levels down in
     /// a sheet and the window will not hear about it otherwise.
-    /// `nil` means "do not override" — the app follows the phone, as it did before the switch
-    /// existed and as it does while `AppearanceAvailability.isDarkModeReachable` is false.
-    func appearance(_ preference: AppearancePreference?) -> some View {
-        preferredColorScheme(preference?.colorScheme)
-            .task(id: preference) {
-                if let preference { WindowAppearance.apply(preference) }
-            }
+    ///
+    /// Both halves are load-bearing and `AppearanceUITests` measures both. `preferredColorScheme`
+    /// is what makes the very first frame right, before any task has run; the window override is
+    /// what makes UIKit-backed containers agree, and the probe reports `window=dark` alongside
+    /// `scheme=dark` on a screen measured at 0.119 brightness.
+    func appearance(_ preference: AppearancePreference) -> some View {
+        preferredColorScheme(preference.colorScheme)
+            .task(id: preference) { WindowAppearance.apply(preference) }
     }
 }

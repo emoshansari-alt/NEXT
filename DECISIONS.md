@@ -528,7 +528,9 @@ judgement layered on top of it is not.
 
 ## D-021 — The accessibility audit enforces what NEXT controls, and tracks what Phase 12 owns
 
-**Date:** 2026-08-09 · **Status:** Accepted · **Contrast and Dynamic Type revisited at Phase 12**
+**Date:** 2026-08-09 · **Status:** Accepted · **Contrast and Dynamic Type revisited at Phase 12** ·
+**The section-header contrast exception is corrected by D-029** — the header is drawn at 7.14:1
+and the audit's verdict, not the rendering, is what is wrong.
 
 **Context.** `PRODUCT_SPEC.md` §11 makes accessibility release-blocking and P8 calls it
 architecture, but nothing had ever checked. The first run of `performAccessibilityAudit()` across
@@ -822,8 +824,9 @@ implementation belongs with the first archive, where it can be seen to work.
 
 ## D-027 — NEXT ships a Dark mode switch, and stops following the system appearance
 
-**Date:** 2026-08-10 · **Status:** Accepted as a decision, **not shipped** — the switch is built
-and unreachable (`AppearanceAvailability`), for the reason in the outcome note at the end.
+**Date:** 2026-08-10 · **Status:** Accepted and **shipped**. The outcome note at the end of this
+entry recorded it as built-and-unreachable; that note was wrong about why, and **D-029 corrects
+it**. Read both.
 
 **Context.** Every colour in `NextPalette` has always declared both appearances, so NEXT has
 always *rendered* in dark — it simply followed the phone, and there was no way to ask. The owner
@@ -862,7 +865,13 @@ count. All of them would pass against a preference that is stored perfectly and 
 nothing — so `AppearanceUITests` flips the real switch, returns to Today, and **measures the mean
 brightness of the screen**, then relaunches and measures again.
 
-**Outcome, recorded because the decision is sound and the implementation is not.** The switch is
+**Outcome — SUPERSEDED BY D-029, and left in place because how it reads is the point.** Every
+measurement below is accurate and the conclusion drawn from it is wrong: the switch was never
+being flipped, so four implementations were each measured against a screen nobody had asked to
+change. Dark mode ships. What follows is what a confident, well-evidenced, incorrect diagnosis
+looks like.
+
+The switch is
 built, stored, tested where it can be tested, and **hidden**. Four CI rounds measured a mean
 screen brightness of 0.8067215686274509 — identical to sixteen digits — before and after flipping
 it, across four implementations: `preferredColorScheme` at the scene root; a `UIViewRepresentable`
@@ -883,6 +892,69 @@ appearances, so an audit that quietly ran in the wrong one reports no issues and
 The App Store set's dark frame was captured light for the same reason, with every CI step green.
 **Where an appearance cannot be read back, the pixels are the only witness**, and every test that
 claims a dark screen now measures one.
+
+---
+
+## D-029 — Dark mode was never broken; the test never flipped the switch (corrects D-027 and D-021)
+
+**Date:** 2026-08-10 · **Status:** Accepted
+
+**Context.** D-027's outcome note records four implementations of Dark mode and four identical
+measurements of 0.8067215686274509, and concludes that the choice "changes nothing about what is
+drawn". Every part of that measurement was accurate. The conclusion drawn from it was wrong.
+
+**What is actually true.** `toggle.tap()` does not flip a SwiftUI `Toggle` inside a `Form`. The
+control is exposed to XCUITest as a single Switch element spanning the whole row, `.tap()` lands
+in the middle of it — on the label — and the switch does not move. In run
+[31390918616](https://github.com/emoshansari-alt/NEXT/actions/runs/31390918616) it failed that way
+on every one of five attempts. Deterministic, not flaky. Tapping the switch itself flips it, and
+the whole app changes appearance.
+
+So the app was never the problem. **A working feature was hidden from users for a session**, on
+evidence that was real and read the wrong way round.
+
+**Why four rounds could not see it.** The test tapped and moved on. A tap that never landed and an
+implementation that changed nothing produce the identical light screen, and nothing in the suite
+could tell them apart — so each round replaced a working mechanism with another working mechanism,
+measured a screen nobody had asked to change, and read the unchanged number as confirmation that
+the new mechanism had failed too. The number was the same every time because *nothing was ever
+asked to happen*.
+
+**The rule this produces.** A test that drives a control must assert the control moved. That is a
+different claim from asserting the outcome, and the two failures are indistinguishable without it.
+`setDarkMode` now checks the switch reads what it was set to before the screen is measured at all.
+It is the same defect class as the four tests this project has already found incapable of failing,
+in a new place: not a test that cannot fail, but a test that cannot fail *for the right reason*.
+
+**What separated it in the end.** Not another implementation. Three things that could each be
+wrong on their own, measured separately in one round:
+
+- a control test, that two different screens in one appearance measure differently — otherwise a
+  frozen screenshot is indistinguishable from a fix that does nothing;
+- the launch path (`-ui-appearance dark`) measured apart from the runtime path, which showed the
+  mechanism was already sound while the switch was not;
+- `AppearanceProbe`, reporting the whole chain — the preference the root's own body saw, SwiftUI's
+  `colorScheme`, the window's `overrideUserInterfaceStyle`, the trait collection, and what
+  `NextPalette` resolves to — so a failure names the broken link instead of only its outcome.
+
+**And a second correction, to D-021.** That entry records one contrast failure per `List`/`Form`
+screen, always the first section header, attributed to SwiftUI rendering it against the navigation
+bar's material. Reading the pixels inside the element's own frame says the header is drawn at
+**7.14:1** — `505048` on `F0F0F0`, the palette's ink on the grouped background. The rendering is
+fine and the audit's verdict is wrong. The same is true of the two elements the dark audit reports
+on Today: `B0A8A0` on `202028`, **6.90:1**, which is `inkSecondary` on `card` at the palette's own
+dark values.
+
+`performAccessibilityAudit`'s contrast check is therefore treated as evidence rather than as a
+verdict: it is not a failure when the element's own pixels clear the bar with margin, every
+overruled verdict is printed with its ratio, and an element the audit reports **and** the pixels
+also fail still fails. It is the third filter in that handler and the only one backed by a
+measurement rather than by an argument.
+
+D-021's exception is not simply withdrawn, because those three screens still have contrast
+excluded from their enforced set and moving them across may surface real failures on screens
+nothing has ever held to this bar. That is its own round, and it is recorded as outstanding rather
+than done.
 
 ---
 

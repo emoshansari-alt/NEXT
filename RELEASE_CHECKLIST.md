@@ -33,11 +33,11 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Rescue — all four paths
 - [x] Minimum Win — planner built and Tier 1 tested
 - [x] Settings — reminder controls and the cloud-processing consent switch
-- [ ] Dark mode — **built, tested where it can be, and deliberately unreachable** (D-027,
-      `AppearanceAvailability`). Four implementations all left the rendered screen unchanged, to
-      sixteen digits of measured brightness. The switch is hidden rather than shipped doing
-      nothing, NEXT follows the phone as it did before, and the store set's sixth frame is
-      captured in light. Release-blocking only if the owner wants the feature in 1.0
+- [x] Dark mode — **shipped and measured** (D-027, corrected by D-029). One switch in Settings,
+      light by default. `AppearanceUITests` drives the real control and reads the pixels: light
+      0.808, dark on 0.119, dark off 0.808, and 0.119 again after a relaunch told nothing at all.
+      The gate is gone. The four rounds that concluded it was applied to nothing had never flipped
+      the switch — `toggle.tap()` does not work on a `Toggle` in a `Form`
 - [x] Notifications — scheduling planned and Tier 1 tested
 - [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
       the screen for ever (D-020)
@@ -115,10 +115,11 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Reduce Motion respected — all four animation sites branch on it, where previously one did
       and `NextMotion.cardChange(reduceMotion:)` had no caller at all. Pinned by Tier 2 unit tests
       on the curves, including one that fails if the two curves are ever made equal, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
-- [ ] The dark appearance is audited — **not currently possible.** There is no way to put this
-      app in dark on the runner: `XCUIDevice.shared.appearance` has no effect and NEXT's own
-      setting is gated. An audit that cannot prove which appearance it ran in would pass in light
-      and report a dark screen as healthy, which is how it passed before anyone measured a pixel
+- [x] The dark appearance is audited — Today empty, Today recommending, Rescue and Focus, driven
+      by NEXT's own setting because `XCUIDevice.shared.appearance` has no effect on the runner.
+      The screen is measured below 0.35 brightness *before* anything is audited, so an audit that
+      quietly ran in light cannot pass. Contrast verdicts are checked against the element's own
+      pixels (D-029)
 - [x] Contrast adequate — enforced by the audit on every screen NEXT draws, and by
       `NextPaletteTests` on the values. One system-rendered section header per
       `List`/`Form` screen is tracked rather than enforced (D-021)

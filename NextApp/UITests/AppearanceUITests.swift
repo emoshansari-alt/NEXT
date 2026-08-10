@@ -6,10 +6,9 @@ import XCTest
 /// setting that is saved perfectly and applied to nothing — and for four CI rounds, that is
 /// exactly what shipped. So every claim here is a measurement of what was drawn.
 ///
-/// The switch is not reachable in a shipped build. `-ui-dark-mode-proof` opens it for a
-/// UI-testing launch only, so these tests drive the real control without the control being
-/// released; `AppearanceAvailability` holds the shipped answer and
-/// `testTheDarkModeSwitchIsHiddenInANormalBuild` holds it to that.
+/// These tests are what opened the gate. While they were failing the switch was hidden from
+/// users behind `AppearanceAvailability`; that type is gone, because the answer it held is now
+/// "yes" and a constant nobody can change is not a gate.
 ///
 /// ## The order these run in is the argument they make
 ///
@@ -47,8 +46,7 @@ final class AppearanceUITests: XCTestCase {
     private func launch(_ extraArguments: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
-            "-ui-testing", "-ui-seed", "essay",
-            "-ui-dark-mode-proof", "-ui-appearance-probe"
+            "-ui-testing", "-ui-seed", "essay", "-ui-appearance-probe"
         ] + extraArguments
         app.launch()
         skipOnboarding(app)
@@ -147,10 +145,11 @@ final class AppearanceUITests: XCTestCase {
 
     /// Brightness of what is on screen, with the probe's readout recorded beside it.
     ///
-    /// Both screenshot routes are measured. `XCUIScreen.main.screenshot()` was the second suspect
-    /// `AppearanceAvailability` named — whether this runner hands back the app's window or a
-    /// cached compositor frame — and `app.screenshot()` asks a different question of a different
-    /// object. If those two ever disagree, the disagreement is the finding.
+    /// Both screenshot routes are measured. Whether `XCUIScreen.main.screenshot()` on this runner
+    /// hands back the app's window or a cached compositor frame was one of the two standing
+    /// suspects, and `app.screenshot()` asks a different question of a different object. They have
+    /// agreed to sixteen digits on every reading so far; if they ever disagree, the disagreement
+    /// is the finding.
     @discardableResult
     private func measure(_ app: XCUIApplication, _ moment: String) -> CGFloat {
         settle()
@@ -267,8 +266,7 @@ final class AppearanceUITests: XCTestCase {
 
         let relaunched = XCUIApplication()
         relaunched.launchArguments = [
-            "-ui-testing", "-ui-seed", "essay",
-            "-ui-dark-mode-proof", "-ui-appearance-probe", "-ui-keep-appearance"
+            "-ui-testing", "-ui-seed", "essay", "-ui-appearance-probe", "-ui-keep-appearance"
         ]
         relaunched.launch()
         skipOnboarding(relaunched)
@@ -287,15 +285,17 @@ final class AppearanceUITests: XCTestCase {
         relaunched.buttons["settings-close-button"].tap()
     }
 
-    // MARK: The gate
+    // MARK: Reachable
 
-    func testTheDarkModeSwitchIsHiddenInANormalBuild() {
-        // Asserted through the interface rather than against `AppearanceAvailability`, because a
-        // UI test runs out of process and cannot import the app module — which is also why it is
-        // the right check: it fails when the *user* can see the switch, whatever the flag says.
+    func testAnOrdinaryLaunchOffersTheSwitch() {
+        // The inverse of the tripwire that stood here while Dark mode was hidden, and it earns
+        // its place for the same reason that one did: every other test in this file passes a
+        // launch argument of some kind, so all of them would still be green if the control were
+        // quietly put back behind a flag. Nothing here is passed but `-ui-testing`.
         //
-        // No `-ui-dark-mode-proof` here. That argument is the only thing that opens the gate, and
-        // nothing a user can do sets a launch argument.
+        // Asserted through the interface rather than against a constant, because a UI test runs
+        // out of process and cannot import the app module — which is also why it is the right
+        // check: it answers whether the *user* can see the switch.
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launch()
@@ -303,9 +303,9 @@ final class AppearanceUITests: XCTestCase {
         skipOnboarding(app)
         openSettings(app)
 
-        XCTAssertFalse(
-            app.switches["settings-dark-mode-toggle"].exists,
-            "Dark mode is reachable in a shipped build — the tests above must be green for that"
+        XCTAssertTrue(
+            app.switches["settings-dark-mode-toggle"].waitForExistence(timeout: 8),
+            "Settings must offer Dark mode — it is shipped, and it is measured to work"
         )
     }
 }

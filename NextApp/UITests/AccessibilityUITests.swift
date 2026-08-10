@@ -26,9 +26,7 @@ final class AccessibilityUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         if let appearance {
-            // The gate has to be open for `-ui-appearance` to reach anything: while Dark mode is
-            // unreachable the root deliberately applies nothing at all and NEXT follows the phone.
-            app.launchArguments += ["-ui-appearance", appearance, "-ui-dark-mode-proof"]
+            app.launchArguments += ["-ui-appearance", appearance]
         }
         if let contentSize {
             // The documented way to drive Dynamic Type from a UI test. Set at launch so the

@@ -9,7 +9,7 @@ import XCTest
 /// The side of the grid a screen is averaged over before its brightness is computed.
 ///
 /// It used to be 1 — the whole screen drawn into a single pixel. That was cheap and it was also
-/// one of the two suspects `AppearanceAvailability` named, because Core Graphics does not promise
+/// one of the two standing suspects for the identical readings, because Core Graphics does not promise
 /// a box filter over three million pixels at a reduction that extreme, and a measurement nobody
 /// trusts cannot settle an argument. A 32 × 32 grid is still one draw call and it is an average
 /// no one has to take on faith.

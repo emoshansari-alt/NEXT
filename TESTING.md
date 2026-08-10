@@ -272,9 +272,34 @@ test bundles and defeat the purpose.
 ### Dark mode, and the check that had to measure pixels
 
 `AppearanceUITests` turns Dark mode on through the real switch, returns to Today, and asserts the
-**mean brightness of the screen**; then relaunches with no arguments and asserts it is still dark.
+**mean brightness of the screen** — averaged over a 32 × 32 grid, so no one has to take the
+downsample on faith. Then off again, because a one-way switch is not a switch. Then a relaunch
+told nothing at all, where the only thing that can make it dark is what the previous run stored.
 `AccessibilityUITests` audits four screens with Dark mode on, and asserts the screen is genuinely
 dark *before* auditing anything.
+
+Two of those tests exist because of what they rule out rather than what they prove:
+
+- **the measurement can tell two screens apart.** Two different screens in one appearance must
+  measure differently. Without it a frozen screenshot is indistinguishable from a fix that changed
+  nothing, and that ambiguity cost four rounds.
+- **an appearance chosen at launch is measured apart from one chosen at runtime.** They are
+  different mechanisms. The launch path was sound the whole time while the switch was not, and
+  nothing separated them.
+
+**A test that drives a control must assert the control moved** (D-029). `setDarkMode` checks the
+switch reads what it was set to before the screen is measured at all. Four rounds concluded that
+Dark mode was applied to nothing, on a screen where the switch had never been flipped:
+`toggle.tap()` does not work on a `Toggle` inside a `Form`, because the control is exposed as one
+Switch spanning the whole row and the tap lands on the label. A tap that never landed and an
+implementation that does nothing produce the identical light screen.
+
+`AppearanceProbe` is the other half. It reports the whole chain in one accessibility label — the
+preference the root's own body saw, SwiftUI's `colorScheme`, the window's override, the trait
+collection, and what `NextPalette` resolves to through `Color.resolve(in:)` — so a failure names
+the broken link instead of only its outcome. It is **diagnosis, not evidence**: every value in it
+is something the app says about itself, which is the failure mode that produced a green dark audit
+running in light.
 
 That looks like belt and braces and is not. Three separate failures in one session all had the
 same shape — something claimed an appearance and nothing could tell it was wrong:
@@ -296,6 +321,17 @@ whether an appearance change took, so any test that claims a dark screen measure
 `AccessibilityUITests` runs `performAccessibilityAudit()` over every core screen, plus Today and
 Focus at accessibility XXXL. It enforces `contrast`, `hitRegion`, `textClipped`,
 `elementDetection`, `sufficientElementDescription` and `trait`.
+
+**A contrast verdict is checked against the pixels it is a claim about.** `drawnContrast` crops the
+element's own frame out of the screenshot the audit was judging and reports the two dominant
+colours with the ratio between them; where that clears the bar with margin, the verdict is not
+treated as a failure and is printed with its number instead. The audit is measurably wrong here in
+both appearances — Settings' first section header is drawn at 7.14:1 and Today's empty state in
+dark at 6.90:1, and it reports both (D-029). The filter can only ever *remove* a verdict its own
+evidence contradicts: an element the audit reports and the pixels also fail still fails. The margin
+is 5.0 rather than 4.5 because the quantisation that stops an anti-aliased fringe fragmenting moves
+a ratio by a percent or two, and an element measured between the two is reported rather than argued
+about.
 
 **Contrast is enforced on the five screens NEXT draws itself** — Today, Focus, Rescue, Capture and
 Onboarding — as of the Index Card palette (D-023). It is checked twice and in two different ways:
