@@ -170,20 +170,50 @@ jobs:
         if: steps.probe.outputs.exists == 'true'
         id: bigsim
         run: |
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c '
+          # The identifier first and the name second, one per line. Every Pro Max name contains
+          # spaces, so anything that splits a single line on whitespace gets "iPhone" and "17".
+          FOUND=$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
           devices = json.load(sys.stdin)["devices"]
-          found = [d["name"]
+          found = [(d["name"], d["udid"])
                    for runtime, entries in devices.items() if "iOS" in runtime
                    for d in entries if d.get("isAvailable") and "Pro Max" in d["name"]]
-          print(sorted(found)[-1] if found else "")
+          name, udid = sorted(found)[-1] if found else ("", "")
+          print(udid)
+          print(name)
           ')
+          UDID=$(printf '%s\n' "$FOUND" | head -n 1)
+          DEVICE=$(printf '%s\n' "$FOUND" | tail -n 1)
           if [ -z "$DEVICE" ]; then
             echo "::warning title=Screenshots::No Pro Max simulator on this runner, so the App Store set was not captured."
           else
-            echo "Capturing on: $DEVICE"
+            echo "Capturing on: $DEVICE ($UDID)"
           fi
           echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      # Six frames in one listing must not disagree about the time. Without this the set came back
+      # reading 4:53 on five of them and 4:54 on the sixth, which is the same class of thing as the
+      # varying "chin" the owner spotted under each screen: nobody can say why it looks wrong, and
+      # everybody can see that it does.
+      #
+      # Best effort on purpose. An override that fails is not a reason to lose the capture, so this
+      # never fails the job — the frames are simply less tidy, and the drift is visible in them.
+      - name: Pin the simulator's status bar
+        if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.udid != ''
+        continue-on-error: true
+        run: |
+          xcrun simctl boot "${{ steps.bigsim.outputs.udid }}" || true
+          xcrun simctl bootstatus "${{ steps.bigsim.outputs.udid }}" -b || true
+          xcrun simctl status_bar "${{ steps.bigsim.outputs.udid }}" override \
+            --time "9:41" \
+            --dataNetwork wifi \
+            --wifiMode active \
+            --wifiBars 3 \
+            --cellularMode active \
+            --cellularBars 4 \
+            --batteryState charged \
+            --batteryLevel 100
 
       - name: Capture the App Store screenshots
         if: steps.probe.outputs.exists == 'true' && steps.bigsim.outputs.device != ''

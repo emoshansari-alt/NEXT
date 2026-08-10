@@ -88,6 +88,24 @@ final class ScreenshotCaptureUITests: XCTestCase {
         _ = XCTWaiter().wait(for: [XCTestExpectation(description: "settle")], timeout: 0.9)
     }
 
+    /// Dismisses the keyboard's own first-run card, which is Apple's and not NEXT's.
+    ///
+    /// A fresh simulator shows QuickPath — "Speed up your typing by sliding your finger across the
+    /// letters" with a Continue button — the first time a keyboard appears, and it covers the
+    /// keyboard entirely. It was in the composited set: the **first frame of the listing** was an
+    /// iOS tutorial with NEXT visible above it, which is both a bad advertisement and a picture of
+    /// something other than the product.
+    ///
+    /// Silent when it is absent, because whether a given runner image has shown it before is not
+    /// something to make the capture depend on.
+    private func dismissKeyboardTutorial(_ app: XCUIApplication) {
+        let continueButton = app.buttons["Continue"]
+        if continueButton.waitForExistence(timeout: 3) {
+            continueButton.tap()
+            settle()
+        }
+    }
+
     // MARK: The six frames
 
     func testCaptureTheAppStoreSet() throws {
@@ -97,6 +115,7 @@ final class ScreenshotCaptureUITests: XCTestCase {
         let field = app.textFields["capture-text-field"]
         XCTAssertTrue(field.waitForExistence(timeout: 8))
         field.tap()
+        dismissKeyboardTutorial(app)
         field.typeText("Chem test monday, finish history slides friday, email professor about the extension, reading for seminar")
         settle()
         capture(app, "01-capture")
