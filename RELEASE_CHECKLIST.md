@@ -91,8 +91,10 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Recommendation loop test passes — run as a loop: recommend, reject what came back,
       recommend again. The rejected task is taken from the engine's own first answer rather than
       named in the fixture
-- [x] Tier 2 integration tests pass — 121 in 28 suites (2 known issues, both signing-gated)
-- [x] Tier 2 golden-path UI test passes — 39 UI tests green
+- [x] Tier 2 integration tests pass — 128 in 29 suites (2 known issues, both signing-gated), run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604)
+- [x] Tier 2 golden-path UI test passes — 40 UI tests green, run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604). A 41st,
+      `ScreenshotCaptureUITests`, is excluded by `-skip-testing` and runs in CI's own capture
+      step, so it is not counted here
 - [x] Offline behaviour proven at the tier that can prove it — see `TESTING.md`. No shipped
       source names a networking API (CI-enforced), and the whole loop runs green with the offline
       provider, run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). The literal "with the network disabled" run is a Tier 3 device
@@ -219,10 +221,10 @@ sequence.
       distinct presentation directions, shown as visual examples rather than described, with a
       recommendation. The set is not produced until a direction is selected. Other
       release-candidate work does not wait on this.
-- [ ] Screenshot narrative assembled
-- [ ] Screenshots produced from the real app — the real NEXT interface is the source of truth;
-      generated imagery may support the composition but may not fabricate functionality or stand
-      in for a screenshot (D-014, D-024)
+- [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
+- [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
+      running app by `ScreenshotCaptureUITests` and exported by CI, run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604). Not yet
+      composited into the chosen Chroma layout, which is the remaining step
 - [ ] Title, subtitle, description, keywords — **drafted** in `PRODUCT_SPEC.md` §15, with
       alternatives for the title and subtitle. The wording is chosen alongside the screenshot
       direction rather than separately (D-024): the two have to say the same thing in the same

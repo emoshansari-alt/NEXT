@@ -156,13 +156,13 @@ all 43 Minimum Win tests green. Any test written after its implementation must b
 ## Current state — Tier 2
 
 **Last run:** 2026-08-09 · **Result:** `** TEST SUCCEEDED **` and `** BUILD SUCCEEDED **` ·
-run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838)
+run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604)
 
 | Target | Result |
 |---|---|
 | `NextApp` build (iOS Simulator, Swift 6 strict concurrency) | compiles |
-| `NextAppTests` (swift-testing) | 121 tests in 28 suites, passed (2 known issues — see below) |
-| `NextAppUITests` (XCTest, real Simulator) | 39 tests, passed |
+| `NextAppTests` (swift-testing) | 128 tests in 29 suites, passed (2 known issues — see below) |
+| `NextAppUITests` (XCTest, real Simulator) | 40 tests, passed; a 41st runs in CI's capture step |
 | `NextWidgetExtension` build | compiles and installs; content unverifiable — see below |
 | **Release build, app + widget, `SWIFT_TREAT_WARNINGS_AS_ERRORS`** | **builds clean — the first Release build in this repository's history** |
 | Cold start (`XCTApplicationLaunchMetric`, 5 launches) | average **3.155 s**, values 2.31–4.30 s |

@@ -13,9 +13,12 @@ had the same shape.
 
 ### Result
 
-**Tier 1: 559 tests / 100 suites, green.** Tier 2 green through the screenshot capture —
-run [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838). The **Dark
-mode feature is built but not yet verified**; see the exact next action.
+**Tier 1: 559 tests / 100 suites. Tier 2: 128 unit / 29 suites + 40 UI tests.**
+Green — run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604),
+which also exported the six App Store frames at 1320 × 2868.
+
+**Dark mode is built, tested where it can be, and deliberately unreachable** — see below and
+D-027. That is the honest end state, not a green tick.
 
 ### Three rounds to a direction
 
@@ -87,10 +90,21 @@ Also closed: `PRODUCT_SPEC.md` had no section for Settings at all and never said
 appearances; its Everything section omitted Archived; `ARCHITECTURE.md` §6 described a Tier 2 that
 no longer matches CI.
 
+### The Release step caught its first real defect
+
+`WindowAppearance.apply` touched `UIApplication.shared`, `connectedScenes`, `windows` and
+`overrideUserInterfaceStyle` from a nonisolated context. **The Debug test build only warned; the
+Release step's `SWIFT_TREAT_WARNINGS_AS_ERRORS` failed.** That step was added earlier in this
+session on the argument that a warning which cannot fail anything is a warning nobody reads — and
+the first thing it caught was a concurrency defect in shipped code, not a style nit.
+
+It is also a warmer trail than the four measurements: `apply` was running off the main actor,
+which is a plausible reason the window override did nothing even on the rounds where it was
+called. Whoever resumes Dark mode should start there rather than from the top.
+
 ### Known limitations
 
-- **Dark mode is unverified.** The window-override fix is committed; the run proving it had not
-  finished when this was written.
+- **Dark mode is unreachable by design** until someone can run the app and watch the screen.
 - The six frames are captured but **not yet composited** into the chosen Chroma layout.
 - `GoldenPathUITests` warns about main-actor isolation on XCTest's own `launch()`. Nothing that
   ships is affected, which is why the warnings tick says "shipped targets".
@@ -100,14 +114,19 @@ no longer matches CI.
 
 ### Exact next action
 
-**Confirm run [31360566854](https://github.com/emoshansari-alt/NEXT/actions/runs/31360566854).**
-That is what turns Dark mode from built into verified: `AppearanceUITests` measures the screen
-after flipping the switch and again after a relaunch, and the dark audit measures before it
-audits. If it is red, the failure is in `WindowAppearance` and nowhere else.
+**Composite the six captured frames into the flat Chroma layout and deliver the set.** They are
+exported by CI at 1320 × 2868 and downloadable from the run above; the layout is settled — one
+geometry, whole screen, no crop, 32-point inset, six saturated grounds. Frame 6 is **light**, and
+must stay light in the listing until the switch works.
 
-Then **composite the six captured frames into the flat Chroma layout** and deliver the set. After
-that the largest remaining item is the NEXT+ capability boundary (D-015) — an owner decision, and
-release-blocking.
+Then, in order: **the NEXT+ capability boundary** (D-015, owner, release-blocking); the icon
+script D-028 asks for; VoiceOver traversal order; and the typography pass.
+
+**If Dark mode is wanted in 1.0** it becomes the top engineering item, and it needs someone who
+can run the app and watch the screen — four rounds of measuring from outside got as far as
+measuring can get. Start from the main-actor finding above, then eliminate whether
+`XCUIScreen.main.screenshot()` on this runner captures the app's window at all: the same runner
+has already been shown not to honour `XCUIDevice.shared.appearance`.
 
 ---
 
