@@ -9,7 +9,7 @@ import Testing
 /// Every colour in `NextPalette` has always declared both appearances, so dark *rendered* long
 /// before this existed — what did not exist was a way to ask for it without changing the whole
 /// phone. These cover the part that can be got wrong off-screen; `SettingsUITests` drives the
-/// picker and measures the actual pixels, because a preference that is stored correctly and
+/// switch and measures the actual pixels, because a preference that is stored correctly and
 /// never applied would pass everything here.
 @Suite("Appearance — the choice")
 struct AppearancePreferenceTests {
@@ -20,12 +20,10 @@ struct AppearancePreferenceTests {
         return AppSettingsStore(defaults: UserDefaults(suiteName: name) ?? .standard)
     }
 
-    @Test("NEXT follows the phone until somebody says otherwise")
-    func theDefaultIsToFollowTheSystem() {
-        // The behaviour NEXT had before this setting existed, and the one most people never
-        // think about. Adding a choice must not quietly change what happens to everyone who
-        // never makes it.
-        #expect(store().appearance == .system)
+    @Test("NEXT opens light until somebody turns dark mode on")
+    func theDefaultIsLight() {
+        #expect(store().appearance == .light)
+        #expect(store().appearance.isDark == false)
     }
 
     @Test("each choice survives being written and read back")
@@ -38,7 +36,7 @@ struct AppearancePreferenceTests {
         }
     }
 
-    @Test("a value the app does not recognise falls back to following the phone")
+    @Test("a value the app does not recognise falls back to the default")
     func anUnknownStoredValueIsSafe() {
         // Reordering the cases must never silently change somebody's choice, which is why this
         // is stored as a raw string. A value from a future version — or a corrupted one — lands
@@ -46,17 +44,25 @@ struct AppearancePreferenceTests {
         let defaults = UserDefaults(suiteName: "next.appearance.tests.\(UUID().uuidString)")
         defaults?.set("solarized", forKey: "next.appearance")
 
-        #expect(AppSettingsStore(defaults: defaults ?? .standard).appearance == .system)
+        #expect(AppSettingsStore(defaults: defaults ?? .standard).appearance == .light)
     }
 
-    @Test("only the system option leaves SwiftUI to decide")
-    func onlySystemDeclinesToOverride() {
-        // `nil` is what keeps "match my phone" working when the phone changes while NEXT is
-        // open. Returning an explicit scheme there would pin the app to whatever it happened to
-        // be at launch.
-        #expect(AppearancePreference.system.colorScheme == nil)
+    @Test("each state maps to the scheme it names")
+    func eachStateMapsToItsScheme() {
         #expect(AppearancePreference.light.colorScheme == .light)
         #expect(AppearancePreference.dark.colorScheme == .dark)
+    }
+
+    @Test("the switch and the stored value cannot disagree")
+    func theSwitchRoundTripsThroughABool() {
+        // The Settings row is a `Toggle`, so a bool crosses the boundary in both directions.
+        // Two conversions that drifted apart would leave the switch showing one thing and the
+        // app rendering the other.
+        #expect(AppearancePreference.from(isDark: true) == .dark)
+        #expect(AppearancePreference.from(isDark: false) == .light)
+        for choice in AppearancePreference.allCases {
+            #expect(AppearancePreference.from(isDark: choice.isDark) == choice, "\(choice)")
+        }
     }
 
     @Test("choosing an appearance writes through immediately")
@@ -79,11 +85,10 @@ struct AppearancePreferenceTests {
         #expect(reread.appearance == .dark)
     }
 
-    @Test("every option is offered, and named in words rather than in jargon")
-    func theOptionsReadPlainly() {
-        #expect(AppearancePreference.allCases.count == 3)
-        #expect(AppearancePreference.system.label == "Match my phone")
-        #expect(AppearancePreference.light.label == "Light")
-        #expect(AppearancePreference.dark.label == "Dark")
+    @Test("there are exactly two states")
+    func thereAreTwoStates() {
+        // A tripwire, not decoration. If a third is ever added, the Settings row has to stop
+        // being a switch — and this fails rather than the switch silently swallowing it.
+        #expect(AppearancePreference.allCases == [.light, .dark])
     }
 }

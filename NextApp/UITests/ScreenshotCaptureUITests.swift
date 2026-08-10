@@ -39,11 +39,6 @@ final class ScreenshotCaptureUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    override func tearDown() {
-        forceAppearance(.light)
-        super.tearDown()
-    }
-
     // MARK: Capturing
 
     /// Saves the screen under a name the compositing step can find.
@@ -136,11 +131,10 @@ final class ScreenshotCaptureUITests: XCTestCase {
         settle()
         capture(app, "05-stuck")
 
-        // 6 — Overdue, in dark mode. Produced by NEXT's own Appearance setting rather than by
-        // the simulator, which matters: the listing shows a dark frame, so the dark it shows has
-        // to be the one a user can actually turn on. The phone is deliberately left light to
-        // prove the setting is doing it.
-        forceAppearance(.light)
+        // 6 — Overdue, in dark mode. Produced by NEXT's own Dark mode setting, which is the
+        // honest version of the claim: the dark the listing shows is the dark a user can switch
+        // on. The simulator's own appearance is not involved — it does not work on this runner,
+        // which is how the first version of this shipped a light frame.
         app = launch(["-ui-seed", "overdue", "-ui-appearance", "dark"])
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
         settle()

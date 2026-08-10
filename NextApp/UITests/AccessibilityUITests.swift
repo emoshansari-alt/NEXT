@@ -22,9 +22,12 @@ final class AccessibilityUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(contentSize: String? = nil) -> XCUIApplication {
+    private func launch(contentSize: String? = nil, appearance: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
+        if let appearance {
+            app.launchArguments += ["-ui-appearance", appearance]
+        }
         if let contentSize {
             // The documented way to drive Dynamic Type from a UI test. Set at launch so the
             // whole app lays out at that size rather than re-flowing mid-run.
@@ -346,10 +349,11 @@ final class AccessibilityUITests: XCTestCase {
         // It matters more than a completeness argument. The App Store set includes a dark frame
         // (D-024), so "NEXT has a dark mode that looks like this" is now a public claim, and a
         // claim about appearance needs a test that looks at the appearance.
-        forceAppearance(.dark)
-        defer { forceAppearance(.light) }
-
-        let app = launch()
+        // Driven by NEXT's own Dark mode setting rather than the simulator's appearance.
+        // `XCUIDevice.shared.appearance = .dark` does not take effect on this runner even with a
+        // wait — the brightness check below measured 0.81, fully light, on the round that proved
+        // it. The app's own switch is both the thing users have and the thing that works.
+        let app = launch(appearance: "dark")
         skipOnboarding(app)
 
         XCTAssertTrue(app.buttons["empty-add-button"].waitForExistence(timeout: 10))
@@ -359,7 +363,7 @@ final class AccessibilityUITests: XCTestCase {
         // appearances, so an audit that quietly ran in light mode passes and reports nothing.
         XCTAssertLessThan(
             meanBrightness(of: XCUIScreen.main.screenshot().image), 0.35,
-            "the dark appearance did not take effect, so this audit would prove nothing"
+            "dark mode did not take effect, so this audit would prove nothing"
         )
 
         audit(app, "Today empty, dark")

@@ -1,16 +1,10 @@
 import UIKit
 import XCTest
 
-/// Forces the simulator's appearance and waits for it to land.
-///
-/// The wait is the point. Setting the appearance and launching in the same breath does not
-/// reliably apply to the app that comes up: the first capture of the App Store set asked for dark
-/// immediately before `launch()` and produced a light frame, with every CI step green.
-@MainActor
-func forceAppearance(_ appearance: XCUIDevice.Appearance) {
-    XCUIDevice.shared.appearance = appearance
-    _ = XCTWaiter().wait(for: [XCTestExpectation(description: "appearance")], timeout: 1.5)
-}
+// `forceAppearance` used to live here and is gone. Setting `XCUIDevice.shared.appearance` did
+// not take effect on this runner even with a wait: the check below measured 0.81 — fully light —
+// on a screen that had just asked for dark. NEXT's own Dark mode setting is both what users have
+// and what actually works, so every test drives that instead.
 
 /// The mean brightness of a captured screen, 0 (black) to 1 (white).
 ///

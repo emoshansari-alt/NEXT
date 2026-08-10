@@ -53,35 +53,26 @@ struct SettingsView: View {
 
     // MARK: Sections
 
-    /// First, because it is the only setting that changes something the user can see immediately,
-    /// and the only one somebody might open Settings specifically to find.
+    /// First, because it is the only setting that changes something the user can see the instant
+    /// they touch it, and the only one somebody might open Settings specifically to find.
     private var appearanceSection: some View {
         Section {
-            Picker(
-                "Appearance",
-                selection: Binding(
-                    get: { model.appearance.preference },
-                    set: { model.appearance.preference = $0 }
+            Toggle(
+                "Dark mode",
+                isOn: Binding(
+                    get: { model.appearance.preference.isDark },
+                    set: { model.appearance.preference = .from(isDark: $0) }
                 )
-            ) {
-                ForEach(AppearancePreference.allCases, id: \.self) { option in
-                    Text(option.label).tag(option)
-                }
-            }
-            // Inline rather than a menu or a pushed screen: three rows the user can see and tap
-            // once. Dark mode is the setting somebody opens Settings *looking for*, and burying
-            // it one tap deeper to save two rows would be the wrong trade.
-            .pickerStyle(.inline)
-            .labelsHidden()
-            .accessibilityIdentifier("settings-appearance-picker")
+            )
+            .accessibilityIdentifier("settings-dark-mode-toggle")
         } header: {
             Text("Appearance")
                 .foregroundStyle(NextPalette.inkSecondary)
         } footer: {
-            // Says what it does and what it does not. The widget follows the phone whatever this
-            // is set to, because a home-screen widget is drawn by the system and an app cannot
-            // override its appearance — better stated here than discovered.
-            Text("Dark mode is available whatever your phone is set to. The home-screen widget still follows your phone.")
+            // Says what it does not do as well as what it does. The home-screen widget is drawn
+            // by the system and an app cannot override its appearance — better stated here than
+            // discovered on the home screen.
+            Text("Turn this on to use NEXT in dark, whatever your phone is set to. The home-screen widget still follows your phone.")
                 .foregroundStyle(NextPalette.inkSecondary)
         }
     }

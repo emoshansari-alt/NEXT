@@ -50,16 +50,16 @@ struct AppSettingsStore {
         nonmutating set { defaults.set(newValue, forKey: Key.cloudIntelligence) }
     }
 
-    /// Light, dark, or whatever the phone is doing.
+    /// Light or dark.
     ///
-    /// Stored as the raw string rather than an index, so reordering the cases cannot silently
-    /// change what somebody chose. An unreadable or unknown value falls back to `.system`, which
-    /// is both the default and the least surprising thing to land on.
+    /// Stored as the raw string rather than a bool or an index, so the on-disk value stays
+    /// readable and a third option could be added later without reinterpreting what is already
+    /// there. An unreadable or unknown value falls back to `.light`, which is the default.
     var appearance: AppearancePreference {
         get {
             guard let raw = defaults.string(forKey: Key.appearance),
                   let value = AppearancePreference(rawValue: raw)
-            else { return .system }
+            else { return .light }
             return value
         }
         nonmutating set { defaults.set(newValue.rawValue, forKey: Key.appearance) }
