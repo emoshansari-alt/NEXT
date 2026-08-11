@@ -182,6 +182,10 @@ there was any text. The size is computed as the largest that fits the longest ca
 caption's contrast against its own ground is asserted at 4.5:1 before the frame is written. The
 lowest is 5.0:1, on the amber. A caption a reader cannot read is decoration.
 
+The set is regenerated from run
+[31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694), so frame 3 shows
+the new sentence in the shipped app rather than a caption written around the old one.
+
 Three things the copy pass established by reading the code rather than the screenshots:
 
 - **Frame 6 does not demonstrate Minimum Win.** `MinimumWinPlanner` returns `.noTimeRemaining`
