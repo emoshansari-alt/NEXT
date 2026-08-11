@@ -291,6 +291,41 @@ checklist line implied otherwise. Every site is built from a text style and scal
 Type. The only fixed point size in the repository is `AppearanceProbe`'s two-point invisible
 label, which is test-only and never rendered for a user.
 
+### The icon guarantee, restored as a mechanism — D-033
+
+D-028 withdrew D-023's promise that the icon "cannot drift from the app's colours" because the
+script it named did not exist. Closing it meant first finding out what the icon actually is, and
+the answer was simpler than expected: **five flat fills**, 45 distinct colours in the whole file
+with the rest anti-aliasing. A desk, a rounded card with a ballpoint spine, one line of writing,
+one line in highlighter.
+
+Four of the five colours are exactly `NextPalette`'s light values. **The fifth is not** — the
+unmarked line is `#C9C4BA`, which is no palette token and no alpha composite of two of them. Worth
+recording rather than folding in, since the whole point of the guardrail is which colours it can
+trace to a source.
+
+Two mechanisms, and only one owns anything:
+
+- **`lint-app-icon.py` is the guarantee.** Reads the hex values out of `NextPalette.swift`, decodes
+  the committed PNG, fails if the icon is no longer made of them. Standard library only — `zlib`
+  and `struct` — so it runs in the Ubuntu guardrails job beside the other three and on the Windows
+  machine too. Probed the way this repository probes a lint: a one-bit nudge to `biro` made it fail
+  with the colour named; removing it made it pass.
+- **`render-app-icon.py` rebuilds the icon and is not authoritative.** Byte-identical between runs,
+  and **99.60% identical to the approved asset** — 4,214 pixels of 1,048,576 differ, all on
+  anti-aliased curves, because Core Graphics drew the original and Pillow draws this. It refuses
+  to write to the asset's path and says why.
+
+**The renderer does not overwrite the icon**, because adopting its output would change an approved
+visual by 0.40% of its pixels. Small, and still a visual change to a decided thing.
+
+So the honest statement of what is now true: the icon cannot drift from the app's colours, and the
+build fails if it does. The icon's *geometry* is measured, not generated — every number in the
+renderer was recovered from the approved file. Edges from the anti-aliasing gradient to a
+sub-pixel; the corner by fitting a superellipse whose exponent came back **2.00**, meaning a plain
+circle after I had wrongly assumed a squircle; the rest by search against the original. Nothing was
+chosen.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There

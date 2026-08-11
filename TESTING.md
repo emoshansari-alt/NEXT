@@ -84,6 +84,16 @@ constant, and only surfaces when a real purchase fails to resolve against App St
 Verified the same way: a deliberate `monthy` typo in the configuration made it fail with both
 lists printed, and it returned to passing when the typo was removed.
 
+`scripts/lint-app-icon.py` reads the `light:` value of every colour in `NextPalette.swift`,
+decodes `AppIcon.appiconset/Icon.png` and fails when the icon is no longer made of those values,
+when it is not 1024 × 1024, or when it stops being a handful of flat fills. It is **standard
+library only** — the PNG is decoded with `zlib` and `struct` — because a check that needs an image
+package installed is a check that gets skipped, and this one also has to run on the Windows
+machine where the app cannot be compiled. Verified against a deliberate violation the same way as
+the others: a one-bit nudge to `biro` made it fail with the colour named, and removing the nudge
+made it pass. It exists because D-023 promised the icon could not drift from the app's colours and
+named a script nobody had written (D-028, closed by D-033).
+
 `scripts/lint-shipped-code.sh` covers **all four shipped roots** — `NextKit/Sources`,
 `NextApp/Sources`, `NextApp/Shared`, `NextWidget/Sources` — which the other two do not: both are
 scoped to `NextKit`. It bans force unwraps, force tries and force casts; every networking symbol;

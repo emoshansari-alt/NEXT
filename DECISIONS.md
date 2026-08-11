@@ -959,6 +959,61 @@ than done.
 
 ---
 
+## D-033 — The icon guarantee is restored as a guardrail, and the renderer does not own the asset
+
+**Date:** 2026-08-11 · **Status:** Accepted · **Closes D-028**
+
+**Context.** D-023 promised the icon "cannot drift from the app's colours" because it was rendered
+from `NextPalette`'s hex values by a script. D-028 found no script and withdrew the promise, and
+named what would close it: commit the generator, read the hex values from `NextPalette.swift`
+rather than restating them, and either regenerate in CI or add a guardrail that fails when the
+PNG's key colours no longer match.
+
+**What the icon turned out to be.** Five flat fills and nothing else — 45 distinct colours in the
+whole file, the rest anti-aliasing. A `desk` ground; a rounded card carrying a `biro` spine; one
+line of writing; one line in `marker`. Four of the five colours are exactly `NextPalette`'s light
+values. **The fifth is not**: the unmarked line of writing is `#C9C4BA`, which is not a palette
+token and is not any alpha composite of two palette colours. That is recorded rather than folded
+in, because the point of this guardrail is which colours it can trace to a source.
+
+**Decision — two mechanisms, and only one of them owns anything.**
+
+1. **`scripts/lint-app-icon.py` is the guarantee.** It reads the `light:` value of every
+   `dynamic(light:dark:)` in `NextPalette.swift`, decodes the committed PNG, and fails if the
+   icon is no longer made of those values, if it is not 1024 × 1024, or if it stops being a
+   handful of flat fills. **Standard library only** — it decodes the PNG with `zlib` and
+   `struct` — so it runs in CI's Ubuntu guardrails job beside the other three, and on the
+   Windows development machine where the app cannot be compiled at all. Verified the way this
+   repository verifies a lint: a one-bit nudge to `biro` in the palette made it fail with the
+   colour named, and removing the nudge made it pass.
+
+2. **`scripts/render-app-icon.py` rebuilds the icon, and is not authoritative.** It reads the
+   same hex values and renders at 3× with a box downsample, which at exactly 3× is the 3 × 3
+   average D-023 described. Its output is byte-identical between runs. It is **not** byte-identical
+   to the committed asset: 4,214 pixels of 1,048,576 differ — **99.60% exact** — entirely on
+   anti-aliased curves, because Core Graphics drew the approved file and Pillow draws this one.
+
+**Why the renderer does not overwrite the asset.** Adopting its output would change an approved
+visual by 0.40% of its pixels. That is small and it is still a visual change to a decided thing,
+which is the owner's call rather than a refactor's — so the script refuses to write to the asset's
+path and says why. The approved PNG remains the visual source of truth.
+
+**What is therefore true now, stated exactly.** The icon cannot drift from the app's colours: the
+build fails if it does. The icon's *geometry* is not generated — it is measured, and the numbers in
+the renderer were recovered from the approved file rather than designed. Edges came from the
+anti-aliasing gradient to a sub-pixel; the corner came from fitting a superellipse whose exponent
+returned 2.00, meaning a plain circle; the remainder came from a search against the original.
+Nothing in it was chosen.
+
+**What would make the renderer authoritative.** An owner decision to adopt its output as the icon,
+after which the two are byte-identical by construction and the renderer can regenerate freely. Until
+then, regeneration is a reviewable step: run it, look at the result, and decide.
+
+**When to regenerate.** When a palette value the icon uses changes. `lint-app-icon.py` fails in that
+exact case, which is the point — it turns a silent drift into a red build with the colour named.
+
+---
+
 ## D-032 — The contrast exception stands, because the audit is not deterministic enough to retire it
 
 **Date:** 2026-08-11 · **Status:** Accepted · **Attempted and reverted, with the evidence kept**
@@ -1105,7 +1160,8 @@ neither happens. It blocks nothing today.
 
 ## D-028 — The icon-rendering script is not in the repository (corrects D-023)
 
-**Date:** 2026-08-10 · **Status:** Accepted
+**Date:** 2026-08-10 · **Status:** Accepted · **Closed by D-033** — the guardrail exists, the
+renderer exists, and the difference between what each of them guarantees is recorded there.
 
 **Context.** D-023 states that the app icon is "rendered from the palette's own hex values by a
 script at 3× and downsampled, so the asset cannot drift from the app's colours." A documentation

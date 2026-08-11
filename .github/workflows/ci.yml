@@ -36,6 +36,12 @@ jobs:
       - name: Enforce no force unwraps and no networking in shipped code
         run: bash scripts/lint-shipped-code.sh
 
+      # D-023 promised the icon could not drift from the app's colours and named a script that was
+      # never written; D-028 withdrew the promise. This is the mechanism that makes it true —
+      # standard library only, so it runs here rather than needing an image package installed.
+      - name: Enforce the app icon is made of the palette's values
+        run: python3 scripts/lint-app-icon.py
+
   tier1:
     name: Tier 1 — NextKit tests
     runs-on: macos-latest

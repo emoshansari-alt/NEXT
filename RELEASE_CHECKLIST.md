@@ -198,7 +198,12 @@ artwork, and the App Store screenshot set below. D-024 lists them exhaustively a
 sequence.
 
 - [x] No placeholder UI anywhere user-facing
-- [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
+- [x] App icon — the card, its spine and one marked line. **The colours are now enforced**:
+      `scripts/lint-app-icon.py` reads the hex values out of `NextPalette.swift`, decodes the
+      committed PNG and fails the build if the icon is no longer made of them (D-033, closing
+      D-028). Standard library only, so it runs in the guardrails job. The geometry is measured
+      rather than generated — `scripts/render-app-icon.py` rebuilds the icon to 99.60% of pixels
+      and deliberately does not overwrite the approved asset
 - [x] Typography and hierarchy final — **audited, and every site is now either a `NextType` token
       or a documented exception.** All 25 direct `.font(…)` sites in the app and widget were
       checked against the tokens: four were token misuse and were converted, and a fifth role the
