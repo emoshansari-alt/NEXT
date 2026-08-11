@@ -146,6 +146,81 @@ struct RecommendationSnapshotLinkTests {
     }
 }
 
+@Suite("Widget link — where a tap actually lands")
+struct WidgetLinkTests {
+
+    private let reference = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private func snapshot(taskID: TaskID?, generatedAt: Date) -> RecommendationSnapshot {
+        RecommendationSnapshot(
+            generatedAt: generatedAt,
+            taskID: taskID,
+            taskTitle: taskID == nil ? nil : "History essay",
+            headline: "Find three sources.",
+            detail: nil
+        )
+    }
+
+    @Test("a fresh snapshot links to the task it is showing")
+    func freshLinksToItsTask() {
+        let fresh = snapshot(taskID: TaskID("chem"), generatedAt: reference)
+
+        #expect(fresh.link(at: reference) == URL(string: "next://task/chem"))
+    }
+
+    @Test("a stale snapshot links to Today, not to the task it has stopped showing")
+    func staleLinksHome() {
+        // The widget stops drawing a stale snapshot and shows "Open NEXT to see what is next."
+        // Sending the tap to a specific task anyway would act on a recommendation the widget is
+        // no longer making, and the reader would have no way to tell where it came from. Today is
+        // the one screen that recomputes.
+        let stale = snapshot(
+            taskID: TaskID("chem"),
+            generatedAt: reference.addingTimeInterval(-RecommendationSnapshot.stalenessHorizon - 1)
+        )
+
+        #expect(stale.link(at: reference) == URL(string: "next://today"))
+        #expect(stale.deepLink == URL(string: "next://task/chem"), "the raw link is unchanged")
+    }
+
+    @Test("the staleness boundary itself still links to the task")
+    func theBoundaryIsNotStale() {
+        // `isStale` is a strict `>`, and the two must not disagree about the same instant: a
+        // widget that still draws a snapshot must still link to it.
+        let edge = snapshot(
+            taskID: TaskID("chem"),
+            generatedAt: reference.addingTimeInterval(-RecommendationSnapshot.stalenessHorizon)
+        )
+
+        #expect(edge.isStale(at: reference) == false)
+        #expect(edge.link(at: reference) == URL(string: "next://task/chem"))
+    }
+
+    @Test("a snapshot with nothing to do links to Today whether or not it is stale")
+    func emptyAlwaysLinksHome() {
+        let empty = RecommendationSnapshot.nothingToDo(
+            generatedAt: reference, headline: "Nothing yet.", detail: nil
+        )
+        let old = RecommendationSnapshot.nothingToDo(
+            generatedAt: reference.addingTimeInterval(-10 * 24 * 3600),
+            headline: "Nothing yet.",
+            detail: nil
+        )
+
+        #expect(empty.link(at: reference) == URL(string: "next://today"))
+        #expect(old.link(at: reference) == URL(string: "next://today"))
+    }
+
+    @Test("a snapshot dated in the future links to its task rather than being treated as old")
+    func aFutureSnapshotIsNotStale() {
+        // Reachable from a clock change or a time-zone move. Sending the user somewhere else for
+        // a reason they can neither see nor fix would be worse than a slightly odd timestamp.
+        let ahead = snapshot(taskID: TaskID("chem"), generatedAt: reference.addingTimeInterval(3600))
+
+        #expect(ahead.link(at: reference) == URL(string: "next://task/chem"))
+    }
+}
+
 @Suite("DeepLink — parsing")
 struct DeepLinkTests {
 

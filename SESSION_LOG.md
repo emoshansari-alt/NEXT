@@ -326,6 +326,37 @@ sub-pixel; the corner by fitting a superellipse whose exponent came back **2.00*
 circle after I had wrongly assumed a squircle; the rest by search against the original. Nothing was
 chosen.
 
+### The widget deep link, verified to the edge of what the environment allows
+
+The path is: the app writes a snapshot → the widget reads it and sets `widgetURL` → iOS delivers
+the tap → `onOpenURL` parses it → `TodayViewModel` opens the destination. Most of it was already
+covered, so the work was finding what was not.
+
+**One gap, and it was the only routing rule living outside `NextKit`.** The widget decided where a
+tap lands in a private computed property inside a target with no tests: a *stale* snapshot links
+to Today rather than to the task it has stopped displaying. Real behaviour with a real failure
+mode — the widget draws "Open NEXT to see what is next" while sending the tap to a specific task —
+and nothing could reach it. It is now `RecommendationSnapshot.link(at:)`, beside the `isStale` and
+`deepLink` it composes, and the widget calls it. Five Tier 1 tests: fresh, stale, the staleness
+boundary itself (where `isStale` and the link must not disagree about the same instant), an empty
+snapshot, and one dated in the future. Mutation-tested — deleting the staleness check made it
+return the task and the test named it.
+
+That is a consolidation rather than a redesign: the widget keeps its structure and the rule moved
+to the type that already owned both halves.
+
+**What is now verified, and where.**
+
+| | |
+|---|---|
+| Verified at Tier 1 | link for a task, an empty store, a percent-encoded identifier; stale, boundary and future-dated links; parsing rejects `next://`, `next://nonsense`, `next://task/` and an `https:` URL |
+| Verified at Tier 2 | a task link opens that task; a link to a **deleted** task leaves the user on Today; the bare link shows Today; the inbox parks a link arriving before Today exists; the snapshot survives a JSON round trip through the shared container; the app degrades silently when the container is absent |
+| Structural only | `TodayView.onOpenURL` — the two lines joining `DeepLink(url:)` to the model. Reachable only by a real URL delivery, which XCUITest cannot perform without driving Safari |
+| Genuinely gated | that iOS delivers a widget tap at all, and that the widget shows real content rather than its placeholder. The App Group is a *provisioned* entitlement: `containerURL(forSecurityApplicationGroupIdentifier:)` returns `nil` in an unsigned Simulator build, measured in run 31285133615. `RELEASE_GATED.md` B1a |
+
+No defect was found in the simulator-verifiable path. The checklist box stays unticked, because the
+thing it names — a widget with a working deep link — still cannot be observed working end to end.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There

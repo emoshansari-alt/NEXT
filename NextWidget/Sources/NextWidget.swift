@@ -126,10 +126,9 @@ struct NextWidgetView: View {
         }
     }
 
+    /// Where a tap lands. The rule is `RecommendationSnapshot`'s, so it is testable at Tier 1 and
+    /// cannot disagree with the staleness the view above uses to decide what to draw.
     private var link: URL? {
-        guard let snapshot = entry.snapshot, !snapshot.isStale(at: entry.date) else {
-            return DeepLink.today.url
-        }
-        return snapshot.deepLink
+        entry.snapshot?.link(at: entry.date) ?? DeepLink.today.url
     }
 }

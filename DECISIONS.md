@@ -1006,8 +1006,11 @@ returned 2.00, meaning a plain circle; the remainder came from a search against 
 Nothing in it was chosen.
 
 **What would make the renderer authoritative.** An owner decision to adopt its output as the icon,
-after which the two are byte-identical by construction and the renderer can regenerate freely. Until
-then, regeneration is a reviewable step: run it, look at the result, and decide.
+after which the two are byte-identical by construction and the renderer can regenerate freely.
+**That decision was taken and declined**: the approved asset stays canonical, because 0.40% of
+anti-aliased pixels is no product benefit worth altering an approved visual for. The renderer is
+reference and reconstruction tooling; the lint is the authoritative guardrail. Regeneration remains
+a reviewable step: run it, look at the result, and decide.
 
 **When to regenerate.** When a palette value the icon uses changes. `lint-app-icon.py` fails in that
 exact case, which is the point — it turns a silent drift into a red build with the colour named.

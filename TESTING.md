@@ -47,7 +47,7 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-09 · **Result:** 559 tests in 100 suites, 559 passed, 0 failed ·
+**Last run:** 2026-08-11 · **Result:** 564 tests in 101 suites, 564 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
@@ -60,7 +60,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks, and every mode driven through the one write path that rewrites an *existing* task |
 | Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language, which action Focus is pointed at and what finishing it means |
 | Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone, where tapping one lands |
-| Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing |
+| Widget | snapshot contents, staleness, JSON round trip, deep-link generation and parsing, and where a tap lands for a fresh, stale, empty, boundary-aged and future-dated snapshot |
 | Everything | date bucketing into sections, ordering, partitioning |
 | Monetisation | entitlement rules, expiry boundary, bounded billing-retry grace, per-receipt revocation, the capability gate, the 1.0 tripwire, the purchase contract, purchase tone |
 | Design | every palette pair's contrast ratio in both appearances, the card's separation from the desk (Tier 2 — the colours are app-layer) |
@@ -124,7 +124,9 @@ Several behaviours here were pinned by tests written *after* the code, which mea
 proves nothing on its own. Those were validated by deliberately breaking the implementation and
 confirming the test went red, then restoring it. Done so far for: prerequisite blocking, the
 repository's ordering guarantee, rejection clearing on start, next-action trimming, transition
-refusals, rejection preservation across `reopened()`, and the P5 language sweep.
+refusals, rejection preservation across `reopened()`, and the P5 language sweep. Also for the
+widget's link rule: deleting the staleness check made `link(at:)` return the task instead of
+Today, and the test named it.
 
 The monetisation rules were mutation-tested as a batch when they were written, because their RED
 was only a compile failure — every type was new, so "cannot find type in scope" proved the tests

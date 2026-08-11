@@ -78,6 +78,20 @@ public struct RecommendationSnapshot: Hashable, Sendable, Codable {
         guard let taskID else { return DeepLink.today.url }
         return DeepLink.task(taskID).url
     }
+
+    /// Where tapping should land **given how old this snapshot is**.
+    ///
+    /// A stale snapshot names a task that was the answer yesterday, and opening it would act on a
+    /// recommendation the widget itself has already stopped displaying — the reader sees "Open
+    /// NEXT to see what is next" and lands on a specific task anyway. Today is the honest
+    /// destination: it is the one screen that recomputes.
+    ///
+    /// This lives here rather than in the widget because it is the composition of two rules that
+    /// already live here, and in the widget it sat in a private computed property inside a target
+    /// with no tests — the only piece of routing in the app that nothing could reach.
+    public func link(at now: Date) -> URL? {
+        isStale(at: now) ? DeepLink.today.url : deepLink
+    }
 }
 
 /// Somewhere in the app a URL can point.

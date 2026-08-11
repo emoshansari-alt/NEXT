@@ -55,7 +55,17 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Notification deep link — tapping a reminder opens the task it named
 - [ ] Notification delivery observed — needs a device, `RELEASE_GATED.md` B5
 - [ ] Notification actions — deliberately out of 1.0 scope; §8 does not ask for them
-- [ ] Widget with working deep link
+- [ ] Widget with working deep link — **verified as far as an unsigned Simulator allows; the
+      remainder is App-Group-gated (B1a).** Verified: the snapshot's link for a task, for an empty
+      store, for an identifier needing percent-encoding, and — new — the rule that a **stale**
+      snapshot links to Today rather than to the task it has stopped displaying, including the
+      staleness boundary itself and a snapshot dated in the future (Tier 1). Parsing rejects
+      `next://`, `next://nonsense`, `next://task/` and an `https:` URL. On the app side the router
+      opens a live task, leaves the user on Today for a **deleted** one, and treats the bare link
+      as Today (Tier 2), and the inbox parks a link that arrives before Today exists.
+      **Not verified here:** that iOS delivers the tap to `onOpenURL` at all, which needs the
+      widget to be on a real home screen — and the widget cannot show real content without the
+      App Group, which is `RELEASE_GATED.md` B1a
 - [ ] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
       in a normal build** (D-015): NEXT+ unlocks nothing, so there is nothing to sell.
 - [ ] **Decide the NEXT+ capability boundary, or strip the paywall — release blocking.**
@@ -89,7 +99,7 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Testing — see `TESTING.md` for what each tier proves
 
-- [x] All Tier 1 unit tests pass — 559 in 100 suites
+- [x] All Tier 1 unit tests pass — 564 in 101 suites
 - [x] Every ranking edge case in `PRODUCT_SPEC.md` §5 covered — all eleven, with the three that
       were open closed this session: the deadline tier of the tie-break, a missing estimate's
       cost inside a stated window (D-025), and that the rejection penalty follows recency and
