@@ -184,64 +184,87 @@ final class AccessibilityUITests: XCTestCase {
         // the same frame the audit judged rather than against a screen that has since moved on.
         let screenshot = XCUIScreen.main.screenshot().image
 
-        do {
-            try app.performAccessibilityAudit(for: types) { issue in
-                let element = issue.element
+        // Up to two attempts, and the retry is about the audit *not finishing* rather than about
+        // what it finds.
+        //
+        // `performAccessibilityAudit` throws "Audit failed to complete in time" on a loaded
+        // runner, and it has done so twice on Capture — the screen with the keyboard up, which
+        // has by far the most elements to walk. That is not a finding. Recording it as one, which
+        // is what this used to do, files an infrastructure timeout as an accessibility defect and
+        // turns main red for a reason nobody here controls.
+        //
+        // What is *not* relaxed: a run that never completes an audit still fails. There is no
+        // path here where a screen passes without having been walked.
+        for attempt in 1...2 {
+            issues.removeAll()
+            overruled.removeAll()
 
-                // WCAG 1.4.3 exempts inactive components from the contrast requirement, and iOS
-                // dims a disabled system control itself — a toolbar "Save" that is off until
-                // there is something to save is rendered by the navigation bar, not by NEXT.
-                // Everything the app *can* control about disabled state is covered instead by
-                // `NextPaletteTests`, which asserts the disabled fill and label still clear 4.5:1.
-                if issue.auditType == .contrast, element?.isEnabled == false {
-                    return true
-                }
+            do {
+                try app.performAccessibilityAudit(for: types) { issue in
+                    let element = issue.element
 
-                // The system keyboard is not NEXT's screen. See `isSystemChrome`.
-                if issue.auditType == .sufficientElementDescription,
-                   let element,
-                   self.isSystemChrome(element) {
-                    return true
-                }
-
-                // What it is actually drawn in, and — where that clears the bar with margin —
-                // the reason this is not treated as a failure.
-                //
-                // The audit's contrast check is a heuristic over the render tree, and it is
-                // measurably wrong on this app in both appearances: it reports Settings' first
-                // section header, drawn at 7.14:1, and Today's empty state in dark, drawn at
-                // 6.90:1. WCAG asks about what a reader sees, and what a reader sees is the
-                // pixels. So the pixels decide, and every overruled verdict is printed rather
-                // than swallowed — this is the third filter in this handler and the only one
-                // backed by a measurement rather than by an argument.
-                //
-                // It can only ever *remove* a failure whose evidence contradicts it. An element
-                // the audit reports and the pixels also fail still fails, which is the case this
-                // check exists to keep honest.
-                var drawn = ""
-                if issue.auditType == .contrast, let frame = element?.frame {
-                    let measured = drawnContrast(in: frame, of: screenshot)
-                    if let ratio = measured.ratio, ratio >= Self.overrulingMargin {
-                        overruled.append("\(element?.label ?? "—") — \(measured.description)")
+                    // WCAG 1.4.3 exempts inactive components from the contrast requirement, and iOS
+                    // dims a disabled system control itself — a toolbar "Save" that is off until
+                    // there is something to save is rendered by the navigation bar, not by NEXT.
+                    // Everything the app *can* control about disabled state is covered instead by
+                    // `NextPaletteTests`, which asserts the disabled fill and label still clear 4.5:1.
+                    if issue.auditType == .contrast, element?.isEnabled == false {
                         return true
                     }
-                    drawn = "\n        drawn: \(measured.description)"
-                }
 
-                issues.append(
-                    """
-                    • \(issue.auditType)
-                        id: \(element?.identifier ?? "—")
-                        label: \(element?.label ?? "—")
-                        type: \(element.map { "\($0.elementType.rawValue)" } ?? "—")
-                        frame: \(element.map { "\($0.frame)" } ?? "—")
-                        detail: \(issue.compactDescription)\(drawn)
-                    """
-                )
-                return true
+                    // The system keyboard is not NEXT's screen. See `isSystemChrome`.
+                    if issue.auditType == .sufficientElementDescription,
+                       let element,
+                       self.isSystemChrome(element) {
+                        return true
+                    }
+
+                    // What it is actually drawn in, and — where that clears the bar with margin —
+                    // the reason this is not treated as a failure.
+                    //
+                    // The audit's contrast check is a heuristic over the render tree, and it is
+                    // measurably wrong on this app in both appearances: it reports Settings' first
+                    // section header, drawn at 7.14:1, and Today's empty state in dark, drawn at
+                    // 6.90:1. WCAG asks about what a reader sees, and what a reader sees is the
+                    // pixels. So the pixels decide, and every overruled verdict is printed rather
+                    // than swallowed — this is the third filter in this handler and the only one
+                    // backed by a measurement rather than by an argument.
+                    //
+                    // It can only ever *remove* a failure whose evidence contradicts it. An element
+                    // the audit reports and the pixels also fail still fails, which is the case this
+                    // check exists to keep honest.
+                    var drawn = ""
+                    if issue.auditType == .contrast, let frame = element?.frame {
+                        let measured = drawnContrast(in: frame, of: screenshot)
+                        if let ratio = measured.ratio, ratio >= Self.overrulingMargin {
+                            overruled.append("\(element?.label ?? "—") — \(measured.description)")
+                            return true
+                        }
+                        drawn = "\n        drawn: \(measured.description)"
+                    }
+
+                    issues.append(
+                        """
+                        • \(issue.auditType)
+                            id: \(element?.identifier ?? "—")
+                            label: \(element?.label ?? "—")
+                            type: \(element.map { "\($0.elementType.rawValue)" } ?? "—")
+                            frame: \(element.map { "\($0.frame)" } ?? "—")
+                            detail: \(issue.compactDescription)\(drawn)
+                        """
+                    )
+                    return true
+                }
+                break
+            } catch {
+                if attempt == 2 {
+                    issues.append(
+                        "• the audit did not complete, twice, so this screen is unverified: \(error)"
+                    )
+                } else {
+                    print("AUDIT [\(screen)] did not complete — retrying once: \(error)")
+                }
             }
-        } catch {
-            issues.append("• the audit itself failed: \(error)")
         }
 
         for overruledIssue in overruled {
