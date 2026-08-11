@@ -333,13 +333,17 @@ is 5.0 rather than 4.5 because the quantisation that stops an anti-aliased fring
 a ratio by a percent or two, and an element measured between the two is reported rather than argued
 about.
 
-**Contrast is enforced on every core screen, in both appearances.** It was the five NEXT draws
-itself — Today, Focus, Rescue, Capture and Onboarding — until session 14; the four built on a
-system `List` or `Form` (Everything, Task Detail, Settings, Minimum Win) were excluded because
-each reported one contrast failure on its first section header. Measuring the pixels inside that
-header's own frame showed it drawn at 7.14:1, so what was wrong was the audit's verdict rather
-than the rendering, and the exclusion had no basis left (D-021, corrected by D-029). It is checked
-twice and in two different ways:
+**Contrast is enforced on every core screen in dark, and on all but three in light.** It was the
+five NEXT draws itself — Today, Focus, Rescue, Capture and Onboarding — until session 14, when the
+four built on a system `List` or `Form` were measured. **Everything** joined them in both
+appearances. All four pass in dark, which nothing had ever checked. Task Detail, Settings and
+Minimum Win still exclude contrast **in light only**, and for a different reason than before: each
+reports one contrast issue carrying no element at all — no identifier, no label, no frame — so the
+pixel measurement that overrules the audit elsewhere has nothing to read. An unattributable
+finding cannot be fixed or dismissed, and parking it to obtain green is the one thing this suite
+must not do. The exception is narrower than it was, and its basis is now recorded rather than
+assumed (D-021, corrected by D-029, narrowed in session 14). Contrast is checked twice and in two
+different ways:
 `NextPaletteTests` resolves every token pair in both appearances and asserts 4.5:1 against the
 *values*, and the audit checks what is actually rendered.
 

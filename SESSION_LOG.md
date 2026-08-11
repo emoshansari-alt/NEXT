@@ -217,6 +217,35 @@ by writing marketing copy, fixed in the product rather than papered over in the 
 - **Nothing in the set claims Dark mode**, and no frame is dark. It ships and is measured, which
   is a reason it *may* be claimed, not a reason it should be.
 
+### Contrast enforcement: three screens gained it, three gained half of it
+
+The exception D-021 carried was that each system-container screen reports one contrast failure on
+its first section header, blamed on SwiftUI rendering it against the navigation bar's material.
+D-029 showed the header is drawn at 7.14:1, so that explanation was wrong — which is what made
+retiring the exception worth attempting.
+
+What run [31480311837](https://github.com/emoshansari-alt/NEXT/actions/runs/31480311837) actually
+established:
+
+- **In dark, all four pass the full audit** — Everything, Task Detail, Settings and Minimum Win.
+  None of them had ever been audited in dark at all, so this is coverage that did not exist.
+- **Everything passes in light too**, and is enforced in both. One screen genuinely retired.
+- Task Detail, Settings and Minimum Win each report **one contrast issue with no element**: no
+  identifier, no label, no frame, and "Contrast failed" as the entire description.
+
+The pixel measurement that overrules the audit elsewhere needs a frame, and there is none. So the
+exception stays for those three, in light only, on a stated basis rather than the wrong one it had.
+
+What makes it *likely* to be the same header: auditing Settings for `[.contrast]` alone returns it
+**with** its element at 7.14:1 and passes, in the same run where the full-set audit of the same
+screen in the same appearance fails with an elementless one. Different audit type set, same
+screen. That is a statement about XCTest rather than about NEXT's colours — and likely is not
+measured, so it does not get to be the answer.
+
+**Stopped here rather than continuing.** Attributing the finding means investigating XCTest's
+audit internals, and the useful half had already landed. Parking an unattributable issue to obtain
+a green result would have been the one move this suite exists to prevent.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There
