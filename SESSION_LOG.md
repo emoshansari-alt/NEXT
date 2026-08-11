@@ -5,15 +5,17 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
-## 2026-08-10 — Session 14: Dark mode worked the whole time, and the store set is composited
+## 2026-08-10 — Session 14: Dark mode worked the whole time, and four links that were three ideas
 
 **Objective.** Find the actual root cause of Dark mode rather than attempt a fifth implementation,
-then ship it only if its behaviour could be proven. Then composite the App Store set.
+then ship it only if its behaviour could be proven. Then composite the App Store set — which, seen
+at marketing scale, exposed a UX defect on the recommendation card and sent the session back into
+the product.
 
 ### Result
 
-**Tier 1: 559 tests / 100 suites. Tier 2: 128 unit / 29 suites + 47 UI tests.**
-Green — run [31407733469](https://github.com/emoshansari-alt/NEXT/actions/runs/31407733469).
+**Tier 1: 559 tests / 100 suites. Tier 2: 134 unit / 30 suites + 47 UI tests.**
+Green — run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275).
 
 **Dark mode ships.** `AppearanceAvailability` is deleted, the switch is in Settings, and every
 claim below is a measurement of what was drawn: light 0.808, dark on 0.119, dark off 0.808, and
@@ -94,6 +96,47 @@ a button that no longer existed. The same edit was made correctly in the other f
 green at 7 of 7 — and that asymmetry is what identified it immediately. **Two copies of one helper
 are a liability right up until one of them is the control.**
 
+### The four links under the card, and what marketing scale exposed
+
+Seeing the real UI at 1320 × 2868 is what surfaced it: `Not this  Why this?  Everything  Add`
+read as four fragments. Investigating rather than restyling found three things.
+
+**The row mixed three kinds of thing at one weight.** Two acted on the card, one navigated, one
+created. Nothing on screen said which was which.
+
+**`PRODUCT_SPEC.md` §4.2 had always drawn two rows.** The implementation flattened them into one
+`HStack` around session 5 and nobody noticed, because the spec's diagram is ASCII and the code
+compiled. The chosen proposal restores the spec rather than inventing a layout.
+
+**`Why this?` was a modal repeating the card.** The fact line already rendered the explanation
+whenever a task had a deadline, so the card said `Due in 2 days · ~20 min` and the alert said
+`Due in 2 days.` It earned its place only when a task had no deadline — a control whose value
+could not be predicted before tapping it, which is an efficient way to teach someone not to tap.
+
+Selected: two scoped rows, `Not this` relabelled `Something else`, `Why this?` retired with the
+reason moved onto the card. `RecommendationCardCopy` decides both card slots in one place, which
+is what makes "exactly once" structural rather than remembered — a deadline joins the fact line,
+any other reason takes a line of its own as a sentence, so no card reads
+`There is a clear first step. · ~15 min`. It switches on the shape of the reason rather than on
+whether a deadline exists, which also fixed a small existing defect: a task with a distant
+deadline that won on another factor used to print `You marked this important · ~20 min`.
+
+Two things the change forced that were not obvious from the proposal:
+
+- **The rejection dialog's fifth reason was already called "Something else".** A button cannot
+  share a label with one of the options it opens. It is now `Another reason` — mechanical, not
+  aesthetic.
+- **Store frame 3 was the `Why this?` alert**, so it could not survive its own subject being
+  deleted. Same beat, new screen: the card carrying its explanation, seeded without a deadline
+  because that is the only state where the reason line is the sole place it appears. The capture
+  asserts the reason exists before the shutter, so a frame whose whole subject is the explanation
+  cannot be taken without one.
+
+The load-bearing test sweeps every reason the engine can produce and asserts the sentence lands
+in exactly one slot — not zero, which would lose what §4.4 requires, and not two, which is what
+shipped. `Why this?` had no test that could have caught the duplication, because every test it
+had asserted an alert appeared.
+
 ### The App Store set is composited, and compositing found two defects in it
 
 `scripts/compose-store-screenshots.py` puts each captured frame on its colour field and writes the
@@ -145,11 +188,14 @@ a draft of it into the images would be taking that decision on the way past.
 
 ### Exact next action
 
-**Two things wait on the owner and nothing else does.** The Chroma ground colours are a
+**Three things wait on the owner and nothing else does.** The Chroma ground colours are a
 reconstruction and should be confirmed or replaced — one table in
-`scripts/compose-store-screenshots.py`, and re-running it is one command. And the **listing
-wording** is still unchosen (`PRODUCT_SPEC.md` §15 drafts it with alternatives); the set carries no
-captions until it is, since D-024 pairs the wording with the direction.
+`scripts/compose-store-screenshots.py`, and re-running it is one command. The **listing wording**
+is still unchosen (`PRODUCT_SPEC.md` §15 drafts it with alternatives); the set carries no captions
+until it is, since D-024 pairs the wording with the direction. And **frame 3** is now a third
+Today, differing by state rather than by screen — Capture Confirmation or Everything would each
+carry a beat the set does not currently show, and both change composition, which is D-024's
+checkpoint rather than mine.
 
 Needing nobody: the **NEXT+ capability boundary** (D-015, release-blocking, and an owner decision
 in its own right); moving the three `List`/`Form` screens into the contrast-enforced set now that

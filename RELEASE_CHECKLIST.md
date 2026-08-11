@@ -95,7 +95,7 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Recommendation loop test passes — run as a loop: recommend, reject what came back,
       recommend again. The rejected task is taken from the engine's own first answer rather than
       named in the fixture
-- [x] Tier 2 integration tests pass — 128 in 29 suites (2 known issues, both signing-gated), run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604)
+- [x] Tier 2 integration tests pass — 134 in 30 suites (2 known issues, both signing-gated), run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275)
 - [x] Tier 2 golden-path UI test passes — 40 UI tests green, run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604). A 41st,
       `ScreenshotCaptureUITests`, is excluded by `-skip-testing` and runs in CI's own capture
       step, so it is not counted here
@@ -229,7 +229,8 @@ sequence.
 - [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
 - [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
       running app by `ScreenshotCaptureUITests` and exported by CI, and **composited into the
-      Chroma layout** by `scripts/compose-store-screenshots.py`, run [31432584294](https://github.com/emoshansari-alt/NEXT/actions/runs/31432584294).
+      Chroma layout** by `scripts/compose-store-screenshots.py`, run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275) —
+      recaptured after the Today secondary-action change, so the set shows the shipped UI.
       The six ground colours in that script are a **reconstruction**: Chroma was selected in
       session 13 and its values were never committed, so they are the one part of the set worth a
       second opinion. The frames carry **no caption text**, because the listing wording is still
