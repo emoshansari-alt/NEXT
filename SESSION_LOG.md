@@ -397,6 +397,44 @@ chosen. This project has already spent rounds on confident diagnoses that measur
 (D-029, D-032), and an entitlement bug that sells somebody what they already own is a worse place
 to repeat it.
 
+### D-030 resolved, and the entry was wrong about its own defect
+
+D-030 said an overdue card "names a problem and offers nothing for it". Investigating first — as
+asked — showed that is false. The card carries **START**, which still opens Focus, and **I'm stuck
+→ "I don't have enough time"**, whose strategy re-ranks against a window the user states and never
+consults the deadline at all.
+
+**So one of the three recorded candidates already shipped.** "Extend the ladder to passed
+deadlines, planning against time the user has now" *is* `RescueStrategy.notEnoughTime`. Building it
+into `MinimumWinPlanner` would have created a second ladder from a second window, reachable from
+one screen, free to disagree with the first.
+
+**The real defect was the signpost.** "What can I still do?" was conditioned on
+`model.minimumWinPlan != nil`, so it vanished exactly when the deadline passed and the planner
+correctly declined. The route survived; the label pointing at it did not.
+
+**Underneath that, a boundary defect.** `Int((deadline - now) / 60) > 0` meant a deadline **forty
+seconds away** produced the same `.noTimeRemaining` as one two days gone. Truncation was deciding
+which UI state the user got.
+
+Fixed: `DeadlineFeasibility.passed` separates "no window at all" from "a window too small",
+measured in seconds, with a deadline exactly reached counting as passed. The card says *"This is
+past its deadline."* only then. The affordance is driven by feasibility rather than by whether a
+ladder exists, and routes by owner — Minimum Win while a window remains, Rescue's `notEnoughTime`
+once it has gone, opened directly on that path so the user is not asked twice what is wrong.
+START and I'm stuck are untouched.
+
+**The boundary that made reuse right:** Minimum Win owns *does this still fit before its deadline*
+and plans against what the calendar leaves; Rescue owns *what fits the time you have* and plans
+against what the user says. Once the deadline passes the first question has no window to be about.
+Teaching `MinimumWinPlanner` a user-stated window would have made it Rescue.
+
+One honest limitation, recorded rather than smoothed over: Rescue re-ranks, so the step offered may
+belong to a different task, and a 25-minute task against a 5-minute window yields an explicit
+"nothing fits — the shortest is 25 minutes" rather than a smaller rung. That is the existing
+behaviour of the path that was approved for reuse. A test asserts it rather than leaving it as a
+surprise.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There

@@ -32,6 +32,13 @@ extension Date {
         testReference.addingTimeInterval(hours * 3600)
     }
 
+    /// `Date.testReference` shifted by seconds. Needed for the sub-minute region where
+    /// `MinimumWinPlanner`'s whole-minute arithmetic and `feasibility`'s seconds disagree — the
+    /// boundary D-030 pins down.
+    static func secondsFromReference(_ seconds: Double) -> Date {
+        testReference.addingTimeInterval(seconds)
+    }
+
     /// `Date.testReference` shifted by a whole number of days. Negative means the past.
     static func daysFromReference(_ days: Double) -> Date {
         hoursFromReference(days * 24)

@@ -77,6 +77,15 @@ public struct MinimumWinPlanner: Sendable {
     ) -> MinimumWinOutcome {
         guard feasibility.suggestsMinimumWin else { return .notNeeded(feasibility) }
 
+        // Once the deadline has gone there is no window to plan against, and this planner's
+        // window *is* the time before the deadline. Declining is the honest answer and not a
+        // shortcoming: the question "what can I still do?" is answered from that point on by
+        // Rescue, which plans against an amount of time the user states rather than one the
+        // calendar implies (D-030). Stated here rather than left to arithmetic further down —
+        // it used to be reached only because a negative interval failed a `> 0` check, which
+        // made a semantic boundary look like a rounding detail.
+        guard !feasibility.deadlineHasPassed else { return .noTimeRemaining }
+
         // A caller can hand in a feasibility of its own. An unreachable deadline on an undated
         // task is a contradiction, and the honest response to a contradiction is to decline
         // rather than to invent a deadline to plan against.

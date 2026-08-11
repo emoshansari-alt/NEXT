@@ -28,6 +28,26 @@ struct RescueView: View {
 
     private let strategy = RescueStrategy()
 
+    /// Opens straight onto one path instead of asking which it is.
+    ///
+    /// Used by Today's "What can I still do?" once a deadline has passed: the user has already
+    /// said what is in the way by tapping that, and asking them again would be the app not
+    /// listening. Everything after this point is the ordinary Rescue flow — the same time-budget
+    /// choices, the same re-ranking, the same first-fitting rung (D-030).
+    init(
+        task: TaskItem,
+        allTasks: [TaskItem],
+        now: Date = Date(),
+        startingPath: RescuePath? = nil,
+        onStart: @escaping (RescueResponse) -> Void = { _ in }
+    ) {
+        self.task = task
+        self.allTasks = allTasks
+        self.now = now
+        self.onStart = onStart
+        _path = State(initialValue: startingPath)
+    }
+
     var body: some View {
         NavigationStack {
             Group {

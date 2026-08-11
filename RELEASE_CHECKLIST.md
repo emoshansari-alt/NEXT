@@ -46,11 +46,13 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
       the screen for ever (D-020)
 - [x] Minimum Win **surfaced in the UI** — offered on Today when the deadline is unreachable
-- [ ] **A passed deadline states a problem and offers no way out — D-030, open.** The card says
-      "There is not enough time left to finish this." whenever the deadline is unreachable, and
-      the Minimum Win ladder is absent once the deadline has actually passed, because the planner
-      returns `.noTimeRemaining`. Not investigated: found during the store-caption pass and
-      recorded rather than fixed on the way past. Blocks nothing today
+- [x] **A passed deadline says so, and keeps its signpost — D-030, resolved.** The investigation
+      disproved the entry's own premise: the route was never missing (START, and Rescue's "I don't
+      have enough time", which plans against a window the user states and ignores the deadline).
+      What vanished was the **affordance** — "What can I still do?" was conditioned on a ladder
+      existing. It is now driven by feasibility and routed by which planner owns the answer, and
+      `DeadlineFeasibility.passed` separates "no window at all" from "a window too small", so
+      integer truncation at 60 seconds can no longer decide which state the user is shown
 - [x] "I'm stuck" reachable from inside Focus, and the smaller action replaces the current one
 - [x] Notification deep link — tapping a reminder opens the task it named
 - [ ] Notification delivery observed — needs a device, `RELEASE_GATED.md` B5
@@ -105,7 +107,7 @@ see `RELEASE_GATED.md` Gate B.
 
 ### Testing — see `TESTING.md` for what each tier proves
 
-- [x] All Tier 1 unit tests pass — 564 in 101 suites
+- [x] All Tier 1 unit tests pass — 568 in 101 suites
 - [x] Every ranking edge case in `PRODUCT_SPEC.md` §5 covered — all eleven, with the three that
       were open closed this session: the deadline tier of the tie-break, a missing estimate's
       cost inside a stated window (D-025), and that the rejection penalty follows recency and

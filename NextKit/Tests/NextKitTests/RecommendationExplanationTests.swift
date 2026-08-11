@@ -183,15 +183,46 @@ struct DeadlineFeasibilityTests {
         #expect(result == .unreachable)
     }
 
-    @Test("an overdue task with work remaining is unreachable")
-    func overdueIsUnreachable() throws {
+    @Test("an overdue task is past its deadline rather than merely unreachable")
+    func overdueIsPassed() throws {
+        // These were one state until D-030. They are different facts and the card says different
+        // things about them: `unreachable` is a window too small to finish in, `passed` is no
+        // window at all.
         let task = makeTask(
             id: "t", deadline: .hoursFromReference(-1), estimatedMinutes: 30
         )
 
         let result = try feasibility(task)
 
+        #expect(result == .passed)
+        #expect(result.suggestsMinimumWin, "something smaller is still worth offering")
+        #expect(result.deadlineHasPassed)
+    }
+
+    @Test("a deadline less than a minute away is still ahead, not passed")
+    func aSubMinuteDeadlineIsStillAhead() throws {
+        // The boundary defect D-030 found. `MinimumWinPlanner` works in whole minutes, so forty
+        // seconds truncates to zero — and for a while that truncation decided which state the
+        // user was shown. Feasibility is measured in seconds and is not fooled.
+        let task = makeTask(
+            id: "t", deadline: .secondsFromReference(40), estimatedMinutes: 30
+        )
+
+        let result = try feasibility(task)
+
         #expect(result == .unreachable)
+        #expect(result.deadlineHasPassed == false)
+    }
+
+    @Test("the deadline exactly reached counts as passed")
+    func theExactBoundaryIsPassed() throws {
+        // A zero-length window cannot contain work, so there is nothing for "still ahead" to
+        // mean here.
+        let task = makeTask(
+            id: "t", deadline: .secondsFromReference(0), estimatedMinutes: 30
+        )
+
+        #expect(try feasibility(task) == .passed)
     }
 
     @Test("a task that only just fits is tight")

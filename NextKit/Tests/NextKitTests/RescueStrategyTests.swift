@@ -255,6 +255,64 @@ struct RescueNotEnoughTimeTests {
         #expect(response.commitmentMinutes == 15)
     }
 
+    @Test("every offered window is decisive, and never offers more than it holds")
+    func eachBudgetBehaves() throws {
+        // The four choices are the whole of the user's input to this path, and once a deadline
+        // has passed it is the *only* route to a smaller goal (D-030) — so each is exercised
+        // rather than trusting that a test of fifteen minutes covers five.
+        //
+        // "Decisive" is the claim, not "always a step". The ranking engine treats the window as
+        // a hard constraint and drops a task that cannot fit it, so a twenty-minute task and a
+        // five-minute window produce an explicit "nothing fits, the shortest is twenty" — which
+        // is an answer. Silence would not be.
+        let worksheet = makeTask(
+            id: "worksheet", title: "Maths worksheet",
+            deadline: .daysFromReference(3), estimatedMinutes: 20,
+            nextAction: "Answer questions 1 to 5"
+        )
+
+        for budget in TimeBudget.allCases {
+            let outcome = rescue.notEnoughTime(budget, from: [worksheet], now: .testReference)
+
+            if let response = outcome.response {
+                #expect(response.path == .notEnoughTime)
+                #expect(response.commitmentMinutes == budget.minutes)
+                if let offered = response.step.estimatedMinutes {
+                    #expect(offered <= budget.minutes, "\(budget.minutes) min offered \(offered)")
+                }
+            } else if case .nothingAvailable(let reason) = outcome {
+                #expect(
+                    reason == .nothingFitsAvailableTime(shortestMinutes: 20),
+                    "\(budget.minutes) min should say what the shortest thing is"
+                )
+                #expect(budget.minutes < 20, "\(budget.minutes) min is long enough to fit this")
+            } else {
+                Issue.record("\(budget.minutes) min produced neither guidance nor a reason")
+            }
+        }
+    }
+
+    @Test("a task whose deadline has already passed is still answerable here")
+    func anOverdueTaskStillGetsAWindow() throws {
+        // The case D-030 turns on. `MinimumWinPlanner` declines once the deadline has gone,
+        // because its window *is* the time before the deadline. This path never consults the
+        // deadline at all — it plans against what the user says they have now — so it answers
+        // exactly as it would for anything else. That is why Today routes "What can I still do?"
+        // here instead of growing a second planner.
+        let overdue = makeTask(
+            id: "worksheet", title: "Chemistry worksheet",
+            deadline: .daysFromReference(-2), estimatedMinutes: 25,
+            nextAction: "Do questions 1 to 5"
+        )
+
+        let outcome = rescue.notEnoughTime(.thirty, from: [overdue], now: .testReference)
+        let response = try #require(outcome.response)
+
+        #expect(response.path == .notEnoughTime)
+        #expect(response.taskID == TaskID("worksheet"))
+        #expect(response.commitmentMinutes == 30)
+    }
+
     @Test("a task of unknown length is offered as one step, not as the whole thing")
     func unsizedTaskIsOfferedAsAStep() throws {
         let essay = makeTask(id: "essay", title: "Finish history essay")

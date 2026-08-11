@@ -47,7 +47,7 @@ Forbidden phrasings, and what to say instead:
 
 ## Current state — Tier 1
 
-**Last run:** 2026-08-11 · **Result:** 564 tests in 101 suites, 564 passed, 0 failed ·
+**Last run:** 2026-08-11 · **Result:** 568 tests in 101 suites, 568 passed, 0 failed ·
 Swift 6.3.3, `x86_64-unknown-windows-msvc`
 
 | Area | Covers |
@@ -56,7 +56,7 @@ Swift 6.3.3, `x86_64-unknown-windows-msvc`
 | Model | task state transitions and their refusals |
 | Persistence | the `TaskRepository` contract, run against the in-memory implementation |
 | Rescue | all four stuck-paths, step shrinking, work-kind inference, time budgets, tone |
-| Minimum Win | ladder construction, honesty constraints, substeps, time boxing |
+| Minimum Win | ladder construction, honesty constraints, substeps, time boxing, and declining once the deadline has passed (D-030) |
 | Intelligence | response validation, all eight failure-injection modes, offline extraction, date parsing, brain-dump splitting, decomposition into child tasks, and every mode driven through the one write path that rewrites an *existing* task |
 | Focus | timer elapsed/remaining/pause/resume, spoken countdown, neutral language, which action Focus is pointed at and what finishing it means |
 | Notifications | what is and is not scheduled, the 64-notification cap, stable identifiers, tone, where tapping one lands |

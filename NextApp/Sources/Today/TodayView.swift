@@ -43,6 +43,9 @@ struct TodayView: View {
     @State private var showingCapture = false
     @State private var showingEverything = false
     @State private var showingRescue = false
+
+    /// Which Rescue path to open on, when Today already knows. `nil` asks the user.
+    @State private var rescueStartingPath: RescuePath?
     @State private var showingMinimumWin = false
 
     var body: some View {
@@ -128,11 +131,12 @@ struct TodayView: View {
                 makeSettingsModel: makeSettingsModel
             )
         }
-        .sheet(isPresented: $showingRescue) {
+        .sheet(isPresented: $showingRescue, onDismiss: { rescueStartingPath = nil }) {
             if let task = model.recommendation?.task {
                 RescueView(
                     task: task,
                     allTasks: model.tasks,
+                    startingPath: rescueStartingPath,
                     onStart: { response in
                         // Focus on the step Rescue offered, not on the task it came from. The
                         // response also names its own task, which the "not enough time" path can
@@ -268,11 +272,11 @@ struct TodayView: View {
                         .accessibilityIdentifier("recently-rejected-notice")
                 }
 
-                if recommendation.deadlineFeasibility.suggestsMinimumWin {
+                if let notice = Self.outOfTimeNotice(for: recommendation.deadlineFeasibility) {
                     // A fact, not a warning and not a telling-off. The user already knows they
                     // are short of time; what they do not know is that there is still a version
                     // of this worth doing (PRODUCT_SPEC.md §4.12).
-                    Text(Self.minimumWinNotice)
+                    Text(notice)
                         .font(NextType.meta)
                         .foregroundStyle(NextPalette.warning)
                         .fixedSize(horizontal: false, vertical: true)
@@ -304,7 +308,7 @@ struct TodayView: View {
             .accessibilityIdentifier("start-button")
             .accessibilityHint("Opens Focus for this action.")
 
-            secondaryActions()
+            secondaryActions(recommendation)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
         }
@@ -326,21 +330,40 @@ struct TodayView: View {
     /// The separation is carried by position and by the underline the quiet style already owns,
     /// and by nothing else. A toolbar, an icon row or a menu here would each be a worse answer
     /// than the problem.
-    private func secondaryActions() -> some View {
+    private func secondaryActions(_ recommendation: Recommendation) -> some View {
         VStack(spacing: 10) {
             // Only when the ladder genuinely exists. Offering "what can I still do?" for work
             // that comfortably fits would be manufacturing an emergency.
-            if model.minimumWinPlan != nil {
-                Button("What can I still do?") { showingMinimumWin = true }
-                    .buttonStyle(.quietText)
-                    .accessibilityIdentifier("minimum-win-button")
+            // Shown whenever the original goal is out of reach — **not** when a ladder happens
+            // to exist. Those came apart once the deadline passed: `MinimumWinPlanner` returns
+            // `.noTimeRemaining`, the button vanished, and the card was left stating a problem
+            // with no visible way forward. The route was there all along behind "I'm stuck";
+            // what disappeared was the signpost (D-030).
+            if recommendation.deadlineFeasibility.suggestsMinimumWin {
+                Button("What can I still do?") {
+                    if model.minimumWinPlan != nil {
+                        // The deadline is still ahead, so there is a window and Minimum Win owns
+                        // planning against it.
+                        showingMinimumWin = true
+                    } else {
+                        // No window left. Rescue owns planning against time the user states, so
+                        // this opens the path they have effectively already chosen.
+                        rescueStartingPath = .notEnoughTime
+                        showingRescue = true
+                    }
+                }
+                .buttonStyle(.quietText)
+                .accessibilityIdentifier("minimum-win-button")
             }
 
             // This card. Two ways of saying the same thing for two different reasons — "I can't
             // do this" and "not this one" — so they belong beside each other, where somebody who
             // is already stuck is looking.
             HStack(spacing: 4) {
-                Button("I'm stuck") { showingRescue = true }
+                Button("I'm stuck") {
+                    rescueStartingPath = nil
+                    showingRescue = true
+                }
                     .buttonStyle(.quietText)
                     .accessibilityIdentifier("im-stuck-button")
 
@@ -368,6 +391,20 @@ struct TodayView: View {
     static let recentlyRejectedNotice = "You passed on this earlier, but it is what is left."
     static let minimumWinNotice = "There is not enough time left to finish this."
 
+    /// Said once the deadline itself has gone.
+    ///
+    /// `minimumWinNotice` describes a window too small to finish in. Once the deadline has
+    /// passed there is no window at all, and saying there is "not enough time left" implies one
+    /// that does not exist (D-030). Plain and factual, with nothing added: no shame, no urgency,
+    /// no encouragement — §3 rules all three out, and the user already knows.
+    static let pastDeadlineNotice = "This is past its deadline."
+
+    /// Which of the two the card says, or `nil` when the goal is still reachable.
+    static func outOfTimeNotice(for feasibility: DeadlineFeasibility) -> String? {
+        guard feasibility.suggestsMinimumWin else { return nil }
+        return feasibility.deadlineHasPassed ? pastDeadlineNotice : minimumWinNotice
+    }
+
     private func accessibilityLabel(for recommendation: Recommendation) -> String {
         var parts = [recommendation.task.title, recommendation.actionText]
         parts.append(recommendation.explanation.sentence)
@@ -380,8 +417,8 @@ struct TodayView: View {
         if recommendation.wasRecentlyRejected {
             parts.append(Self.recentlyRejectedNotice)
         }
-        if recommendation.deadlineFeasibility.suggestsMinimumWin {
-            parts.append(Self.minimumWinNotice)
+        if let notice = Self.outOfTimeNotice(for: recommendation.deadlineFeasibility) {
+            parts.append(notice)
         }
         return parts.joined(separator: " ")
     }

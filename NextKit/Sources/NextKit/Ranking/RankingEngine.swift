@@ -319,6 +319,10 @@ public struct RankingEngine: Sendable {
         let remaining = deadline.timeIntervalSince(now)
         let needed = Double(estimate) * 60
 
+        // Measured in seconds, so a deadline forty seconds away is still ahead. The minute-based
+        // planning downstream is unchanged; what is avoided is letting that truncation decide
+        // *which state the user is in* — see D-030.
+        if remaining <= 0 { return .passed }
         if remaining < needed { return .unreachable }
         if remaining < needed * weights.tightDeadlineMultiplier { return .tight }
         return .comfortable

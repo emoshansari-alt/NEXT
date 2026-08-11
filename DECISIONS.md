@@ -1243,10 +1243,11 @@ grounds, the same captions, run against the new frames.
 
 ---
 
-## D-030 — OPEN: a passed deadline states a problem and offers no way out
+## D-030 — A passed deadline says so, and keeps its signpost (RESOLVED)
 
-**Date:** 2026-08-10 · **Status:** **Open — recorded, not decided, not investigated.** Raised by
-the store-caption pass and deliberately left out of that task's scope.
+**Date:** 2026-08-10 · **Status:** **Resolved 2026-08-11.** Recorded from the store-caption pass,
+investigated and fixed as its own piece of work. The investigation disproved this entry's own
+premise; what follows is the original text, then the correction.
 
 **What was found.** Today's card shows `There is not enough time left to finish this.` whenever
 `deadlineFeasibility.suggestsMinimumWin`. Minimum Win is the answer to that sentence — the ladder
@@ -1273,6 +1274,60 @@ one.
    now rather than against time remaining before a deadline.
 3. Decide it is correct as it stands, on the grounds that late work needs no ladder because
    nothing is being raced any more — and remove the notice for the passed case instead.
+
+**What the investigation disproved.** This entry says the screen "offers nothing" for the problem
+it names. That is wrong, and it was wrong when written. An overdue card carries **START**, which
+still opens Focus on the task, and **I'm stuck → "I don't have enough time"**, whose strategy
+re-ranks with `availableMinutes` as a hard constraint and offers the first rung that fits. That
+path never consults the deadline, so a passed one does not disturb it.
+
+**Shape 2 above therefore already exists.** "Extend the ladder to passed deadlines, planning
+against a stated amount of time the user has now" is a description of `RescueStrategy.notEnoughTime`
+as already shipped. Building it into `MinimumWinPlanner` would have produced a second ladder,
+planned from a second window, reachable from one screen, able to disagree with the first.
+
+**The actual defect was the signpost, not the route.** While a deadline is merely unmeetable, Today
+shows **"What can I still do?"** — a direct affordance labelled to match the problem. It was
+conditioned on `model.minimumWinPlan != nil`, so the moment the deadline passed and the planner
+returned `.noTimeRemaining`, the button vanished. The card was left stating a problem, and the only
+remaining route was labelled "I'm stuck" — which a reader of *"There is not enough time left to
+finish this."* has no reason to connect to it.
+
+**And a boundary defect underneath it.** `MinimumWinPlanner` computes
+`Int((deadline - now) / 60)` and requires `> 0`, so a deadline **forty seconds away** truncated to
+zero and produced the same `.noTimeRemaining` as one two days gone. Integer truncation was deciding
+which state the user was shown.
+
+**Selected behaviour.**
+
+1. `DeadlineFeasibility` gains **`.passed`**, separate from `.unreachable`. Measured in seconds:
+   `remaining <= 0` is passed, and a deadline exactly reached counts as passed because a
+   zero-length window cannot contain work. A deadline forty seconds away is `.unreachable` —
+   still ahead, still Minimum Win's.
+2. The card says **"This is past its deadline."** once it has, and keeps "There is not enough time
+   left to finish this." only while a window exists. Plain and factual: §3 rules out shame,
+   urgency and encouragement, and the user already knows.
+3. **"What can I still do?" is driven by feasibility, not by whether a ladder happens to exist.**
+   It is shown for both out-of-time states, so truncation can no longer remove it.
+4. It **routes** by which planner owns the answer: deadline ahead → Minimum Win's ladder; deadline
+   passed → Rescue, opened directly on `notEnoughTime` so the user is asked the one thing only
+   they know, and not asked again what is in the way.
+5. `START` and `I'm stuck` are untouched. `I'm stuck` still offers all four paths.
+
+**The architectural reason Rescue is reused rather than duplicated.** The two planners answer
+different questions and own different windows. Minimum Win asks *does the original task still fit
+before its deadline*, and plans against the time the calendar leaves. Rescue asks *what fits the
+time you have*, and plans against a window the user states. Once a deadline has passed the first
+question has no window to be asked about — which is why `MinimumWinPlanner` declining is correct
+rather than a shortcoming — and the second is unaffected. One question the user asks, two owners,
+selected by which case applies. Teaching `MinimumWinPlanner` to accept a user-stated window would
+have made it Rescue.
+
+**What this route does not do, stated because it is a real difference.** Rescue re-ranks, so the
+step it offers may belong to a different task than the overdue one. And because the engine treats
+the window as a hard constraint, a 25-minute task against a 5-minute window yields an explicit
+"nothing fits — the shortest is 25 minutes" rather than a smaller rung of it. That is the existing,
+honest behaviour of the path, and it is what the owner approved reusing.
 
 **Why this is written down rather than fixed in passing.** It was found during a marketing copy
 pass, and the owner scoped that task to copy. A product question discovered in the margins of
