@@ -42,10 +42,15 @@ struct TodayView: View {
     @State private var showingRejectionReasons = false
     @State private var showingCapture = false
     @State private var showingEverything = false
-    @State private var showingRescue = false
-
-    /// Which Rescue path to open on, when Today already knows. `nil` asks the user.
-    @State private var rescueStartingPath: RescuePath?
+    /// How Rescue was opened, and `nil` when it is closed.
+    ///
+    /// Driven by an **item rather than a flag**, and that is load-bearing. With
+    /// `.sheet(isPresented:)` the content is captured before a state write made in the same
+    /// event is visible, so setting the starting path and the flag together presented Rescue
+    /// with the *old* path — the four-way chooser instead of the time budget. The value that
+    /// decides what the sheet shows is now the same value that presents it, so the two cannot
+    /// disagree.
+    @State private var rescueRequest: RescueRequest?
     @State private var showingMinimumWin = false
 
     var body: some View {
@@ -131,12 +136,12 @@ struct TodayView: View {
                 makeSettingsModel: makeSettingsModel
             )
         }
-        .sheet(isPresented: $showingRescue, onDismiss: { rescueStartingPath = nil }) {
+        .sheet(item: $rescueRequest) { request in
             if let task = model.recommendation?.task {
                 RescueView(
                     task: task,
                     allTasks: model.tasks,
-                    startingPath: rescueStartingPath,
+                    startingPath: request.startingPath,
                     onStart: { response in
                         // Focus on the step Rescue offered, not on the task it came from. The
                         // response also names its own task, which the "not enough time" path can
@@ -348,8 +353,7 @@ struct TodayView: View {
                     } else {
                         // No window left. Rescue owns planning against time the user states, so
                         // this opens the path they have effectively already chosen.
-                        rescueStartingPath = .notEnoughTime
-                        showingRescue = true
+                        rescueRequest = RescueRequest(startingPath: .notEnoughTime)
                     }
                 }
                 .buttonStyle(.quietText)
@@ -360,10 +364,7 @@ struct TodayView: View {
             // do this" and "not this one" — so they belong beside each other, where somebody who
             // is already stuck is looking.
             HStack(spacing: 4) {
-                Button("I'm stuck") {
-                    rescueStartingPath = nil
-                    showingRescue = true
-                }
+                Button("I'm stuck") { rescueRequest = RescueRequest(startingPath: nil) }
                     .buttonStyle(.quietText)
                     .accessibilityIdentifier("im-stuck-button")
 
@@ -506,6 +507,19 @@ struct TodayView: View {
 /// `.other` reads "Another reason" rather than "Something else", which is what it said until the
 /// control above it took that name. A button and one of the options it opens cannot share a
 /// label — the user would tap "Something else" and be offered "Something else".
+/// Why the Rescue sheet is open.
+///
+/// A type rather than a bare `RescuePath?` because `sheet(item:)` needs identity, and because
+/// "opened without a path" is a real state that a plain optional would make indistinguishable
+/// from "closed".
+struct RescueRequest: Identifiable {
+
+    /// The path to open on, or `nil` to ask which kind of stuck this is.
+    let startingPath: RescuePath?
+
+    var id: String { startingPath?.rawValue ?? "unspecified" }
+}
+
 enum RejectionCopy {
     static func label(for reason: RejectionReason) -> String {
         switch reason {

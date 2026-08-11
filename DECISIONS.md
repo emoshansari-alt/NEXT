@@ -1314,6 +1314,14 @@ which state the user was shown.
    they know, and not asked again what is in the way.
 5. `START` and `I'm stuck` are untouched. `I'm stuck` still offers all four paths.
 
+**A bug the fix itself produced, and what it cost to find.** The first implementation set the
+starting path and a `showingRescue` flag in one action and presented with `.sheet(isPresented:)`.
+That sheet captures its content before a state write made in the same event is visible, so Rescue
+opened on the **four-way chooser** with the old value rather than on the time budget. The affordance
+worked and led to the wrong screen — which the UI tests caught and a reading of the diff would not
+have. The sheet is now `.sheet(item:)` keyed on a `RescueRequest`, so the value that decides what
+the sheet shows is the same value that presents it and the two cannot disagree.
+
 **The architectural reason Rescue is reused rather than duplicated.** The two planners answer
 different questions and own different windows. Minimum Win asks *does the original task still fit
 before its deadline*, and plans against the time the calendar leaves. Rescue asks *what fits the
