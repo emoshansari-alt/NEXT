@@ -543,7 +543,7 @@ valuable signal for improving the ranking engine.
 - Line: *Know what to do next.*
 - Description concept: *Dump everything on your mind. NEXT turns the mess into one thing you
   can actually start.*
-- Screenshot narrative and captions — **approved**. The six frames CI captures from the running
+- Screenshot narrative and captions — **approved and locked (D-031)**. The six frames CI captures from the running
   app (`ScreenshotCaptureUITests`), composited onto the Chroma grounds by
   `scripts/compose-store-screenshots.py`, in listing order:
 

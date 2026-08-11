@@ -4,7 +4,7 @@ Two lists. The first is work that must be finished **before** NEXT can be called
 **Local Release Candidate**. The second is everything gated on Apple, which lives in
 [`RELEASE_GATED.md`](RELEASE_GATED.md) and is only summarised here.
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-10
 
 ---
 
@@ -227,10 +227,11 @@ sequence.
 
 ### Store preparation that needs no membership
 
-- [ ] **Screenshot direction proposed and selected — owner checkpoint (D-024).** Two or three
-      distinct presentation directions, shown as visual examples rather than described, with a
-      recommendation. The set is not produced until a direction is selected. Other
-      release-candidate work does not wait on this.
+- [x] **Screenshot direction proposed, selected, and the finished set approved — D-031.** Three
+      distinct directions were shown as live mockups; Chroma was chosen; the six-frame set is
+      rendered, reviewed at size and locked. Geometry, grounds, caption placement and typography,
+      frame order and the six caption strings are all final, and the set is regenerated only when
+      a verified product change alters a screen it shows
 - [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
 - [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
       running app by `ScreenshotCaptureUITests` and exported by CI, and **composited into the
@@ -241,17 +242,20 @@ sequence.
       second opinion. The frames carry **no caption text**, because the listing wording is still
       an open decision on the line below and baking a draft of it into the images would take that
       decision on the way past
-- [ ] Title, subtitle, description, keywords — **drafted** in `PRODUCT_SPEC.md` §15, with
-      alternatives for the title and subtitle. The wording is chosen alongside the screenshot
-      direction rather than separately (D-024): the two have to say the same thing in the same
-      voice. Every claim in it is one the shipped app supports today
+- [x] **Screenshot captions chosen — D-031.** Six, one line each, recorded in
+      `PRODUCT_SPEC.md` §15 with what each claims and the two things the set deliberately does not
+      say. One of them changed a **product** string on the way: `There is a clear first step.`
+      became `Nothing to decide before you start.`
+- [ ] Title, subtitle, description, keywords — **still drafted**, in `PRODUCT_SPEC.md` §15, with
+      alternatives for the title and subtitle. **Owner decision.** The captions are the part of
+      the wording the screenshot direction needed (D-024); the listing metadata is its own choice.
+      Every claim in the draft is one the shipped app supports today
 - [x] Privacy policy text drafted — `PRIVACY.md`, written for a sixteen-year-old to read in one
       go, because a policy nobody finishes is not consent. Every sentence is a claim the
       repository currently supports; it carries an instruction to re-check it against the code
       before publication, since the first cloud provider changes three of them
 - [ ] Support contact decided — **owner decision.** It is the one placeholder in the drafted
       privacy policy and in `RELEASE_GATED.md` B3 that nobody else can supply
-- [ ] Support contact decided
 - [x] StoreKit product structure defined in a `.storekit` file — `NextApp/NEXT.storekit`,
       three provisional products, identifiers guarded by `scripts/lint-storekit.sh` (D-016)
 - [x] App Store Connect configuration steps written out for later execution —

@@ -959,6 +959,52 @@ than done.
 
 ---
 
+## D-031 — The App Store screenshot set is approved and locked
+
+**Date:** 2026-08-10 · **Status:** Accepted · **Closes the D-024 checkpoint for screenshots**
+
+**Decision.** The six-frame flat Chroma set is final. Locked: the geometry, the ground colours,
+the caption placement and typography, the frame order, and the six caption strings. No further
+aesthetic change is made to any of them. The set is regenerated **only** when a verified product
+change alters a screen it shows.
+
+| # | Frame | Ground | Caption |
+|---|---|---|---|
+| 1 | Capture, mid-dump | `#B45309` | *Put it all down at once.* |
+| 2 | Today, chosen by deadline | `#2438C8` | *One thing, and why.* |
+| 3 | Today, chosen because it is startable | `#7C2D91` | *Not the project. The first move.* |
+| 4 | Focus, running | `#047857` | *Then it gets out of the way.* |
+| 5 | Rescue | `#BE185D` | *Say what's in the way.* |
+| 6 | Today, overdue | `#0E7490` | *Behind? No lecture.* |
+
+Rendered by `scripts/compose-store-screenshots.py` from frames captured by
+`ScreenshotCaptureUITests`, run
+[31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694). 1320 × 2868, PNG,
+no alpha. Captions are one line each at one size for all six — the largest that fits the longest —
+set in the top margin the layout already had, so the screenshot occupies exactly the position it
+did before any text existed.
+
+**Frame 3's card is taller than frame 2's, and that is approved.** Its action runs to three lines
+because the seeded task's next action is that long. Normalising it would mean either choosing
+content to fit a layout or editing a screenshot, and both are the thing D-024 forbids: the real UI
+is the source of truth for anything representing the product. The set shows what the app draws.
+
+**What the set deliberately does not claim.** Frame 6 says only that late work is not lectured at.
+It makes no claim about recovering it, because the Minimum Win ladder is absent once a deadline has
+passed — **D-030**, open and untouched by this approval. And no frame is dark and no caption
+mentions Dark mode: it ships and is measured (D-027, D-029), which is a reason it *may* be claimed
+later, not a reason this set should.
+
+**Still not decided by this entry.** The listing's title, subtitle, description and keywords remain
+drafts in `PRODUCT_SPEC.md` §15. D-024 pairs the wording with the direction, and the captions are
+the part the direction needed; the metadata is its own choice.
+
+**What would legitimately reopen it.** A product change to Capture, Today, Focus or Rescue that
+alters what those screens draw. That is a recapture, not a redesign: the same script, the same
+grounds, the same captions, run against the new frames.
+
+---
+
 ## D-030 — OPEN: a passed deadline states a problem and offers no way out
 
 **Date:** 2026-08-10 · **Status:** **Open — recorded, not decided, not investigated.** Raised by

@@ -169,7 +169,7 @@ two copies of one helper**, which this session had already been caught by once.
 The frames carry no caption text. The listing wording is still an open owner decision, and baking
 a draft of it into the images would be taking that decision on the way past.
 
-### Listing captions: approved and rendered
+### The App Store set is finished and locked — D-031
 
 The six-frame narrative and caption copy are chosen, recorded in `PRODUCT_SPEC.md` §15, and set
 into the composited set. `Late work, without the telling-off.` became **`Behind? No lecture.`** —
@@ -185,6 +185,15 @@ lowest is 5.0:1, on the amber. A caption a reader cannot read is decoration.
 The set is regenerated from run
 [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694), so frame 3 shows
 the new sentence in the shipped app rather than a caption written around the old one.
+
+Reviewed at size and **approved**. D-031 locks the geometry, the grounds, the caption placement
+and typography, the frame order and the six strings; the set is regenerated only when a verified
+product change alters a screen it shows. Frame 3's card is taller than frame 2's because its
+action runs to three lines, and that is approved as-is: normalising it would mean choosing content
+to fit a layout, or editing a screenshot, and D-024 forbids both.
+
+This closes the store-preparation work that needs no Apple membership, apart from the listing
+metadata — title, subtitle, description and keywords are still drafts and are the owner's.
 
 Three things the copy pass established by reading the code rather than the screenshots:
 
