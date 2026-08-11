@@ -188,16 +188,25 @@ final class AccessibilityUITests: XCTestCase {
         // what it finds.
         //
         // `performAccessibilityAudit` throws "Audit failed to complete in time" on a loaded
-        // runner, and it has done so twice on Capture — the screen with the keyboard up, which
-        // has by far the most elements to walk. That is not a finding. Recording it as one, which
-        // is what this used to do, files an infrastructure timeout as an accessibility defect and
-        // turns main red for a reason nobody here controls.
+        // runner. It has done so on Capture, which has the keyboard up and by far the most
+        // elements to walk, and on Task Detail, where it then failed a *second* attempt on a
+        // docs-only commit. That is not a finding. Recording it as one files an infrastructure
+        // timeout as an accessibility defect and turns main red for a reason nobody controls.
         //
-        // What is *not* relaxed: a run that never completes an audit still fails. There is no
-        // path here where a screen passes without having been walked.
-        for attempt in 1...2 {
+        // Three attempts, with a pause between them, because retrying immediately on a machine
+        // that is busy reproduces the conditions that caused the timeout — which is what the
+        // two-attempt version did, twice in a row, in 106 seconds.
+        //
+        // What is *not* relaxed: a run that never completes an audit still fails, and says the
+        // screen is unverified rather than that it passed. There is no path here where a screen
+        // is reported clean without having been walked.
+        for attempt in 1...3 {
             issues.removeAll()
             overruled.removeAll()
+
+            if attempt > 1 {
+                _ = XCTWaiter().wait(for: [XCTestExpectation(description: "settle")], timeout: 2)
+            }
 
             do {
                 try app.performAccessibilityAudit(for: types) { issue in
@@ -257,12 +266,12 @@ final class AccessibilityUITests: XCTestCase {
                 }
                 break
             } catch {
-                if attempt == 2 {
+                if attempt == 3 {
                     issues.append(
-                        "• the audit did not complete, twice, so this screen is unverified: \(error)"
+                        "• the audit did not complete in three attempts, so this screen is unverified: \(error)"
                     )
                 } else {
-                    print("AUDIT [\(screen)] did not complete — retrying once: \(error)")
+                    print("AUDIT [\(screen)] did not complete on attempt \(attempt) — retrying: \(error)")
                 }
             }
         }

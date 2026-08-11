@@ -169,6 +169,25 @@ two copies of one helper**, which this session had already been caught by once.
 The frames carry no caption text. The listing wording is still an open owner decision, and baking
 a draft of it into the images would be taking that decision on the way past.
 
+### Listing captions: proposed, awaiting selection
+
+The six-frame narrative and caption copy are proposed and **not written into anything**. D-024
+pairs the listing wording with the screenshot direction, and the direction is settled, so this is
+the last piece of the store set. Nothing is rendered until the wording is chosen.
+
+Three things the copy pass established by reading the code rather than the screenshots:
+
+- **Frame 6 does not demonstrate Minimum Win.** `MinimumWinPlanner` returns `.noTimeRemaining`
+  when `minutesRemaining <= 0`, and the overdue seed's deadline has passed — so the card shows
+  the notice "There is not enough time left to finish this." and the ladder is correctly absent.
+  Any caption promising a smaller version of late work would be unverifiable from that frame.
+- **Frames 2 and 3 are two different claims, not one claim twice.** Frame 2 is chosen by
+  deadline (`dueSoon`); frame 3 is chosen because it is startable (`hasAClearFirstStep`) and its
+  action is a first move rather than the project. That distinction has to be carried by the
+  captions or the duplication is just duplication.
+- **Nothing in the set claims Dark mode**, and no frame is dark. It ships and is measured, which
+  is a reason it *may* be claimed, not a reason it should be.
+
 ### Known limitations
 
 - **The composited set is not committed.** Six PNGs at a quarter of a megabyte each do not belong
