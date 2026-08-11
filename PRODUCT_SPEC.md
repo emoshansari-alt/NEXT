@@ -543,12 +543,29 @@ valuable signal for improving the ranking engine.
 - Line: *Know what to do next.*
 - Description concept: *Dump everything on your mind. NEXT turns the mess into one thing you
   can actually start.*
-- Screenshot narrative — the six frames CI captures from the running app
-  (`ScreenshotCaptureUITests`), in listing order: Dump it here (Capture, mid-dump) → NEXT finds
-  what matters (Today, recommending) → and it tells you why (Why this?) → Do one thing (Focus,
-  running) → Stuck? Make it smaller (Rescue) → Plans fall apart, NEXT replans (Today on overdue
-  work, in dark mode). The frames are real; composition and captions are chosen at the D-024
-  checkpoint.
+- Screenshot narrative and captions — **approved**. The six frames CI captures from the running
+  app (`ScreenshotCaptureUITests`), composited onto the Chroma grounds by
+  `scripts/compose-store-screenshots.py`, in listing order:
+
+  | # | Frame | Caption |
+  |---|---|---|
+  | 1 | Capture, mid-dump | *Put it all down at once.* |
+  | 2 | Today, chosen by deadline | *One thing, and why.* |
+  | 3 | Today, chosen because it is startable | *Not the project. The first move.* |
+  | 4 | Focus, running | *Then it gets out of the way.* |
+  | 5 | Rescue | *Say what's in the way.* |
+  | 6 | Today, overdue | *Behind? No lecture.* |
+
+  Each caption describes what is visible in its own frame and claims nothing the frame cannot
+  show. Frames 1 and 2 carry the whole proposition on their own, because that is how many a
+  shopper sees at thumbnail size in a search result. Frames 2 and 3 are the same screen and two
+  different selection reasons — a deadline, and a task being startable — which is what makes the
+  repetition worth its place.
+
+  Two deliberate silences. Frame 6 claims only the absence of a telling-off, and nothing about
+  recovering late work, because the Minimum Win ladder is absent once a deadline has passed
+  (**D-030**, open). And **no frame is dark and no caption mentions Dark mode**: it ships and is
+  measured (D-027, D-029), which is a reason it *may* be claimed, not a reason it should be.
 
 Marketing assets must truthfully represent the real app.
 

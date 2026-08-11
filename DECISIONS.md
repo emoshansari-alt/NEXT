@@ -959,6 +959,44 @@ than done.
 
 ---
 
+## D-030 — OPEN: a passed deadline states a problem and offers no way out
+
+**Date:** 2026-08-10 · **Status:** **Open — recorded, not decided, not investigated.** Raised by
+the store-caption pass and deliberately left out of that task's scope.
+
+**What was found.** Today's card shows `There is not enough time left to finish this.` whenever
+`deadlineFeasibility.suggestsMinimumWin`. Minimum Win is the answer to that sentence — the ladder
+that finds a smaller version worth doing (§4.12) — and it is offered only when
+`model.minimumWinPlan != nil`. `MinimumWinPlanner` returns `.noTimeRemaining` when
+`minutesRemaining <= 0`.
+
+So for work whose deadline has **already passed**, the two do not meet: the notice appears and the
+ladder does not. The screen names a problem and offers nothing for it. This is visible in the App
+Store set's sixth frame, which is why the caption there claims only the absence of shame language
+and makes no claim about recovery.
+
+**Why it is not obviously a bug.** The planner's guard is defensible on its own terms — there is
+no window left to fit anything into, so there is nothing to compute. The question is what the
+*screen* should say when that is true, and that is a product question rather than an engineering
+one.
+
+**The shapes an answer could take**, none chosen:
+
+1. Say something different once the deadline has passed. The current sentence is about a window
+   that no longer exists; `This is past its deadline.` states the same fact without implying a
+   fit that could still be made.
+2. Extend the ladder to passed deadlines, planning against a stated amount of time the user has
+   now rather than against time remaining before a deadline.
+3. Decide it is correct as it stands, on the grounds that late work needs no ladder because
+   nothing is being raced any more — and remove the notice for the passed case instead.
+
+**Why this is written down rather than fixed in passing.** It was found during a marketing copy
+pass, and the owner scoped that task to copy. A product question discovered in the margins of
+another task is exactly the kind that gets fixed badly or forgotten entirely; this entry exists so
+neither happens. It blocks nothing today.
+
+---
+
 ## D-028 — The icon-rendering script is not in the repository (corrects D-023)
 
 **Date:** 2026-08-10 · **Status:** Accepted

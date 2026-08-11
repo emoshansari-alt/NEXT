@@ -24,6 +24,12 @@ public enum ExplanationReason: Hashable, Sendable {
     case fitsTheTimeYouHave(minutes: Int)
 
     /// There is a concrete first step recorded, so there is nothing to decide before starting.
+    ///
+    /// The sentence says what that is *worth*, not what the card already shows. It read "There is
+    /// a clear first step." until the store-caption pass, where it stood out as the one
+    /// explanation that described the task instead of explaining the choice — and the card prints
+    /// the step directly above it, so it was narrating what the reader could already see. Every
+    /// other case here is a fact about why this task won; this one now is too.
     case hasAClearFirstStep
 
     /// Nothing distinguishes it — but something still has to be offered, and saying so plainly
@@ -52,7 +58,7 @@ public enum ExplanationReason: Hashable, Sendable {
             "Fits the \(minutes) minutes you have."
 
         case .hasAClearFirstStep:
-            "There is a clear first step."
+            "Nothing to decide before you start."
 
         case .nothingElsePending:
             "Nothing else is more pressing right now."

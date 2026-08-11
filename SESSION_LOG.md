@@ -169,11 +169,18 @@ two copies of one helper**, which this session had already been caught by once.
 The frames carry no caption text. The listing wording is still an open owner decision, and baking
 a draft of it into the images would be taking that decision on the way past.
 
-### Listing captions: proposed, awaiting selection
+### Listing captions: approved and rendered
 
-The six-frame narrative and caption copy are proposed and **not written into anything**. D-024
-pairs the listing wording with the screenshot direction, and the direction is settled, so this is
-the last piece of the store set. Nothing is rendered until the wording is chosen.
+The six-frame narrative and caption copy are chosen, recorded in `PRODUCT_SPEC.md` §15, and set
+into the composited set. `Late work, without the telling-off.` became **`Behind? No lecture.`** —
+"telling-off" reads regionally British against otherwise US-facing copy, which is the kind of
+thing that is invisible from inside the repository's own voice.
+
+The captions are one line each, one size for all six, in the top margin the layout already had —
+so adding them moved nothing: the screenshot is the same size in the same place it was before
+there was any text. The size is computed as the largest that fits the longest caption, and every
+caption's contrast against its own ground is asserted at 4.5:1 before the frame is written. The
+lowest is 5.0:1, on the amber. A caption a reader cannot read is decoration.
 
 Three things the copy pass established by reading the code rather than the screenshots:
 
@@ -184,12 +191,26 @@ Three things the copy pass established by reading the code rather than the scree
 - **Frames 2 and 3 are two different claims, not one claim twice.** Frame 2 is chosen by
   deadline (`dueSoon`); frame 3 is chosen because it is startable (`hasAClearFirstStep`) and its
   action is a first move rather than the project. That distinction has to be carried by the
-  captions or the duplication is just duplication.
+  captions or the duplication is just duplication — hence *One thing, and why.* against *Not the
+  project. The first move.*
+
+The copy pass also changed one string **in the product**, which is the part that mattered most.
+`There is a clear first step.` was the only explanation that described the task instead of
+explaining the choice, and since the card prints the step directly above it, it narrated what the
+reader could already see. Every sibling is a fact about why this task won — `Due in 2 days.`,
+`Finishing this unblocks 3 other tasks.`, `Nothing else is more pressing right now.` — so it is
+now **`Nothing to decide before you start.`**, which says what being startable is *worth*. Found
+by writing marketing copy, fixed in the product rather than papered over in the caption.
 - **Nothing in the set claims Dark mode**, and no frame is dark. It ships and is measured, which
   is a reason it *may* be claimed, not a reason it should be.
 
 ### Known limitations
 
+- **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There
+  is not enough time left to finish this." while the Minimum Win ladder is absent once the
+  deadline has passed, because `MinimumWinPlanner` returns `.noTimeRemaining`. Found during the
+  caption pass, recorded rather than investigated, because a product question discovered in the
+  margins of another task gets fixed badly or forgotten entirely.
 - **The composited set is not committed.** Six PNGs at a quarter of a megabyte each do not belong
   in a source repository; the script is committed and the frames are a CI artifact, so the set is
   reproducible from either. Nothing claims the images cannot drift from the app — D-028 is what

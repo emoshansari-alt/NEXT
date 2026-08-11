@@ -88,10 +88,10 @@ struct RecommendationCardCopyTests {
             for: recommendation(explanation: .hasAClearFirstStep, estimatedMinutes: 15)
         )
 
-        // The fact line stays a list of facts. "There is a clear first step. · ~15 min" is the
-        // fragmentary metadata this split exists to avoid.
+        // The fact line stays a list of facts. "Nothing to decide before you start. · ~15 min"
+        // is the fragmentary metadata this split exists to avoid.
         #expect(lines.facts == "~15 min")
-        #expect(lines.reason == "There is a clear first step.")
+        #expect(lines.reason == "Nothing to decide before you start.")
     }
 
     @Test("the shape of the reason decides, not whether the task has a deadline")

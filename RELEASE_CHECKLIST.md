@@ -46,6 +46,11 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Daily replanning, no shame language — lateness decays rather than pinning a task to
       the screen for ever (D-020)
 - [x] Minimum Win **surfaced in the UI** — offered on Today when the deadline is unreachable
+- [ ] **A passed deadline states a problem and offers no way out — D-030, open.** The card says
+      "There is not enough time left to finish this." whenever the deadline is unreachable, and
+      the Minimum Win ladder is absent once the deadline has actually passed, because the planner
+      returns `.noTimeRemaining`. Not investigated: found during the store-caption pass and
+      recorded rather than fixed on the way past. Blocks nothing today
 - [x] "I'm stuck" reachable from inside Focus, and the smaller action replaces the current one
 - [x] Notification deep link — tapping a reminder opens the task it named
 - [ ] Notification delivery observed — needs a device, `RELEASE_GATED.md` B5

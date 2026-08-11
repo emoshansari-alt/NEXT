@@ -113,7 +113,7 @@ struct ExplanationSentenceTests {
             (.unlocksOtherWork(count: 3), "Finishing this unblocks 3 other tasks."),
             (.markedImportant, "You marked this important."),
             (.fitsTheTimeYouHave(minutes: 15), "Fits the 15 minutes you have."),
-            (.hasAClearFirstStep, "There is a clear first step."),
+            (.hasAClearFirstStep, "Nothing to decide before you start."),
             (.nothingElsePending, "Nothing else is more pressing right now.")
         ]
 

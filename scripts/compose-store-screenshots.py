@@ -45,7 +45,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 except ImportError:  # pragma: no cover - a missing dependency should say what to do about it
     sys.exit("Pillow is required: python -m pip install pillow")
 
@@ -91,6 +91,43 @@ GROUNDS = {
 EXPECTED_FRAMES = sorted(GROUNDS)
 
 
+# --- The captions ---------------------------------------------------------------------------
+
+# Approved wording. Every one describes what is visible in its own frame and claims nothing the
+# frame cannot show — which is why frame 6 says only that late work is not lectured at, and makes
+# no claim about recovering it (D-030 is open).
+#
+# One line each, one size for all six, in the top margin the layout already had. A shopper meets
+# these at thumbnail size in a search result, so the first two carry the whole proposition on
+# their own: put everything down, get one thing and the reason for it.
+CAPTIONS = {
+    "01-capture": "Put it all down at once.",
+    "02-today": "One thing, and why.",
+    "03-why": "Not the project. The first move.",
+    "04-focus": "Then it gets out of the way.",
+    "05-stuck": "Say what's in the way.",
+    "06-late": "Behind? No lecture.",
+}
+
+CAPTION_COLOUR = "#FFFFFF"
+
+# The largest the type is allowed to be, before fitting. Every caption is set at the same size —
+# the one that fits the longest of them — because six posters at six sizes is what "one geometry"
+# is meant to prevent.
+CAPTION_MAX_POINTS = 84
+
+# Candidates, in preference order. Not one hardcoded path: this runs on whichever machine has the
+# exported frames, and a silently substituted font would change the set without saying so. If none
+# of these exists the script stops rather than falling back to Pillow's bitmap default.
+CAPTION_FONTS = [
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "/System/Library/Fonts/SFNS.ttf",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+
+
 def load_manifest(source: Path) -> dict[str, Path]:
     """Map `01-capture` … `06-late` to the UUID-named file each was exported as.
 
@@ -122,8 +159,53 @@ def load_manifest(source: Path) -> dict[str, Path]:
     return found
 
 
-def compose(frame: Image.Image, ground: str) -> Image.Image:
-    """One frame on one colour field."""
+def packed(hex_colour: str) -> int:
+    """`#RRGGBB` to the integer the contrast helpers below take."""
+    return int(hex_colour.lstrip("#"), 16)
+
+
+def luminance(colour: int) -> float:
+    """WCAG relative luminance. The same formula `NextPaletteTests` holds the palette to."""
+    total = 0.0
+    for shift, weight in ((16, 0.2126), (8, 0.7152), (0, 0.0722)):
+        value = ((colour >> shift) & 0xFF) / 255
+        total += weight * (value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4)
+    return total
+
+
+def contrast(first: int, second: int) -> float:
+    a, b = luminance(first), luminance(second)
+    return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+
+
+def load_font(points: int) -> ImageFont.FreeTypeFont:
+    for candidate in CAPTION_FONTS:
+        if Path(candidate).is_file():
+            return ImageFont.truetype(candidate, points)
+    sys.exit(
+        "no caption font found. Tried:\n  " + "\n  ".join(CAPTION_FONTS) +
+        "\nAdd this machine's font to CAPTION_FONTS rather than letting the set render in a "
+        "substituted face."
+    )
+
+
+def caption_points(width: int, band: int) -> int:
+    """The one size every caption is set at: the largest that fits the longest of them."""
+    limit_width = width - INSET_POINTS * SCALE * 2
+    limit_height = band - 44 * 2
+
+    for points in range(CAPTION_MAX_POINTS, 23, -2):
+        font = load_font(points)
+        widest = max(font.getbbox(text)[2] - font.getbbox(text)[0] for text in CAPTIONS.values())
+        tallest = max(font.getbbox(text)[3] - font.getbbox(text)[1] for text in CAPTIONS.values())
+        if widest <= limit_width and tallest <= limit_height:
+            return points
+
+    sys.exit("no caption size fits — shorten the captions rather than shrinking them further")
+
+
+def compose(frame: Image.Image, ground: str, caption: str, points: int) -> Image.Image:
+    """One frame on one colour field, with one line of type above it."""
     canvas = Image.new("RGB", frame.size, ground)
 
     inset = INSET_POINTS * SCALE
@@ -136,7 +218,15 @@ def compose(frame: Image.Image, ground: str) -> Image.Image:
     ImageDraw.Draw(mask).rounded_rectangle([(0, 0), (width - 1, height - 1)], radius, fill=255)
 
     # The whole screen, and the leftover height split evenly — one geometry for all six.
-    canvas.paste(shot, ((canvas.width - width) // 2, (canvas.height - height) // 2), mask)
+    top = (canvas.height - height) // 2
+    canvas.paste(shot, ((canvas.width - width) // 2, top), mask)
+
+    # The caption sits in the margin the layout already had, so adding it moves nothing: the
+    # screenshot is the same size in the same place as it was before there was any text.
+    ImageDraw.Draw(canvas).text(
+        (canvas.width // 2, top // 2), caption,
+        font=load_font(points), fill=CAPTION_COLOUR, anchor="mm"
+    )
     return canvas
 
 
@@ -156,15 +246,29 @@ def main() -> None:
         # set must not look like one that succeeded.
         sys.exit(f"the export is missing {len(missing)} frame(s): {', '.join(missing)}")
 
+    with Image.open(frames[EXPECTED_FRAMES[0]]) as first:
+        band = (first.height - round(first.height * ((first.width - INSET_POINTS * SCALE * 2) / first.width))) // 2
+        points = caption_points(first.width, band)
+    print(f"Captions set at {points}pt in a {band}px margin.\n")
+
     sizes = set()
     for name in EXPECTED_FRAMES:
+        # A caption a reader cannot read is decoration. Checked rather than eyeballed, with the
+        # same 4.5:1 bar the app itself is held to.
+        ratio = contrast(packed(CAPTION_COLOUR), packed(GROUNDS[name]))
+        if ratio < 4.5:
+            sys.exit(f"{name}: caption on {GROUNDS[name]} is {ratio:.2f}:1, below 4.5:1")
+
         with Image.open(frames[name]) as frame:
-            composed = compose(frame.convert("RGB"), GROUNDS[name])
+            composed = compose(frame.convert("RGB"), GROUNDS[name], CAPTIONS[name], points)
         # PNG without an alpha channel: App Store Connect rejects transparency.
         destination = output / f"{name}.png"
         composed.save(destination, "PNG")
         sizes.add(composed.size)
-        print(f"{destination}  {composed.width} x {composed.height}  on {GROUNDS[name]}")
+        print(
+            f"{destination}  {composed.width} x {composed.height}  "
+            f"on {GROUNDS[name]} at {ratio:.1f}:1  “{CAPTIONS[name]}”"
+        )
 
     if len(sizes) != 1:
         sys.exit(f"the six frames did not compose to one size: {sorted(sizes)} — a listing needs one")
