@@ -34,6 +34,19 @@ enum NextType {
     /// which on a running timer is the difference between a clock and a fidget.
     static let meta = Font.system(.footnote, design: .monospaced)
 
+    /// A supporting note: a failure, a notice, or a line of status, almost always in
+    /// `inkSecondary`. Quieter than `body` and never the reason a screen exists.
+    ///
+    /// The same size as `meta` and proportional rather than monospaced, which is the whole
+    /// distinction between them. `meta` exists so a changing number does not jitter; a sentence
+    /// has no digits to hold still and reads better set proportionally.
+    ///
+    /// Defined from what the nine sites it replaced were already doing — `Font.system(.footnote)`
+    /// is `Font.footnote` — so this named a role that existed rather than changing one. Nothing
+    /// rendered differently the day it landed, which is the point: a consolidation that moves
+    /// pixels is a redesign wearing a refactor's clothes.
+    static let note = Font.system(.footnote)
+
     /// The countdown itself.
     static let timer = Font.system(.largeTitle, design: .monospaced, weight: .medium)
 
@@ -46,17 +59,12 @@ enum NextType {
     // MARK: - What this scale does not name
     //
     // A pass in session 14 audited every `.font(…)` in the app and the widget against these
-    // tokens. Four sites were token misuse and were converted. The rest were **not**: they are
-    // roles this scale has no name for, and inventing names for them is a change to the design
-    // language rather than an implementation detail (D-024), so they are listed rather than
-    // absorbed.
+    // tokens. Four sites were token misuse and were converted; a fifth role — `note` above — was
+    // missing and was added with the owner's approval, closing nine sites. The rest are **not**
+    // misuse: they are roles this scale has no name for, and inventing names for them is a change
+    // to the design language rather than an implementation detail (D-024), so they are listed
+    // rather than absorbed.
     //
-    // - **A supporting note.** A proportional footnote, almost always in `inkSecondary`, for a
-    //   failure, a notice, or a line of status. **Nine sites** — Capture and its confirmation,
-    //   Everything, Minimum Win, Settings, Task Detail and the paywall twice. `meta` is the
-    //   footnote this scale has and it is monospaced, which is right for digits that change and
-    //   wrong for a sentence. This is the one gap with enough weight behind it to be worth
-    //   naming; the other four are judgement calls.
     // - **A small annotation.** `.caption` on Capture Confirmation's "Is this right?" and "No
     //   deadline", `.caption2` on the paywall's badge.
     // - **Emphasis inside body copy.** Minimum Win's rung goal, body at medium weight.

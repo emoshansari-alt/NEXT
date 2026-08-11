@@ -94,7 +94,7 @@ struct EverythingView: View {
         List {
             if let failure = model.storeFailure {
                 Text(failure)
-                    .font(.footnote)
+                    .font(NextType.note)
                     .foregroundStyle(NextPalette.inkSecondary)
                     .accessibilityIdentifier("everything-failure")
             }

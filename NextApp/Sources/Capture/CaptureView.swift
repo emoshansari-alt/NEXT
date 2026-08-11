@@ -95,7 +95,7 @@ struct CaptureView: View {
         VStack(spacing: 10) {
             if let failure = model.failure {
                 Text(failure)
-                    .font(.footnote)
+                    .font(NextType.note)
                     .foregroundStyle(NextPalette.inkSecondary)
                     .multilineTextAlignment(.center)
                     .accessibilityIdentifier("capture-failure")

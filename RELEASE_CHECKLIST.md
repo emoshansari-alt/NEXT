@@ -199,14 +199,14 @@ sequence.
 
 - [x] No placeholder UI anywhere user-facing
 - [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
-- [ ] Typography and hierarchy final — **audited, and the remainder is a decision rather than a
-      cleanup.** All 25 direct `.font(…)` sites in the app and widget were checked against the
-      tokens. Four were token misuse and are converted. The other twenty-one are roles the scale
-      does not name — chiefly **a supporting note**, a proportional footnote in `inkSecondary`
-      used at nine sites for failures and notices, where the only footnote token is monospaced.
-      Naming them changes the design language (D-024), so they are listed in `NextType` and
-      await a decision. None writes a point size and none is an accessibility defect: every one
-      is built from a text style and scales
+- [x] Typography and hierarchy final — **audited, and every site is now either a `NextType` token
+      or a documented exception.** All 25 direct `.font(…)` sites in the app and widget were
+      checked against the tokens: four were token misuse and were converted, and a fifth role the
+      scale was missing — `note`, the proportional supporting footnote — was added with the
+      owner's approval and closed nine more. The twelve that remain are roles the scale does not
+      name, each listed in `NextType` with why it stays: a small annotation, emphasis inside body
+      copy, Onboarding's own scale, and the action at widget scale. None writes a point size and
+      none is an accessibility defect — every one is built from a text style and scales
 - [x] Motion restrained and Reduce-Motion-safe — one animated moment in the card, with a still
       equivalent that loses no information. **This line previously contradicted the Reduce Motion
       box above it**: press feedback and the onboarding page turn were two further animated

@@ -64,7 +64,7 @@ struct MinimumWinView: View {
                 if let reassessAt = plan.reassessAt {
                     Section {
                         Text("Come back to this at \(reassessAt.formatted(date: .omitted, time: .shortened)).")
-                            .font(.footnote)
+                            .font(NextType.note)
                             .foregroundStyle(NextPalette.inkSecondary)
                             .accessibilityIdentifier("minimum-win-reassess")
                     }

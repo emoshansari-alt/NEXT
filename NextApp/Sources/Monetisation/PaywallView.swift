@@ -24,7 +24,7 @@ struct PaywallView: View {
             if let notice = model.notice {
                 Section {
                     Text(notice)
-                        .font(.footnote)
+                        .font(NextType.note)
                         .foregroundStyle(NextPalette.inkSecondary)
                         .accessibilityIdentifier("paywall-notice")
                 }
@@ -111,7 +111,7 @@ struct PaywallView: View {
                     }
                 }
                 Text(NextPlusCopy.period(for: product.kind))
-                    .font(.footnote)
+                    .font(NextType.note)
                     .foregroundStyle(NextPalette.inkSecondary)
             }
 

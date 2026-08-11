@@ -271,15 +271,20 @@ to the pixel and means something entirely different, and the widget's headline i
 `headline.semibold`, which is `control` to the pixel while being the *action* at widget scale.
 Forcing either would make the token names lie, which costs more than the inconsistency does.
 
-**The gap worth a decision: a supporting note.** A proportional footnote, almost always in
-`inkSecondary`, for a failure, a notice or a line of status — **nine sites** across Capture,
-Capture Confirmation, Everything, Minimum Win, Settings, Task Detail and the paywall. `meta` is
-the footnote this scale has, and it is monospaced, which is right for digits that change and
-wrong for a sentence. Adding `NextType.note` would collapse all nine, and adding a token is a
-change to the design language rather than an implementation detail (D-024), so it stops here.
+**The gap, taken to the owner and approved: a supporting note.** A proportional footnote, almost
+always in `inkSecondary`, for a failure, a notice or a line of status — **nine sites** across
+Capture, Capture Confirmation, Everything, Minimum Win, Settings, Task Detail and the paywall.
+`meta` is the footnote this scale had, and it is monospaced, which is right for digits that change
+and wrong for a sentence.
 
-Four smaller gaps are recorded in `NextType` alongside it: a small annotation (`.caption`,
-`.caption2`), emphasis inside body copy, Onboarding's own scale, and the action at widget scale.
+`NextType.note` is now defined **from what those nine were already doing** — `Font.system(.footnote)`
+is `Font.footnote`, so nothing rendered differently the day it landed. That is the test of a
+consolidation: one that moves pixels is a redesign wearing a refactor's clothes. All nine are
+converted, and `.font(.footnote)` no longer appears anywhere in the repository.
+
+Four smaller gaps remain recorded in `NextType`, unabsorbed on purpose: a small annotation
+(`.caption`, `.caption2`), emphasis inside body copy, Onboarding's own scale, and the action at
+widget scale. Twelve sites, each a role rather than a mistake.
 
 **Nothing here was an accessibility defect**, which is worth stating plainly because the
 checklist line implied otherwise. Every site is built from a text style and scales with Dynamic

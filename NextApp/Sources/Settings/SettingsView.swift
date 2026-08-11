@@ -15,7 +15,7 @@ struct SettingsView: View {
                 if model.remindersBlockedBySystem, let notice = model.notice ?? blockedNotice {
                     Section {
                         Text(notice)
-                            .font(.footnote)
+                            .font(NextType.note)
                             .foregroundStyle(NextPalette.inkSecondary)
                             .accessibilityIdentifier("settings-notice")
                     }
