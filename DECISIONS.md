@@ -959,6 +959,66 @@ than done.
 
 ---
 
+## D-032 — The contrast exception stands, because the audit is not deterministic enough to retire it
+
+**Date:** 2026-08-11 · **Status:** Accepted · **Attempted and reverted, with the evidence kept**
+
+**Context.** D-029 showed that D-021's reason for excluding contrast on the system-container
+screens was wrong: the first section header it blamed is drawn at 7.14:1, so the rendering was
+fine and the audit's verdict was not. That made retiring the exception worth attempting —
+Everything, Task Detail, Settings and Minimum Win moved into the enforced set, and all four gained
+a dark contrast audit they had never had.
+
+**What two runs found.**
+
+| | run [31480311837](https://github.com/emoshansari-alt/NEXT/actions/runs/31480311837) | run [31482848671](https://github.com/emoshansari-alt/NEXT/actions/runs/31482848671) |
+|---|---|---|
+| Everything, light | pass | pass |
+| Everything / Settings / Minimum Win, dark | pass | pass |
+| Task Detail, dark | **pass** | **6 issues** |
+| Task Detail, light | 1 contrast issue, no element | **2 `elementDetection` issues, no element** |
+| Settings / Minimum Win, light | 1 contrast issue each, no element | pass |
+
+**The finding: the audit reports issues it cannot attribute, and which of them it reports varies
+between runs.** Every failure above arrives with **no element** — no identifier, no label, no
+frame, and a description of "Contrast failed" or "Potentially inaccessible text" and nothing else.
+They move between screens and between audit types from one run to the next, and the run that
+produced more of them took 134 seconds on a test that took 82 in the run before it. This is the
+same shape as "Audit failed to complete in time", which this suite already retries: audit
+behaviour under load, not a property of what NEXT draws.
+
+The dark Task Detail failure says the same thing more loudly. Two of its six reported frames
+measured as a *single colour* — no text in them at all — and the two that measured returned
+`606068 on 282828` and `383840 on 181818`, which are iOS system greys rather than any value in
+`NextPalette`. The frames the audit reported and the pixels at those coordinates do not describe
+the same screen.
+
+**Decision.** The exception stands as D-021 left it, and the work is reverted rather than tuned
+until green. Three things follow:
+
+1. **An unattributable finding cannot be overruled.** `audit` overrules a contrast verdict whose
+   own pixels clear the bar; with no element there is no frame and nothing to read. Parking those
+   issues to reach a green result is the one move this suite exists to prevent, so it was not made.
+2. **Nothing was kept for passing.** The dark audits could have been retained for the three
+   screens that passed both runs. Selecting tests by which ones went green is choosing evidence to
+   fit a conclusion, and it is how a suite stops meaning anything.
+3. **The reason on record is now right even though the outcome did not change.** D-021 said the
+   header was rendered against the bar's material and could not be fixed. What is actually true is
+   that the header renders correctly and the audit is unreliable about attributing findings on
+   these screens.
+
+**What would make it retirable.** An audit whose findings carry their elements — a future Xcode, or
+running each audit type in its own pass so the contrast walk is the one that reports. Neither is
+worth pursuing from inside a task scoped to enforcement, and neither blocks anything: these screens
+are covered for hit region, clipped text, element detection, description and traits, and every
+palette pair they use is held to 4.5:1 in both appearances by `NextPaletteTests`.
+
+**What this cost.** Two CI rounds and no change to the product. Recorded because the next person to
+read D-021 will have the same good idea, and the useful thing to hand them is the two runs rather
+than the idea.
+
+---
+
 ## D-031 — The App Store screenshot set is approved and locked
 
 **Date:** 2026-08-10 · **Status:** Accepted · **Closes the D-024 checkpoint for screenshots**

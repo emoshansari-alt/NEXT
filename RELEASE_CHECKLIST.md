@@ -148,12 +148,9 @@ see `RELEASE_GATED.md` Gate B.
       spinners have labels, which they lacked for exactly as long as they were working. Capture
       Confirmation, which carries the app's only state-bearing symbol, is now audited too
 - [x] Loading states understandable
-- [ ] Two audit exceptions remain, both narrowed and both recorded rather than assumed.
-      Navigation-bar Dynamic Type is not app-fixable and is tracked under a strict expected
-      failure (D-021). Contrast is now enforced on **every core screen in dark** and on all but
-      three in light: Task Detail, Settings and Minimum Win each report one contrast issue that
-      arrives with **no element**, so there is no frame to measure and nothing to attribute it to.
-      Everything moved into the enforced set in both appearances, run [31480311837](https://github.com/emoshansari-alt/NEXT/actions/runs/31480311837)
+- [ ] Two system-rendered exceptions — navigation-bar Dynamic Type and the first section
+      header's contrast. Neither is app-fixable; both tracked under strict expected
+      failures so they surface if SwiftUI changes (D-021)
 - [ ] Remaining device-only checks explicitly listed in `RELEASE_GATED.md` B5
 
 ### Privacy and security

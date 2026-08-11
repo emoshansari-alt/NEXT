@@ -217,34 +217,34 @@ by writing marketing copy, fixed in the product rather than papered over in the 
 - **Nothing in the set claims Dark mode**, and no frame is dark. It ships and is measured, which
   is a reason it *may* be claimed, not a reason it should be.
 
-### Contrast enforcement: three screens gained it, three gained half of it
+### Contrast enforcement was attempted, and reverted — D-032
 
-The exception D-021 carried was that each system-container screen reports one contrast failure on
-its first section header, blamed on SwiftUI rendering it against the navigation bar's material.
-D-029 showed the header is drawn at 7.14:1, so that explanation was wrong — which is what made
-retiring the exception worth attempting.
+D-029 had shown D-021's reason for the exception was wrong, so retiring it was worth trying. Two
+runs said no, and the interesting part is *how*.
 
-What run [31480311837](https://github.com/emoshansari-alt/NEXT/actions/runs/31480311837) actually
-established:
+Every failure across both runs arrived with **no element** — no identifier, no label, no frame,
+and "Contrast failed" or "Potentially inaccessible text" as the entire description. Which screens
+produced them changed between runs, and so did the audit type: three screens reported an
+unattributable contrast issue in the first run, and Task Detail reported two unattributable
+`elementDetection` issues in the second while the other two passed. The run with more of them took
+134 seconds on a test that had taken 82.
 
-- **In dark, all four pass the full audit** — Everything, Task Detail, Settings and Minimum Win.
-  None of them had ever been audited in dark at all, so this is coverage that did not exist.
-- **Everything passes in light too**, and is enforced in both. One screen genuinely retired.
-- Task Detail, Settings and Minimum Win each report **one contrast issue with no element**: no
-  identifier, no label, no frame, and "Contrast failed" as the entire description.
+Dark Task Detail made it plainest. It passed the first run and reported six issues in the second;
+two of those frames measured as a *single colour*, meaning no text was inside them, and the two
+that measured returned iOS system greys rather than anything in `NextPalette`. The frames the
+audit reported and the pixels at those coordinates were not describing the same screen.
 
-The pixel measurement that overrules the audit elsewhere needs a frame, and there is none. So the
-exception stays for those three, in light only, on a stated basis rather than the wrong one it had.
+So this is audit behaviour under load — the same family as "Audit failed to complete in time",
+which this suite already retries — and not a property of what NEXT draws.
 
-What makes it *likely* to be the same header: auditing Settings for `[.contrast]` alone returns it
-**with** its element at 7.14:1 and passes, in the same run where the full-set audit of the same
-screen in the same appearance fails with an elementless one. Different audit type set, same
-screen. That is a statement about XCTest rather than about NEXT's colours — and likely is not
-measured, so it does not get to be the answer.
+**Reverted rather than tuned.** Two things were deliberately not done. The unattributable issues
+were not parked to reach green, because with no frame there is nothing to measure and overruling
+what cannot be measured is the one move this suite exists to prevent. And the dark audits were not
+kept for the three screens that passed both runs: selecting tests by which ones went green is
+choosing evidence to fit a conclusion.
 
-**Stopped here rather than continuing.** Attributing the finding means investigating XCTest's
-audit internals, and the useful half had already landed. Parking an unattributable issue to obtain
-a green result would have been the one move this suite exists to prevent.
+Cost: two CI rounds, no product change. The exception stands exactly as it was, and D-032 records
+why — so the next person to read D-021 gets the two runs rather than the same good idea.
 
 ### Known limitations
 

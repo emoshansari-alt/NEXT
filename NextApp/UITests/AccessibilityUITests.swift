@@ -107,40 +107,23 @@ final class AccessibilityUITests: XCTestCase {
         .sufficientElementDescription, .trait
     ]
 
-    /// The enforced set minus contrast, for three screens **in the light appearance only**.
+    /// The same checks without contrast, for the three screens built on a system `List` or `Form`.
     ///
-    /// This is a narrower exception than the one it replaces, and it is the most that run
-    /// [31480311837](https://github.com/emoshansari-alt/NEXT/actions/runs/31480311837) supports.
+    /// Each of those reports exactly one contrast failure, and it is always the **first** section
+    /// header — "Task", "Deadlines", the task's title — at the same position directly beneath the
+    /// navigation bar. The header is the app's own `Text` and it is given the palette's colour;
+    /// SwiftUI's list style renders it against the bar's material anyway, and `foregroundStyle`
+    /// does not win. Every other header on the same screens passes.
     ///
-    /// ## What that run established
+    /// That was recorded as the system's rendering rather than NEXT's colour, in the same
+    /// category as navigation-bar buttons that do not scale. **Measuring the pixels says it is
+    /// neither**: the header is drawn at 7.14:1 and the audit reports it anyway — see
+    /// `testTheFirstSectionHeaderIsReportedButDrawnCorrectly`.
     ///
-    /// - **In dark, all four system-container screens pass the full audit**, contrast included.
-    ///   They had never been audited in dark at all before it.
-    /// - **Everything passes in light too**, so it is enforced in both and is not listed here.
-    /// - Task Detail, Settings and Minimum Win each report exactly **one** contrast issue in
-    ///   light, and it arrives with **no element**: no identifier, no label, no frame, and a
-    ///   `compactDescription` of "Contrast failed" and nothing else.
-    ///
-    /// ## Why it is not simply overruled
-    ///
-    /// `audit` overrules a contrast verdict whose own pixels clear the bar, and it cannot do that
-    /// here: with no element there is no frame, and with no frame there is nothing to measure. An
-    /// unattributable finding cannot be fixed, located or dismissed, and parking it to obtain a
-    /// green result is the one thing this suite must not do.
-    ///
-    /// What makes it *likely* to be the same section header the audit already reports elsewhere:
-    /// auditing Settings for `[.contrast]` alone returns that header **with** its element, drawn
-    /// at 7.14:1 — see `testTheFirstSectionHeaderIsReportedButDrawnCorrectly`, which passes in the
-    /// same run this one fails. The same screen, the same appearance, a different audit type set,
-    /// and an element that is attached in one and absent in the other. That is a statement about
-    /// XCTest, not about NEXT's colours — but *likely* is not measured, and it is not enough.
-    ///
-    /// ## What would settle it
-    ///
-    /// Something that attributes the finding: a future Xcode that attaches the element, or an
-    /// audit run per type so the contrast pass is the one that reports it. Neither is worth an
-    /// open-ended investigation inside a task that was scoped to enforcement — the useful half of
-    /// which landed, since three screens gained a dark contrast audit and a fourth gained both.
+    /// These three screens therefore no longer need contrast excluded, because `audit` now
+    /// overrules a contrast verdict its own pixels contradict. Moving them into the enforced set
+    /// is left as its own change rather than folded into the Dark mode work: it may surface real
+    /// failures on screens nothing has ever held to this bar, and that deserves its own round.
     private static let enforcedWithoutContrast: XCUIAccessibilityAuditType = [
         .hitRegion, .textClipped, .elementDetection, .sufficientElementDescription, .trait
     ]
@@ -407,7 +390,7 @@ final class AccessibilityUITests: XCTestCase {
         app.buttons["everything-button"].tap()
         XCTAssertTrue(app.buttons["everything-close-button"].waitForExistence(timeout: 5))
 
-        audit(app, "Everything")
+        audit(app, "Everything", for: Self.enforcedWithoutContrast)
 
         // This tap has been dropped twice on a loaded runner and reported 80 seconds later as a
         // missing save button. `isHittable` is *not* the verdict, deliberately: waiting on it
@@ -502,84 +485,6 @@ final class AccessibilityUITests: XCTestCase {
         app.buttons["start-button"].tap()
         XCTAssertTrue(app.buttons["focus-start-button"].waitForExistence(timeout: 5))
         audit(app, "Focus, dark")
-    }
-
-    func testTheListScreensPassTheAuditInDarkMode() {
-        // The other half of retiring the contrast exception. Everything, Task Detail, Settings and
-        // Minimum Win had contrast excluded entirely and had never been audited in dark at all —
-        // so "they pass now" would have been a claim about one appearance offered as though it
-        // covered both.
-        //
-        // These four are the screens NEXT does *not* draw itself: a system `List` or `Form`
-        // supplies the ground and NEXT overrides the rows to the card. That pairing is the app's
-        // own doing, which is why it is the app's to be held to.
-        let app = launch(appearance: "dark")
-        skipOnboarding(app)
-        captureOneTask(app)
-
-        // Prove the appearance before auditing it, for the reason the card screens' dark test
-        // gives: the palette clears 4.5:1 in both, so an audit that quietly ran in light passes
-        // and reports nothing.
-        XCTAssertLessThan(
-            meanBrightness(of: XCUIScreen.main.screenshot().image), 0.35,
-            "dark mode did not take effect, so this audit would prove nothing"
-        )
-
-        app.buttons["everything-button"].tap()
-        XCTAssertTrue(app.buttons["everything-close-button"].waitForExistence(timeout: 5))
-        audit(app, "Everything, dark")
-
-        let row = app.buttons["task-row"].firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 8))
-        _ = XCTWaiter().wait(
-            for: [XCTNSPredicateExpectation(
-                predicate: NSPredicate(format: "isHittable == true"), object: row
-            )],
-            timeout: 5
-        )
-        row.tap()
-
-        let save = app.buttons["detail-save-button"]
-        if !save.waitForExistence(timeout: 8) {
-            row.tap()
-            XCTAssertTrue(save.waitForExistence(timeout: 8), "the task should open")
-        }
-        audit(app, "Task Detail, dark")
-    }
-
-    func testSettingsAndMinimumWinPassTheAuditInDarkMode() {
-        // Split from the test above rather than appended to it. Settings is reached from
-        // Everything and Minimum Win needs its own seeded launch, so one test would have carried
-        // four screens and two launches — and this suite has already lost rounds to an audit
-        // timing out on a long test.
-        let app = launch(appearance: "dark")
-        skipOnboarding(app)
-        captureOneTask(app)
-
-        XCTAssertLessThan(
-            meanBrightness(of: XCUIScreen.main.screenshot().image), 0.35,
-            "dark mode did not take effect, so this audit would prove nothing"
-        )
-
-        app.buttons["everything-button"].tap()
-        XCTAssertTrue(app.buttons["settings-button"].waitForExistence(timeout: 5))
-        app.buttons["settings-button"].tap()
-        XCTAssertTrue(app.buttons["settings-close-button"].waitForExistence(timeout: 5))
-        audit(app, "Settings, dark")
-
-        let unreachable = XCUIApplication()
-        unreachable.launchArguments = [
-            "-ui-testing", "-ui-seed-unreachable", "-ui-appearance", "dark"
-        ]
-        unreachable.launch()
-        skipOnboarding(unreachable)
-
-        XCTAssertTrue(unreachable.buttons["minimum-win-button"].waitForExistence(timeout: 10))
-        unreachable.buttons["minimum-win-button"].tap()
-        XCTAssertTrue(
-            unreachable.buttons["minimum-win-close-button"].waitForExistence(timeout: 5)
-        )
-        audit(unreachable, "Minimum Win, dark")
     }
 
     // MARK: Contrast and Dynamic Type — tracked, not yet enforced
