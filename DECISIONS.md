@@ -252,7 +252,9 @@ append-only; this entry is the correction.
 
 ## D-015 — The monetisation machinery ships complete and gates nothing
 
-**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **Revisit before release**
+**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **RESOLVED by D-034**, which makes
+the boundary a decision rather than a pending question. The shape it describes is unchanged: the
+machinery ships complete, nothing is gated, and the paywall stays unreachable in production.
 
 **Context.** Phase 10 is StoreKit. `PRODUCT_SPEC.md` §12 names NEXT+ as advanced brain dumps,
 enhanced decomposition, advanced Rescue, Minimum Win intelligence and adaptive replanning — and
@@ -956,6 +958,70 @@ D-021's exception is not simply withdrawn, because those three screens still hav
 excluded from their enforced set and moving them across may surface real failures on screens
 nothing has ever held to this bar. That is its own round, and it is recorded as outstanding rather
 than done.
+
+---
+
+## D-034 — NEXT+ is enhancement, never core access (resolves D-015)
+
+**Date:** 2026-08-11 · **Status:** Accepted (owner decision) · **Final boundary**
+
+**The decision.** NEXT+ is reserved for genuinely enhanced or future capabilities. **Everything
+NEXT does today stays free, permanently.** No existing capability moves behind the paywall, now or
+later, to manufacture a paid tier.
+
+**What the free tier includes, and keeps including:** task capture, the deterministic
+recommendation and its explanation, Focus, Rescue, the current brain-dump extraction, the current
+task decomposition, the current Minimum Win, reminders, local persistence, the widget where it is
+supported, Light and Dark appearance, accessibility, and offline operation. That list is the
+product's promise (`PRODUCT_SPEC.md` §1–§4), and a student who relies on any of it today does not
+lose it because a pricing page was written.
+
+**What NEXT+ may cover.** Additional convenience, additional intelligence, recurring value, or
+capabilities carrying ongoing cost. The approved categories:
+
+- advanced or cloud-assisted brain-dump interpretation;
+- richer task decomposition and action generation;
+- smarter adaptive replanning;
+- enhanced Rescue and Minimum Win intelligence;
+- future cross-device or iCloud sync;
+- future automation and personalisation;
+- future premium intelligence that provides real additional value.
+
+**These are boundaries, not a backlog.** They describe where a paid capability would be allowed to
+sit if it were built. None is a requirement, none justifies expanding 1.0 scope, and none may be
+built because it appears here. They stay out of `PremiumCapability`, which names only capabilities
+NEXT actually has — putting a feature in that enum is how it starts being treated as a commitment.
+
+**What ships in 1.0: nothing behind the paywall, and the paywall stays unreachable.** Applying the
+boundary to what exists today gates nothing, because every capability NEXT has is core. The
+honest consequence is that there is nothing to sell yet, so `MonetisationAvailability` keeps the
+screen out of production builds. Selling an entitlement that unlocks nothing is misrepresentation
+however carefully it is worded, and that reasoning is unchanged from D-015 — what has changed is
+that the boundary is now *decided* rather than *pending*, so the gate table is a conclusion
+instead of a placeholder.
+
+**The architecture already supports this and needs no change.** `FeatureGate` resolves a capability
+with no row to `.free`, which is the safe direction: forgetting a row cannot put something behind a
+paywall, while charging for something has to be a deliberate edit. `PremiumCapability` names only
+what exists. `FeatureGate.oneDotZero` lists every capability as free explicitly, so it reads as a
+statement rather than an accident, and `FeatureGateTests.oneDotZeroGatesNothing` fails if that
+changes without someone meaning it. Adding a premium capability later is: build it, add the case,
+add its row, and satisfy D-019 first.
+
+**Pricing stays provisional** — Monthly US$2.99, Annual US$24.99, Lifetime US$59.99, with Annual as
+the intended primary. Still pre-release, still not immutable (D-016).
+
+**The Lifetime constraint is now load-bearing rather than a note.** A Lifetime purchase must not
+imply unlimited lifetime access to per-request cloud AI. Since every approved premium category
+above is intelligence-shaped, and several are explicitly cloud-assisted, the first NEXT+ capability
+is likely to be the one that creates recurring cost. Its economics and usage model are a separate
+design problem to be solved **before** a lifetime product is sold, not after.
+
+**What this unblocks, and what it does not.** It closes the release-blocking boundary question:
+1.0 may ship with the paywall unreachable and no capability gated. It does **not** settle final
+pricing or the purchase-option mix (D-016), and it does not settle how an empty entitlement set is
+distinguished from a genuine free tier (D-019) — but neither of those can now block 1.0, because
+1.0 sells nothing. Both become prerequisites of the *first premium capability* instead.
 
 ---
 

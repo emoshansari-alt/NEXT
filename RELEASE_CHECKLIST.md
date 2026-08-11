@@ -66,17 +66,24 @@ see `RELEASE_GATED.md` Gate B.
       **Not verified here:** that iOS delivers the tap to `onOpenURL` at all, which needs the
       widget to be on a real home screen — and the widget cannot show real content without the
       App Group, which is `RELEASE_GATED.md` B1a
-- [ ] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
-      in a normal build** (D-015): NEXT+ unlocks nothing, so there is nothing to sell.
-- [ ] **Decide the NEXT+ capability boundary, or strip the paywall — release blocking.**
-      D-015 ships the machinery with `FeatureGate.oneDotZero` gating nothing. Either record the
-      boundary as a decision entry and make the paywall reachable, or remove the screen. Shipping
-      it reachable without that decision would put something on sale that grants nothing.
-- [ ] Final NEXT+ pricing and purchase-option mix decided and justified (D-016 — the three
-      products in the `.storekit` file are test fixtures, not a commitment)
-- [ ] **Decide how an empty entitlement set is told apart from a genuine free tier (D-019).**
-      A prerequisite of the boundary decision above, not a follow-up to it: the moment anything
-      is gated, a subscriber whose entitlements come back empty gets sold what they already own.
+- [x] **NEXT+ capability boundary decided — D-034, closing the release blocker.** NEXT+ is
+      enhancement, never core access: everything NEXT does today is free and stays free, and no
+      existing capability moves behind the paywall to manufacture a paid tier. Applying that to
+      what exists gates nothing, so 1.0 ships with the paywall unreachable and sells nothing —
+      which is the honest consequence of the boundary rather than a deferral of it
+- [x] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
+      in a normal build** (D-015, resolved by D-034): NEXT+ unlocks nothing today, so there is
+      nothing to sell. A UI test asserts a normal launch cannot reach it
+- [ ] Final NEXT+ pricing and purchase-option mix (D-016) — **provisional: Monthly US$2.99,
+      Annual US$24.99, Lifetime US$59.99, Annual primary. No longer blocks 1.0**, because 1.0
+      sells nothing; it blocks the first premium capability. The Lifetime constraint must be
+      designed for before any lifetime product is sold: it must not imply unlimited access to
+      per-request cloud AI
+- [ ] **How an empty entitlement set is told apart from a genuine free tier (D-019)** —
+      **no longer blocks 1.0** for the same reason: nothing is gated, so the tier a person
+      resolves to changes nothing they can see. It is a prerequisite of the **first gated
+      capability**, where a subscriber whose entitlements come back empty would be sold what they
+      already own
 
 ### Engineering
 

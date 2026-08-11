@@ -493,14 +493,34 @@ Automate what can be automated. Document precisely what still requires a physica
 Genuine value for free. No ads, no manipulative streaks, no forced subscription to discover
 whether the app is useful, no dark patterns.
 
-**NEXT Free** — manual tasks, deterministic recommendation engine, Focus, deadlines, reminders,
-local persistence, basic Rescue, basic intelligent processing where economically reasonable,
-basic widget, full accessibility.
+**NEXT+ is enhancement, never core access** (**D-034**). Everything NEXT does today is free and
+stays free. No existing capability moves behind the paywall, now or later, to manufacture a paid
+tier.
 
-**NEXT+** — advanced brain dumps, enhanced decomposition, advanced Rescue, Minimum Win
-intelligence, adaptive replanning, personalisation, future sync, richer intelligence.
+**NEXT Free — permanently.** Task capture, the deterministic recommendation and its explanation,
+Focus, Rescue, brain-dump extraction, task decomposition, Minimum Win, deadlines and reminders,
+local persistence, the widget where supported, Light and Dark appearance, full accessibility, and
+offline operation. This is the product's promise, not an introductory tier.
 
-Prices are not final and require explicit justification before being set.
+**NEXT+ — genuinely enhanced or future capabilities only**, where they add convenience,
+intelligence, recurring value, or carry ongoing cost: advanced or cloud-assisted brain-dump
+interpretation; richer decomposition and action generation; smarter adaptive replanning; enhanced
+Rescue and Minimum Win intelligence; future cross-device or iCloud sync; future automation and
+personalisation; future premium intelligence that provides real additional value.
+
+Those are **boundaries, not a backlog**. They say where a paid capability would be allowed to sit
+if it were built. None is a requirement and none justifies expanding 1.0 scope. Note the shape of
+the distinction: today's Rescue and Minimum Win are free forever, and only a genuinely *enhanced*
+version of them could ever be premium.
+
+**1.0 therefore gates nothing and sells nothing.** Applying the boundary to what exists leaves
+every capability free, so the paywall stays unreachable in production rather than selling an
+entitlement that unlocks nothing.
+
+Prices are not final and require explicit justification before being set. A **Lifetime** purchase
+must not imply unlimited lifetime access to per-request cloud AI; if premium intelligence creates
+meaningful recurring cost, its economics are a separate design problem to solve before a lifetime
+product is sold (D-016).
 
 ### Paywall rules
 

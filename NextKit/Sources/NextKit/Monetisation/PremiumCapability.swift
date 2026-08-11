@@ -3,9 +3,13 @@ import Foundation
 /// A capability NEXT has, named so that whether it costs money is a table entry rather than an
 /// `if` statement scattered through the views.
 ///
-/// **These are the capabilities NEXT actually has today** — not a wishlist. The NEXT+ candidates
-/// recorded in `DECISIONS.md` D-016 are deliberately absent: naming a feature here is how it
-/// starts being treated as a commitment, and none of them has been built or decided on.
+/// **These are the capabilities NEXT actually has today** — not a wishlist. The NEXT+ categories
+/// recorded in `DECISIONS.md` **D-034** are deliberately absent: naming a feature here is how it
+/// starts being treated as a commitment, and none of them has been built.
+///
+/// Every case below is **core, and free permanently** (D-034). NEXT+ is enhancement, never access
+/// to what the product already does, so nothing in this enum will ever gain a paid row. A future
+/// premium capability arrives as a *new* case alongside these.
 public enum PremiumCapability: String, Hashable, Sendable, Codable, CaseIterable {
 
     /// Turning a brain dump into separate tasks.
@@ -93,11 +97,15 @@ public struct FeatureGate: Hashable, Sendable {
 
     /// What NEXT 1.0 ships: nothing behind the paywall.
     ///
-    /// The entitlement machinery, the products and the paywall are complete and verified, and
-    /// every capability NEXT has stays free, because none of them was built as a paid feature
-    /// and taking a working feature away to create a paid tier is not something this product
-    /// does (DECISIONS.md D-015). The NEXT+ boundary is a pre-release decision that has not been
-    /// made yet; when it is, it gets written down before this table changes.
+    /// This is now a **conclusion rather than a placeholder**. D-034 settled the boundary — NEXT+
+    /// is enhancement, never core access — and applying it to what exists today gates nothing,
+    /// because every capability NEXT has is core. All of them stay free permanently, and not as
+    /// an interim position: taking a working feature away to manufacture a paid tier is not
+    /// something this product does.
+    ///
+    /// So this table does not change when NEXT+ becomes real. A premium capability arrives as a
+    /// new `PremiumCapability` case with its own `.plus` row, and D-019 has to be answered before
+    /// the first one does.
     ///
     /// Every capability is listed rather than left to the default, so this reads as the decision
     /// it is. `FeatureGateTests.oneDotZeroGatesNothing` is the tripwire.

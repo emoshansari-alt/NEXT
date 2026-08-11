@@ -357,6 +357,36 @@ to the type that already owned both halves.
 No defect was found in the simulator-verifiable path. The checklist box stays unticked, because the
 thing it names — a widget with a working deep link — still cannot be observed working end to end.
 
+### NEXT+ has a boundary, and it closes the last release blocker — D-034
+
+**NEXT+ is enhancement, never core access.** Everything NEXT does today is free and stays free;
+no existing capability moves behind the paywall to manufacture a paid tier. Premium is reserved
+for genuinely enhanced or future capabilities — advanced or cloud-assisted brain-dump
+interpretation, richer decomposition, smarter replanning, enhanced Rescue and Minimum Win
+intelligence, future sync, future automation, future premium intelligence — recorded as
+**boundaries, not a backlog**.
+
+Note the shape of it: today's Rescue and Minimum Win are free forever, and only a genuinely
+*enhanced* version of them could ever be premium. `PRODUCT_SPEC.md` §12 said the opposite — it
+listed "advanced Rescue, Minimum Win intelligence" as NEXT+ while calling only "basic Rescue"
+free — and has been corrected to match.
+
+**No code changed, and that is the interesting part.** The architecture already encoded this:
+`FeatureGate` resolves a capability with no row to `.free` (the safe direction — forgetting a row
+cannot paywall something, while charging has to be a deliberate edit), `PremiumCapability` names
+only what exists, and `oneDotZero` lists every capability as free explicitly with a tripwire test.
+What changed is that the table is now a **conclusion rather than a placeholder**, and the docs say
+so. A premium capability later arrives as a new case with its own row, not by moving an old one.
+
+**1.0 ships gating nothing and selling nothing**, which is the honest consequence of the boundary
+rather than a deferral of it: applying it to what exists leaves everything free, so there is
+nothing to sell and the paywall stays unreachable.
+
+**Two decisions came off the critical path as a result.** D-016 (pricing) and D-019 (empty
+entitlement set) can no longer block 1.0, because 1.0 sells nothing. Both become prerequisites of
+the *first premium capability* instead. That is a real change in what release requires, and it is
+recorded rather than assumed.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There
