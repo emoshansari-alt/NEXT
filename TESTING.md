@@ -333,8 +333,13 @@ is 5.0 rather than 4.5 because the quantisation that stops an anti-aliased fring
 a ratio by a percent or two, and an element measured between the two is reported rather than argued
 about.
 
-**Contrast is enforced on the five screens NEXT draws itself** — Today, Focus, Rescue, Capture and
-Onboarding — as of the Index Card palette (D-023). It is checked twice and in two different ways:
+**Contrast is enforced on every core screen, in both appearances.** It was the five NEXT draws
+itself — Today, Focus, Rescue, Capture and Onboarding — until session 14; the four built on a
+system `List` or `Form` (Everything, Task Detail, Settings, Minimum Win) were excluded because
+each reported one contrast failure on its first section header. Measuring the pixels inside that
+header's own frame showed it drawn at 7.14:1, so what was wrong was the audit's verdict rather
+than the rendering, and the exclusion had no basis left (D-021, corrected by D-029). It is checked
+twice and in two different ways:
 `NextPaletteTests` resolves every token pair in both appearances and asserts 4.5:1 against the
 *values*, and the audit checks what is actually rendered.
 
