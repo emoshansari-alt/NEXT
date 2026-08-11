@@ -42,6 +42,34 @@ enum NextType {
     /// The same mark appears on the card, in the widget and on the icon. One repeated mark is
     /// cheaper than a logo and harder to get wrong.
     static let eyebrow = Font.system(.caption2, design: .monospaced, weight: .semibold)
+
+    // MARK: - What this scale does not name
+    //
+    // A pass in session 14 audited every `.font(…)` in the app and the widget against these
+    // tokens. Four sites were token misuse and were converted. The rest were **not**: they are
+    // roles this scale has no name for, and inventing names for them is a change to the design
+    // language rather than an implementation detail (D-024), so they are listed rather than
+    // absorbed.
+    //
+    // - **A supporting note.** A proportional footnote, almost always in `inkSecondary`, for a
+    //   failure, a notice, or a line of status. **Nine sites** — Capture and its confirmation,
+    //   Everything, Minimum Win, Settings, Task Detail and the paywall twice. `meta` is the
+    //   footnote this scale has and it is monospaced, which is right for digits that change and
+    //   wrong for a sentence. This is the one gap with enough weight behind it to be worth
+    //   naming; the other four are judgement calls.
+    // - **A small annotation.** `.caption` on Capture Confirmation's "Is this right?" and "No
+    //   deadline", `.caption2` on the paywall's badge.
+    // - **Emphasis inside body copy.** Minimum Win's rung goal, body at medium weight.
+    // - **Onboarding's own scale.** A large-title headline and a title3 body, on full-screen
+    //   panels with no card. Onboarding is the one screen that is not the index card, so it may
+    //   legitimately sit outside a scale built for one.
+    // - **The action, at widget scale.** `NextWidget` draws the same thing the card calls
+    //   `action`, at a size a widget can hold. It already uses `meta` and `parent`; what it
+    //   lacks is a smaller `action`, not a general headline.
+    //
+    // Nothing above is an accessibility defect. Every one is built from a text style and scales
+    // with Dynamic Type; the only fixed point size in the repository is `AppearanceProbe`'s
+    // two-point invisible label, which is test-only and never rendered for a user.
 }
 
 extension View {

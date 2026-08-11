@@ -74,7 +74,7 @@ struct CaptureConfirmationView: View {
                         set: { model.setTitle($0, forProposal: proposal.id) }
                     )
                 )
-                .font(.body)
+                .font(NextType.body)
                 .accessibilityLabel("Task name")
             }
 

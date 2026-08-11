@@ -80,7 +80,7 @@ struct EverythingView: View {
     private var empty: some View {
         VStack(spacing: 10) {
             Text("Nothing captured yet.")
-                .font(.title3.weight(.semibold))
+                .font(NextType.heading)
             Text("Whatever is on your mind goes here first.")
                 .font(.subheadline)
                 .foregroundStyle(NextPalette.inkSecondary)

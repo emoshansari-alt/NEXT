@@ -51,7 +51,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text(page < panels.count - 1 ? "Next" : "Start")
-                    .font(.headline)
+                    .font(NextType.control)
                     .frame(maxWidth: .infinity, minHeight: 56)
             }
             .buttonStyle(.borderedProminent)

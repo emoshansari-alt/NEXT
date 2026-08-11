@@ -61,7 +61,7 @@ struct CaptureView: View {
                 prompt: Text("Everything on your mind. One line each, or all in one go."),
                 axis: .vertical
             )
-            .font(.body)
+            .font(NextType.body)
             .lineLimit(5...12)
             .textInputAutocapitalization(.sentences)
             .padding(12)

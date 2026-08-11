@@ -246,6 +246,46 @@ choosing evidence to fit a conclusion.
 Cost: two CI rounds, no product change. The exception stands exactly as it was, and D-032 records
 why — so the next person to read D-021 gets the two runs rather than the same good idea.
 
+### The typography pass: four conversions, and a gap that needs a decision
+
+Every `.font(…)` in the app and the widget was checked against `NextType` — 25 sites, not the
+~18 the checklist estimated. The question asked at each was *why it exists*, not whether a token
+resembles it, and that split them almost cleanly.
+
+**Converted — exact value, exact semantic, no visual change:**
+
+| Site | Was | Now |
+|---|---|---|
+| Capture, the brain-dump field | `.body` | `NextType.body` |
+| Capture Confirmation, the title field | `.body` | `NextType.body` |
+| Everything, empty-state headline | `.title3.weight(.semibold)` | `NextType.heading` |
+| Onboarding, the Next/Start button | `.headline` | `NextType.control` |
+
+Each is the same font by construction, so the approved screenshots are unaffected — Capture is
+frame 1 of the store set and renders identically.
+
+**Not converted, and the reason matters more than the count.** The remaining twenty-one are not
+token misuse; they are roles the scale has no name for. Two that resemble tokens exactly were
+left alone deliberately: Onboarding's headline is `largeTitle.bold`, which is `actionFocused`
+to the pixel and means something entirely different, and the widget's headline is
+`headline.semibold`, which is `control` to the pixel while being the *action* at widget scale.
+Forcing either would make the token names lie, which costs more than the inconsistency does.
+
+**The gap worth a decision: a supporting note.** A proportional footnote, almost always in
+`inkSecondary`, for a failure, a notice or a line of status — **nine sites** across Capture,
+Capture Confirmation, Everything, Minimum Win, Settings, Task Detail and the paywall. `meta` is
+the footnote this scale has, and it is monospaced, which is right for digits that change and
+wrong for a sentence. Adding `NextType.note` would collapse all nine, and adding a token is a
+change to the design language rather than an implementation detail (D-024), so it stops here.
+
+Four smaller gaps are recorded in `NextType` alongside it: a small annotation (`.caption`,
+`.caption2`), emphasis inside body copy, Onboarding's own scale, and the action at widget scale.
+
+**Nothing here was an accessibility defect**, which is worth stating plainly because the
+checklist line implied otherwise. Every site is built from a text style and scales with Dynamic
+Type. The only fixed point size in the repository is `AppearanceProbe`'s two-point invisible
+label, which is test-only and never rendered for a user.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There

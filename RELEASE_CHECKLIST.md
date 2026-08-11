@@ -199,11 +199,14 @@ sequence.
 
 - [x] No placeholder UI anywhere user-facing
 - [x] App icon — the card, its spine and one marked line, rendered from the palette (D-023)
-- [ ] Typography and hierarchy final — `NextType` is the scale and it is built from text styles,
-      so everything scales with Dynamic Type. Narrowed from a tick: **about eighteen places
-      across nine screens still name a system text style directly** rather than a `NextType`
-      token. None writes a point size and none is an accessibility defect, but "one scale" is not
-      yet literally true. A focused pass, not a bolt-on to another change
+- [ ] Typography and hierarchy final — **audited, and the remainder is a decision rather than a
+      cleanup.** All 25 direct `.font(…)` sites in the app and widget were checked against the
+      tokens. Four were token misuse and are converted. The other twenty-one are roles the scale
+      does not name — chiefly **a supporting note**, a proportional footnote in `inkSecondary`
+      used at nine sites for failures and notices, where the only footnote token is monospaced.
+      Naming them changes the design language (D-024), so they are listed in `NextType` and
+      await a decision. None writes a point size and none is an accessibility defect: every one
+      is built from a text style and scales
 - [x] Motion restrained and Reduce-Motion-safe — one animated moment in the card, with a still
       equivalent that loses no information. **This line previously contradicted the Reduce Motion
       box above it**: press feedback and the onboarding page turn were two further animated
