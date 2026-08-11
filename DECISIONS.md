@@ -315,7 +315,9 @@ them is how a subscriber gets asked to buy what they already own.
 
 ## D-016 — NEXT+ products and prices are provisional; the candidate list is not a commitment
 
-**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **Verify before release**
+**Date:** 2026-08-09 · **Status:** Accepted (owner decision) · **DEFERRED by D-035** to the first
+premium capability, once its recurring operating cost can be estimated. The provisional prices are
+not shipped, exposed or advertised in 1.0, and no Lifetime economics decision has been made.
 
 **Decision.** The local `.storekit` configuration defines three products — NEXT+ Monthly at
 US$2.99, NEXT+ Annual at US$24.99, and NEXT+ Lifetime at US$59.99 as a one-off — with Annual as
@@ -446,7 +448,9 @@ Revisit alongside the ladder-advancement gap, not on its own.
 
 ## D-019 — An empty entitlement set is treated as "owns nothing", and must be revisited before anything is gated
 
-**Date:** 2026-08-09 · **Status:** Accepted for 1.0 · **Reevaluate before NEXT+ gates anything**
+**Date:** 2026-08-09 · **Status:** Accepted for 1.0 · **DEFERRED by D-035** to the first `.plus`
+capability, and the three candidate shapes below are hypotheses: the failure modes must be
+characterised from evidence before one is chosen.
 
 **Context.** `EntitlementStatus.unknown` exists so that a failed store lookup is never mistaken
 for "this person is on the free tier" (D-015). It protects against StoreKit *throwing*. It does
@@ -958,6 +962,56 @@ D-021's exception is not simply withdrawn, because those three screens still hav
 excluded from their enforced set and moving them across may surface real failures on screens
 nothing has ever held to this bar. That is its own round, and it is recorded as outstanding rather
 than done.
+
+---
+
+## D-035 — Both remaining NEXT+ decisions wait for the first premium capability
+
+**Date:** 2026-08-11 · **Status:** Accepted (owner decision) · **Defers D-016 and D-019**
+
+**Context.** D-034 settled the boundary: NEXT+ is enhancement, never core access, so 1.0 gates
+nothing and sells nothing. That removed both remaining monetisation decisions from the release
+path — and a decision that no longer blocks anything is a decision that should be made when there
+is something to make it *about*, not now while every input to it is hypothetical.
+
+**Decision — pricing (defers D-016).** Final pricing and the purchase-option mix wait until the
+first genuine premium capability has been **designed** and its **recurring operating cost can be
+estimated**. Both halves are conditions: a price set before the cost is known is a guess wearing a
+decision's clothes.
+
+The provisional Monthly US$2.99, Annual US$24.99 and Lifetime US$59.99 are **not shipped, not
+exposed and not advertised in 1.0**. That is already mechanically true rather than a promise to
+keep: `NextApp/NEXT.storekit` is a resource of the **test bundle**, not the app (`project.yml`),
+no price literal appears in any Swift source, and the paywall renders `Product.displayPrice` from
+the store. The three products remain **strictly test fixtures** exercising a short renewing
+period, a long one, and a purchase that never expires.
+
+**No Lifetime economics decision is being made yet.** D-016's constraint stands unresolved and
+unweakened: a Lifetime purchase must not imply unlimited access to per-request cloud AI. Whether
+Lifetime ships at all, ships without cloud features, or ships with a usage model is part of the
+same deferred decision.
+
+**Decision — the empty entitlement set (defers D-019).** The recovery policy waits until the first
+genuine `.plus` capability is being implemented. Nothing is gated, so the tier a person resolves to
+changes nothing they can see, and **no speculative entitlement behaviour is added merely to close
+the decision**.
+
+**What must happen before D-019 is decided, and it is not "pick one of the three".** The recorded
+candidates — a cached last-known entitlement, distinguishing "asked and got nothing" from "never
+successfully asked", and an explicit refresh before any gate is evaluated — are hypotheses about a
+failure mode nobody has characterised. Before choosing: **characterise the actual StoreKit failure
+modes**, and distinguish a legitimate free user from an unavailable, failed or stale entitlement
+state **using evidence rather than assumption**. This project has spent rounds on confidently
+reasoned diagnoses that measurement contradicted (D-029, D-032); an entitlement bug that silently
+sells somebody what they already own is a worse place to repeat that.
+
+**Why deferring is the safe direction here, when it usually is not.** Deferring a decision normally
+risks discovering it late. This one cannot be discovered late, because the thing that would expose
+it — a gated capability — is exactly the thing whose construction re-opens it. `FeatureGate`
+resolves an unlisted capability to `.free`, `FeatureGateTests.oneDotZeroGatesNothing` fails if the
+table stops gating nothing without someone meaning it, and `RELEASE_CHECKLIST.md` carries both
+items unticked. Three independent things have to be edited before either decision can be skipped
+by accident.
 
 ---
 

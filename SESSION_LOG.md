@@ -387,6 +387,16 @@ entitlement set) can no longer block 1.0, because 1.0 sells nothing. Both become
 the *first premium capability* instead. That is a real change in what release requires, and it is
 recorded rather than assumed.
 
+**Both were then explicitly deferred rather than left ambiguous — D-035.** Pricing waits until a
+premium capability exists *and* its recurring cost can be estimated; the provisional prices are not
+shipped, exposed or advertised, which is mechanically true because `NEXT.storekit` is a test-bundle
+resource and no price literal exists in Swift. The entitlement policy waits until the first `.plus`
+capability, with a condition attached: the three recorded candidates are **hypotheses about an
+uncharacterised failure mode**, and the real StoreKit behaviour has to be measured before one is
+chosen. This project has already spent rounds on confident diagnoses that measurement contradicted
+(D-029, D-032), and an entitlement bug that sells somebody what they already own is a worse place
+to repeat it.
+
 ### Known limitations
 
 - **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There

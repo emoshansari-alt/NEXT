@@ -74,16 +74,15 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Paywall — invoked only by intent. **Built and Tier 2 verified, deliberately unreachable
       in a normal build** (D-015, resolved by D-034): NEXT+ unlocks nothing today, so there is
       nothing to sell. A UI test asserts a normal launch cannot reach it
-- [ ] Final NEXT+ pricing and purchase-option mix (D-016) — **provisional: Monthly US$2.99,
-      Annual US$24.99, Lifetime US$59.99, Annual primary. No longer blocks 1.0**, because 1.0
-      sells nothing; it blocks the first premium capability. The Lifetime constraint must be
-      designed for before any lifetime product is sold: it must not imply unlimited access to
-      per-request cloud AI
-- [ ] **How an empty entitlement set is told apart from a genuine free tier (D-019)** —
-      **no longer blocks 1.0** for the same reason: nothing is gated, so the tier a person
-      resolves to changes nothing they can see. It is a prerequisite of the **first gated
-      capability**, where a subscriber whose entitlements come back empty would be sold what they
-      already own
+- [x] **NEXT+ pricing deliberately deferred — D-035, deferring D-016.** Waits for the first
+      premium capability to be designed and its recurring operating cost estimated. The
+      provisional prices are **not shipped, exposed or advertised in 1.0**, and that is
+      mechanical rather than promised: `NEXT.storekit` is a resource of the *test bundle* and no
+      price literal exists in any Swift source. No Lifetime economics decision has been made
+- [x] **Empty-entitlement recovery policy deliberately deferred — D-035, deferring D-019.**
+      Nothing is gated, so no speculative entitlement behaviour is added to close it. Before it
+      is decided, the actual StoreKit failure modes must be characterised from evidence rather
+      than the three recorded candidates being treated as the options
 
 ### Engineering
 
