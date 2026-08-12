@@ -5,6 +5,143 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ---
 
+## 2026-08-12 — Session 15: App Store positioning, and a locked screenshot that stopped matching the app
+
+**Objective.** Reconstruct state from the repository with no chat history, then prepare App Store
+listing positioning and metadata: establish what may truthfully be claimed, verify Apple's current
+requirements from Apple, produce three materially different positioning directions, recommend one,
+and stop for the owner's selection. **No app code was to be modified, and none was.**
+
+### Result
+
+**Three complete directions in [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md), awaiting
+selection.** Every character- and byte-limited field is validated by
+`scripts/validate-store-metadata.py` rather than counted by eye — the script caught two keyword
+fields over the limit on its first run, at 104 and 110 bytes against a 100-**byte** ceiling.
+
+No test was run and no product behaviour changed, so the verified state is unchanged from session
+14: Tier 1 568 / 101 suites, Tier 2 134 unit / 30 suites + 52 UI, run
+[31544988391](https://github.com/emoshansari-alt/NEXT/actions/runs/31544988391).
+
+### The screenshot set is locked and frame 6 no longer matches the app
+
+D-031 locks the six frames and names its own reopening condition: the set is regenerated "only
+when a verified product change alters a screen it shows". D-030's fix landed **after** the run the
+set was composited from ([31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694)),
+and it changed `TodayView` on precisely the state frame 6 captures. A task two days late now reads
+**`This is past its deadline.`** where the frame shows `There is not enough time left to finish
+this.`, and **`What can I still do?` is now shown** where the frame shows it absent.
+
+So frame 6 advertises copy the app does not draw. That is a **recapture, not a redesign** — same
+script, same grounds, same captions, same order — and the caption *Behind? No lecture.* survives
+it unchanged, arguably better supported by the new frame than the old one. Frame 5 was checked
+against the same commit and is unaffected: `RescueView` gained an initialiser and draws nothing
+new on the chooser.
+
+Worth noting how it was found: not by looking at the screenshots, but by asking what each frame
+*claims* and then reading the code behind the claim. The same move found the `Why this?`
+duplication in session 14.
+
+### Apple's requirements were checked against Apple
+
+Not from memory and not from the repository's own assumptions. Two findings materially changed the
+proposals:
+
+- **The keyword field is 100 *bytes*, not 100 characters**, and Apple's search guidance says
+  plainly: *"Don't repeat any words included in your app name, subtitle, or category."* The
+  **category is indexed too**, so "productivity" is not a keyword in any of the three directions,
+  and neither is any word already spent in a name or subtitle. The validator enforces the
+  collision rule, not only the length.
+- **App Tags are not authored by the developer.** They are derived from the metadata plus AI plus
+  human curation; the developer can only *deselect*, and they are US-storefront-only today. There
+  is nothing to write, which is why no direction proposes any.
+
+Confirmed compliant on the way past: **1320 × 2868 is an accepted 6.9″ portrait size**, six frames
+sits inside the 1–10 range, PNG without alpha is correct, and 2.3.3 permits the caption overlays.
+The locked set needs no change on Apple's account — only the recapture above.
+
+### Positioning was decided before any keyword was chosen
+
+The question answered first: *why would anyone choose NEXT?* Because every other app hands back
+the list. NEXT hands back one thing, says why it picked it, and has an answer for the two moments
+a list cannot answer — when you cannot start, and when you are already late.
+
+The three directions are that sentence entered from three different doors: the **mechanism**
+(*One thing at a time*), the **situation** (*Homework & Deadlines*), and the **failure state**
+(*When You're Stuck*). All three take Productivity as primary, and that is a finding rather than a
+lack of imagination — Education requires "an interactive learning experience", NEXT teaches
+nothing, and 2.3.5 makes an irrelevant category grounds for rejection. Inventing category variety
+to make three proposals look distinct would have been the thing the guideline warns about.
+
+**Recommended: direction 2, *Homework & Deadlines*.** It wins on search discoverability and
+conversion, is the safest of the three on truthfulness because its claims are situational rather
+than psychological, and is understood with no inference. Its cost is real and stated: the name
+narrows a product that is not narrow. The second choice is direction 3, not direction 1 — direction
+1 is the safest-sounding and the weakest, competing for `todo` and `focus`, which a brand-new app
+loses.
+
+### What the evidence forbade, and it is a long list
+
+Written down in the proposals document because a claim excluded silently gets re-proposed next
+session: no AI of any kind (the only shipped provider is deterministic and offline); nothing
+clinical; no grades or study outcomes; no sync, iPad or Mac; no claim of general natural-language
+understanding, because the date parser deliberately recognises five phrase shapes and refuses
+`march 14`; nothing about NEXT+; and not "fully accessible", which `TESTING.md` already names as
+a forbidden phrasing.
+
+Two claims were narrowed rather than dropped:
+
+- **The widget stays out of the listing entirely** until B1a and B5 close. It ships, and its
+  snapshot, staleness and deep-link rules are Tier 1 and Tier 2 verified — but nobody has ever
+  seen it display real content, because the App Group is a provisioned entitlement.
+- **"NEXT does not use the internet at all"** — `PRIVACY.md`'s draft wording — is very nearly true
+  and not exactly. NEXT's own code makes no request and CI fails if any shipped source names a
+  networking API, but `NEXTApp` constructs a `StoreKitTransactionListener` at launch and Apple's
+  daemon is not NEXT's to observe. All three descriptions say **"makes no network requests of its
+  own"** and **"nothing you write leaves your phone"**, both exactly true.
+
+### Owner input that cannot be derived, and was not invented
+
+Support URL · Privacy Policy URL · copyright holder · primary storefront language · whether `adhd`
+is reinstated as a keyword. All five are listed in `STORE_LISTING_PROPOSALS.md` §6 with what each
+blocks.
+
+**One of them is a gap in the app, not the listing.** App Review 5.1.1(i) requires a link to the
+privacy policy *inside the app, easily accessible*. Settings has a Privacy section that states the
+position in prose and contains no link. Recorded and not fixed: this session was scoped to copy,
+there is no URL to link to yet, and a product change made in the margins of a marketing task is
+the kind that gets made badly.
+
+### Known limitations
+
+- **`PRODUCT_SPEC.md` §15 still calls D-030 open**, in the paragraph explaining frame 6's
+  silence. The silence is still correct — Rescue re-ranks and may offer a step from another task —
+  but the reason given is out of date. Left alone because §15 is rewritten wholesale after the
+  selection.
+- **`RELEASE_GATED.md` B3 says English (UK); D-031 moved a caption toward US register.** Both
+  cannot be right, and the answer changes which storefront the wording is tuned for.
+- The three directions' descriptions live in the validator as data rather than in prose, so the
+  measured length and the published text cannot diverge. That is deliberate and it does make the
+  document read at one remove from its own copy.
+
+### Exact next action
+
+**Stopped for the owner's selection.** One of the three directions in
+`STORE_LISTING_PROPOSALS.md`, or the hybrid named at the end of §5.
+
+After the selection, in order:
+
+1. Replace `PRODUCT_SPEC.md` §15's listing-copy block with the chosen direction, and record a
+   decision closing D-024's checkpoint for wording.
+2. Reduce `scripts/validate-store-metadata.py` to the one chosen listing so the limits stay
+   enforced.
+3. **Recapture frame 6** so the approved set matches the shipped app, and tick nothing about
+   screenshots until it has been.
+4. Then the owner-supplied fields, and the in-app privacy-policy link, before `RELEASE_GATED.md`
+   B3 step 5 can run.
+
+---
+
 ## 2026-08-10 — Session 14: Dark mode worked the whole time, and four links that were three ideas
 
 **Objective.** Find the actual root cause of Dark mode rather than attempt a fifth implementation,

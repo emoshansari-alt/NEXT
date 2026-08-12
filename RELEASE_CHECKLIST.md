@@ -4,7 +4,7 @@ Two lists. The first is work that must be finished **before** NEXT can be called
 **Local Release Candidate**. The second is everything gated on Apple, which lives in
 [`RELEASE_GATED.md`](RELEASE_GATED.md) and is only summarised here.
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-12
 
 ---
 
@@ -259,10 +259,18 @@ sequence.
       frame order and the six caption strings are all final, and the set is regenerated only when
       a verified product change alters a screen it shows
 - [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
-- [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
-      running app by `ScreenshotCaptureUITests` and exported by CI, and **composited into the
-      Chroma layout** by `scripts/compose-store-screenshots.py`, run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275) —
-      recaptured after the Today secondary-action change, so the set shows the shipped UI.
+- [ ] Screenshots produced from the real app — **unticked in session 15: frame 6 no longer shows
+      the shipped UI.** Six frames at 1320 × 2868, captured from the running app by
+      `ScreenshotCaptureUITests` and exported by CI, and **composited into the Chroma layout** by
+      `scripts/compose-store-screenshots.py`, run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275), regenerated from run
+      [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694). D-030's fix
+      landed after that run and changed `TodayView` on exactly the state frame 6 captures: a task
+      two days late now reads `This is past its deadline.` and shows `What can I still do?`, and
+      the frame shows neither. **A recapture, not a redesign** — same script, same grounds, same
+      captions, same order — and it is the reopening condition D-031 names for itself. The caption
+      *Behind? No lecture.* is unaffected. Frame 5 was checked against the same commit and is not
+      affected. 1320 × 2868 is confirmed an accepted 6.9″ portrait size in Apple's current
+      screenshot specifications, and six frames sits inside the 1–10 range.
       The six ground colours in that script are a **reconstruction**: Chroma was selected in
       session 13 and its values were never committed, so they are the one part of the set worth a
       second opinion. The frames carry **no caption text**, because the listing wording is still
@@ -272,10 +280,21 @@ sequence.
       `PRODUCT_SPEC.md` §15 with what each claims and the two things the set deliberately does not
       say. One of them changed a **product** string on the way: `There is a clear first step.`
       became `Nothing to decide before you start.`
-- [ ] Title, subtitle, description, keywords — **still drafted**, in `PRODUCT_SPEC.md` §15, with
-      alternatives for the title and subtitle. **Owner decision.** The captions are the part of
-      the wording the screenshot direction needed (D-024); the listing metadata is its own choice.
-      Every claim in the draft is one the shipped app supports today
+- [ ] Title, subtitle, description, keywords — **three complete directions proposed and awaiting
+      selection**, in [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md) (session 15),
+      which supersedes the single draft in `PRODUCT_SPEC.md` §15. **Owner decision.** The captions
+      are the part of the wording the screenshot direction needed (D-024); the listing metadata is
+      its own choice. Every field is validated against Apple's current limits by
+      `scripts/validate-store-metadata.py` — the keyword field is 100 **bytes**, and Apple's search
+      guidance forbids repeating words already in the name, subtitle or category, which is
+      enforced too. Every claim in all three directions is one the shipped app supports today;
+      what could not truthfully be claimed is listed rather than omitted
+- [ ] Copyright holder — **owner decision.** A required App Store Connect field: a person or
+      entity name with the year. No company identity exists in this repository and none was
+      invented
+- [ ] A privacy-policy link **inside the app** — App Review 5.1.1(i) requires one, easily
+      accessible, in addition to the App Store Connect URL field. Settings states the privacy
+      position in prose and contains no link. Blocked on the URL, which is the owner's (above)
 - [x] Privacy policy text drafted — `PRIVACY.md`, written for a sixteen-year-old to read in one
       go, because a policy nobody finishes is not consent. Every sentence is a claim the
       repository currently supports; it carries an instruction to re-check it against the code
@@ -324,6 +343,18 @@ compiles, the Simulator unit and UI suites pass, the accessibility audit passes 
 states, and a Release build of the app and widget now succeeds with warnings as errors — run
 [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838).
 
-It is **not** a Local Release Candidate, and must not be called one: 18 Part 1 boxes are still
-open. The largest are the NEXT+ capability boundary (D-015, D-016, D-019), the App Store
-screenshot set, and the device-only checks in `RELEASE_GATED.md` B5.
+It is **not** a Local Release Candidate, and must not be called one: **12 Part 1 boxes are still
+open**, counted from this file rather than carried forward — the previous figure of 18 predated
+several closures and had stopped being a count of anything.
+
+They fall into four groups, and only one is engineering:
+
+- **The owner's** — the listing wording (three directions await selection), the support contact,
+  the copyright holder.
+- **Gated on a URL that does not exist yet** — the in-app privacy-policy link.
+- **A recapture** — frame 6, which D-030's fix made stale.
+- **Device- or Apple-gated** — notification delivery, the widget end to end, haptics, VoiceOver
+  traversal, and the two system-rendered accessibility exceptions, all in `RELEASE_GATED.md` B5.
+
+The NEXT+ capability boundary is no longer among them: D-034 closed it and D-035 deferred what
+remained (D-016, D-019) to the first premium capability, which 1.0 does not have.
