@@ -7,6 +7,9 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ## 2026-08-12 — Session 15: App Store positioning, and a locked screenshot that stopped matching the app
 
+*Two parts. The first produced three positioning directions and stopped for a selection; the
+second audited the selected one, settled the storefront language, and recaptured frame 6.*
+
 **Objective.** Reconstruct state from the repository with no chat history, then prepare App Store
 listing positioning and metadata: establish what may truthfully be claimed, verify Apple's current
 requirements from Apple, produce three materially different positioning directions, recommend one,
@@ -124,21 +127,121 @@ the kind that gets made badly.
   measured length and the published text cannot diverge. That is deliberate and it does make the
   document read at one remove from its own copy.
 
+### Part two — direction 2 selected, audited, and frame 6 recaptured
+
+The owner selected **direction 2, *Homework & Deadlines***, as a working direction rather than
+final copy, and asked for an evidence audit of it before anything is locked, the storefront
+language settled, and frame 6 recaptured if it could be done without disturbing frames 1–5.
+
+**Two decisions recorded: D-036** (primary storefront language is English (U.S.)) and **D-037**
+(frame 6 recaptured, frames 1–5 preserved byte-for-byte).
+
+#### Frame 6 was recaptured, and the interesting part is why the whole set was not
+
+CI had already captured a fresh set on the docs commit, so no new run was needed — the frames were
+sitting in the artifact of run
+[31594674340](https://github.com/emoshansari-alt/NEXT/actions/runs/31594674340). Downloading that
+beside the approved run's artifact and comparing frame by frame gave the answer immediately:
+
+| Frame | Across the two runs |
+|---|---|
+| 02, 03, 04, 05 | **byte-identical** — the capture is reproducible |
+| 06 | 28.6% of pixels differ — D-030 |
+| 01 | 0.099% of pixels differ, in one 38-pixel band |
+
+That band is **iOS's QuickType bar**: the approved frame offers `"C" | Can | Come` and the new one
+offers nothing. Apple's keyboard state, not NEXT's — and enough to have quietly changed a locked
+frame if the whole set had been re-rolled on the assumption that a deterministic capture stays
+deterministic. Four frames said it was; the fifth said it was not, and only in a place nobody
+would have looked.
+
+So the substitution is expressed **in the command** rather than in a folder assembled by hand.
+`compose-store-screenshots.py` now takes several source directories, later ones winning, and
+`#name` narrows one to the frames named after it:
+
+```bash
+python scripts/compose-store-screenshots.py approved/screenshots new/screenshots#06-late out
+```
+
+Verified two ways. Composing from the approved run alone and composing from the mix produce
+**identical SHA-256s for frames 01–05**, and a frame 06 differing only inside the screen area
+below the caption band. And the frame itself was read rather than inferred: the card carries
+`This is past its deadline.` and `What can I still do?` sits below START, where the approved frame
+had `There is not enough time left to finish this.` and no affordance at all.
+
+**The caption did not change.** `Behind? No lecture.` was true of the old frame and is better
+evidenced by the new one — a card that states a fact once and offers a route is more obviously not
+a telling-off than a card that only stated the fact. And what the caption declines to claim is
+still declined: Rescue re-ranks, so the step it offers may belong to another task, and no caption
+should promise the late work back. Nothing was redesigned and no D-024 checkpoint was opened.
+
+#### The audit found seven things, and did not find the thing it was most likely to invent
+
+Direction 2 **survives as a strategy** — thesis, name and subtitle are unchallenged, and
+`Homework & Deadlines` was specifically examined for harmful narrowing and cleared: it narrows
+honestly, and the adjacency risk ("Deadlines" reading as a countdown app, "Homework" as a planner)
+is already answered by the first description line and by frames 1 and 2.
+
+What the evidence did find, each traced to code or to Apple:
+
+- **The fold was spent on atmosphere.** Apple is explicit that the first sentence is what a
+  shopper reads without tapping, and the mechanism did not appear until paragraph two. Now both
+  are in the first line.
+- **"why that one and not the others"** overstated it. `ExplanationReason` has seven cases and
+  none is comparative — the engine says why the winner won, never how it beat the field.
+- **"separate tasks with deadlines"** implied general date understanding. `DatePhraseParser`
+  recognises five phrase shapes and deliberately refuses `march 14`, `in three days` and `at 6`.
+  Replaced with the honest version, which is also the better claim: it asks instead of guessing.
+- **"a first step you can do in five minutes"** was a duration promise the shrinker does not make.
+  The five minutes is real and belongs to *I just don't want to*, so it moved there.
+- **The Minimum Win sentence read toward the academic-integrity line** — "still worth handing in
+  the work for" invites exactly the reading §4.12 forbids. Rewritten.
+- **One claim was made twice and one Rescue path was missing** — the description walked three of
+  four and dropped the one with no equivalent on the shelf.
+- **Two keywords were working against the product.** `revision` is British for exam study and
+  reads as draft-editing in the US; `planner` buys arrivals wanting the timetable NEXT refuses to
+  be. Swapped for `overwhelmed` and `school`.
+
+The result is held as **direction 2R** beside the original, both measured, so the audit's proposal
+cannot quietly break a limit while claiming to fix a claim: 2R is 26 / 26 / 97 / 2058 / **99 bytes**.
+
+#### Storefront language, and what it actually changed
+
+Settled as **English (U.S.)** (D-036), and `RELEASE_GATED.md` B3 step 1 is corrected in place with
+a pointer to the entry, so the line cannot read as settled again merely because nobody questioned
+it. It is not a spelling preference: `sixth form` has no American referent, `term` reads as
+`semester`, and `revision` means two different things in the two registers, which is why it left
+the keyword field.
+
+**The six approved captions needed no change**, checked rather than assumed — all are US-neutral,
+because D-031 had already moved the one British phrase out of the set. **The app's user-facing
+copy is clean too**: a scan for the usual markers returns exactly one hit, `"practise"` inside
+`WorkKind`'s keyword table, which is an input token NEXT matches on, sits beside `"practice"`, and
+is never displayed.
+
+### Known limitations — part two
+
+- **The composited set is still not committed** (six PNGs, a quarter of a megabyte each). It is
+  reproducible from the script plus two named CI artifacts, and the command that reproduces it is
+  now in D-037 rather than in somebody's shell history.
+- **Frame 01 is not reproducible across runs**, and now that is known rather than assumed. Any
+  future recapture must name the frames it intends to change.
+- Direction 2 and 2R both sit in the validator. That is deliberate until one is approved, and the
+  loser is deleted rather than left to be mistaken for a live option.
+
 ### Exact next action
 
-**Stopped for the owner's selection.** One of the three directions in
-`STORE_LISTING_PROPOSALS.md`, or the hybrid named at the end of §5.
+**Stopped for final listing approval.** Direction **2** as written, or the audit's **2R**, or
+2R with named amendments. Nothing goes into `PRODUCT_SPEC.md` until the actual copy is approved.
 
-After the selection, in order:
+After approval, in order:
 
-1. Replace `PRODUCT_SPEC.md` §15's listing-copy block with the chosen direction, and record a
+1. Replace `PRODUCT_SPEC.md` §15's listing-copy block with the approved copy, and record a
    decision closing D-024's checkpoint for wording.
-2. Reduce `scripts/validate-store-metadata.py` to the one chosen listing so the limits stay
-   enforced.
-3. **Recapture frame 6** so the approved set matches the shipped app, and tick nothing about
-   screenshots until it has been.
-4. Then the owner-supplied fields, and the in-app privacy-policy link, before `RELEASE_GATED.md`
-   B3 step 5 can run.
+2. Reduce `scripts/validate-store-metadata.py` to the one approved listing and wire it into the
+   guardrails job; delete the losing directions from `STORE_LISTING_PROPOSALS.md`.
+3. Then the owner-supplied fields — support URL, privacy-policy URL, copyright holder — and the
+   in-app privacy-policy link, before `RELEASE_GATED.md` B3 step 5 can run.
 
 ---
 

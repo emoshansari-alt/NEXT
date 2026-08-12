@@ -1,8 +1,14 @@
 # NEXT — App Store listing: three positioning directions
 
-**Status:** Proposal. **Nothing here is chosen.** This is the D-024 checkpoint for the listing
-wording, which is the last piece of store copy: the screenshot direction, the six frames and the
-six captions are already approved and locked (**D-031**).
+**Status:** **Direction 2 is the owner's working selection** (2026-08-12), with the name and
+subtitle `NEXT: Homework & Deadlines` / `Six things due? Start one.`. The copy itself is **not yet
+approved** — §9 is an evidence audit of the selection and proposes **direction 2R**, which keeps
+the name and subtitle exactly and revises the rest. Directions 1 and 3 are kept until one of 2 and
+2R is approved, then this file is reduced to the winner.
+
+This is the D-024 checkpoint for the listing wording, which is the last piece of store copy: the
+screenshot direction, the six frames and the six captions are approved and locked (**D-031**), and
+frame 6 has been recaptured under D-031's own reopening rule (**D-037**, §10).
 
 **Date:** 2026-08-12 · **Decision:** owner's, one of three, then `PRODUCT_SPEC.md` §15 is replaced
 with the selection.
@@ -393,12 +399,10 @@ Nothing below can be derived from the repository, and none of it has been guesse
    there is no URL to link to yet.
 3. **Copyright holder.** Required field: a person or entity name, with the year. No company
    identity exists in this repository and one has not been invented.
-4. **Primary storefront language.** `RELEASE_GATED.md` B3 step 1 says English (UK). D-031 changed
-   an approved caption *away* from a British register — `Late work, without the telling-off.`
-   became `Behind? No lecture.` — on the grounds that the copy is otherwise US-facing. Both
-   cannot be right. This matters beyond taste: App Tags are US-storefront-only today, and the
-   listing wording should match whichever storefront is primary. Every draft above is written in
-   the register the approved captions already use.
+4. ~~**Primary storefront language.**~~ **Decided 2026-08-12: English (U.S.) — D-036.**
+   `RELEASE_GATED.md` B3 step 1 is corrected in place and points at the entry, so the UK
+   assumption cannot silently return. §9 lists every place the old register had leaked into the
+   copy, and the check that the six approved captions needed no change at all.
 5. **`adhd` as a keyword.** `PRODUCT_SPEC.md` §15's draft keyword field includes it, arguing it is
    a search term rather than a claim. **It is excluded from all three fields above**, for two
    reasons: 2.3.7 treats irrelevant keyword terms as grounds for modification or rejection, and an
@@ -412,7 +416,11 @@ Nothing below can be derived from the repository, and none of it has been guesse
 
 Recorded rather than resolved, per the instruction to flag rather than silently choose.
 
-1. **The approved screenshot set's frame 6 is now stale.** D-031 locks the set and says it is
+**Conflicts 1 and 3 are resolved** — see §10 and D-037 for the recapture, and D-036 for the
+storefront language. They are left in place rather than deleted, because how they were found is
+worth more than the fact that they are closed.
+
+1. ~~**RESOLVED (D-037).**~~ **The approved screenshot set's frame 6 was stale.** D-031 locks the set and says it is
    regenerated "only when a verified product change alters a screen it shows". The set was
    composited from run
    [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694). D-030's fix
@@ -429,16 +437,168 @@ Recorded rather than resolved, per the instruction to flag rather than silently 
    silence. D-030 was resolved on 2026-08-11. The frame's *silence* is still correct for a
    different reason — Rescue re-ranks and may offer a step from another task — but the stated
    reason is out of date.
-3. **The English (UK) / US register conflict** described in section 6, item 4.
+3. ~~**RESOLVED (D-036).**~~ **The English (UK) / US register conflict** described in section 6,
+   item 4. Settled as English (U.S.); §9's storefront table lists what it changed.
 
 ---
 
-## 8. What happens after the selection
+## 9. Evidence audit of the selected direction (2026-08-12)
 
-1. Replace `PRODUCT_SPEC.md` §15's "Listing copy" block with the chosen direction, and record the
+Direction 2 was audited against the shipped product, the locked captions, Apple's metadata rules
+and the newly-settled US storefront (**D-036**). **It survives as a positioning strategy** — the
+thesis, the name and the subtitle are not challenged by anything below, and nothing here is a
+change of taste. Seven findings, each with the evidence that produced it, and one non-finding
+that matters.
+
+### F1 — The fold spends its most valuable line on atmosphere · **fix proposed**
+
+Apple: *"The first sentence of your description is the most important — this is what users can
+read without having to tap to read more."* Direction 2 opens with three scene fragments and does
+not state the mechanism until the second paragraph, which is below the fold. Direction 1 states it
+in sentence one. 2R merges them: **"Six things due this week. NEXT gives you one of them — one
+task, one action, and the reason it picked that one."** Situation and mechanism, both above the
+fold, in 118 characters.
+
+### F2 — "why that one and not the others" overstates the explanation · **fix proposed**
+
+The engine explains why the winner won — `Due in 2 days.`, `Finishing this unblocks 3 other
+tasks.`, `Nothing else is more pressing right now.` — and never compares it against the field.
+`ExplanationReason` has seven cases and none of them is comparative. 2R says **"the reason it
+picked that one"**.
+
+### F3 — "separate tasks with deadlines" implies date understanding NEXT does not have · **fix proposed**
+
+`DatePhraseParser` recognises `today`, `tonight`, `tomorrow`, and weekday names, and *deliberately*
+refuses `march 14`, `13/03/2026`, `in three days`, `next week` and `at 6`. The bullet as written
+reads as general extraction. 2R replaces it with the honest and more distinctive claim: **"Reads
+the dates it recognizes, and asks instead of guessing when it does not"** — which is the actual
+design position, that a wrong deadline is worse than a missing one.
+
+### F4 — "a first step you can do in five minutes" is a duration promise the shrinker does not make · **fix proposed**
+
+The five-minute figure is real but it belongs to one path. `StepShrinker`'s generic fallback is
+*"Spend five minutes on that one thing."* and `RescueStrategy.dontWantTo` bounds the deal at five
+minutes; the ordinary shrink to a physical first step carries no duration at all. 2R moves the
+number to where it is literally true — the *I just don't want to* line — and the bullet becomes
+**"Breaks a task you are avoiding down to one physical first step"**.
+
+### F5 — the Minimum Win sentence is garbled, and reads toward the academic-integrity line · **fix proposed**
+
+> "…gets a smaller version that is still worth handing in the work for…"
+
+It is hard to parse, and the reading a tired shopper takes from it — hand in the smaller version —
+is the one `PRODUCT_SPEC.md` §4.12 explicitly forbids Minimum Win from encouraging. Minimum Win is
+about the highest-value *progress*, not about what gets submitted. 2R: **"…gets a smaller version
+that is still worth doing — outline, then introduction, then first section — and a time to come
+back and reassess."**
+
+### F6 — one claim is made twice, and one Rescue path is missing · **fix proposed**
+
+"reads it into separate tasks" appears in paragraph two and again as the first bullet; "why it
+picked it" appears in both as well. Separately, the description walks three of Rescue's four paths
+and silently drops *I just don't want to* — the one with no equivalent anywhere else on the shelf.
+2R removes both repetitions and sets all four paths out as a list, which is also where F4's five
+minutes now lives.
+
+### F7 — two keywords are working against the product · **fix proposed**
+
+- **`revision`** is British for studying for exams; on a US storefront (**D-036**) it reads as
+  editing a draft, and buys the wrong intent with bytes that are not spare.
+- **`planner`** targets a category `PRODUCT_SPEC.md` §1 explicitly refuses — "not a planner
+  suite". It buys arrivals who want a timetable and will not find one, which is the mechanism
+  behind direction 2's one real weakness rather than a mitigation of it.
+
+2R swaps them for `overwhelmed` (on-message, non-clinical, and what Rescue is actually for) and
+`school`. 99 / 100 bytes.
+
+### The non-finding: `Homework & Deadlines` does not narrow NEXT harmfully
+
+It narrows it, and the narrowing is honest — NEXT does both things named. The risk is not false
+advertising but adjacency: "Deadlines" can read as a countdown app and "Homework" as a planner,
+and both are categories NEXT refuses. That risk is already answered where it lands, by the first
+description line and by frames 1 and 2, which sell the opposite of a list. **Recommendation: keep
+the name and subtitle exactly as selected.** F7's removal of `planner` strengthens this rather
+than weakening it.
+
+### What the audit found nothing to change
+
+- **Generic productivity language:** none. No instance of any banned pattern; the word
+  "productivity" does not appear in any field.
+- **Awkward ASO phrasing in human-readable copy:** none. The keyword field is machine-read;
+  nothing in the description is written for the algorithm.
+- **Accidental implications:** checked one by one and all clear. **AI** — nothing implies a model,
+  and F3's fix makes the deterministic behaviour an explicit selling point. **Cloud** — "makes no
+  network requests of its own" is stated. **Accounts** — "no sign-up, no email address". **Therapy
+  or ADHD** — "an essay you have been not-starting for four days" is behavioural, not clinical; no
+  condition is named anywhere; `adhd` is not in the keyword field. **Educational outcomes** — no
+  grade, mark, result or performance claim exists. **In-app purchases** — nothing is mentioned,
+  which is correct, because there are none.
+- **Listing against the six frames:** reinforcing throughout, no contradiction. Frame 1 ↔ "put it
+  all in"; frame 2 ↔ "one card"; frame 3 ↔ "the smallest physical action"; frame 5 ↔ "say what is
+  in the way", which is nearly the caption verbatim; frame 6 ↔ "says so, without a lecture".
+  Frame 4's *Then it gets out of the way* was the one beat the description did not answer, so 2R's
+  Focus bullet now ends **"then leaves you alone"**.
+
+### Storefront language (**D-036** — English (U.S.))
+
+| Where | Current | Status |
+|---|---|---|
+| Description | `For sixth form, college and university.` | **UK-only term.** 2R: `For high school and college.` — which is also exactly `PRODUCT_SPEC.md` §1's "late high school through undergraduate" |
+| Description | `for ever` | UK two-word form. 2R: `forever` |
+| Description | `Haven't got the time` / `how long you have got` | British idiom. 2R: `I don't have the time` / `say how much you have` |
+| Promotional text | `Term has started.` | Reads as UK academic. 2R: `New semester.` |
+| Keywords | `revision` | F7 above |
+| **Screenshot captions** | all six | **No inconsistency. Nothing changed.** Every caption is US-neutral; D-031 had already moved the one British phrase out of the set |
+| **In-app copy** | all user-facing strings | **No inconsistency found.** Scanned for the usual markers — `colour`, `organis*`, `personalis*`, `behaviour`, `whilst`, `for ever`, `practise`. The only hit is `"practise"` inside `WorkKind`'s keyword table, which is an input token NEXT *matches on*, listed beside `"practice"`, and is never displayed. British spelling in identifiers and documentation (`Monetisation`) is internal and out of scope |
+
+### Both versions are measured, not eyeballed
+
+`scripts/validate-store-metadata.py` holds direction 2 and 2R side by side, so the audit's proposal
+cannot quietly break a limit:
+
+| | Name | Subtitle | Promotional | Description | Keywords |
+|---|---|---|---|---|---|
+| 2 | 26 / 30 | 26 / 30 | 101 / 170 | 1907 / 4000 | 97 / 100 bytes |
+| **2R** | **26 / 30** | **26 / 30** | **97 / 170** | **2058 / 4000** | **99 / 100 bytes** |
+
+---
+
+## 10. Frame 6, recaptured (D-037)
+
+Done, verified, and frames 1–5 are byte-for-byte what they were. The full reasoning is in
+**D-037**; the short version:
+
+- **The condition was D-031's own.** D-030's fix altered the screen frame 6 shows.
+- **A whole-set recapture was measured and rejected.** Frames 02–05 came back byte-identical
+  across the two runs, so the capture is reproducible — but frame 01 did not, because iOS's
+  QuickType bar offered three predictive suggestions in one run and none in the other. That is
+  Apple's keyboard, not NEXT, and adopting it would have changed a locked frame for a reason
+  outside the product.
+- **So only frame 6 was taken from the new run**, and the substitution is expressed in the
+  command rather than in a folder assembled by hand:
+
+  ```bash
+  python scripts/compose-store-screenshots.py approved/screenshots new/screenshots#06-late out
+  ```
+
+- **Verified by reading the frame**, not the diff: the card now carries `This is past its
+  deadline.` and the `What can I still do?` affordance is present below START. The old frame had
+  `There is not enough time left to finish this.` and no affordance.
+- **The caption is unchanged.** `Behind? No lecture.` was true of the old frame and is better
+  evidenced by the new one. Its contrast on `#0E7490` is re-asserted at 5.4:1 before the file is
+  written.
+- Composing from the approved run alone and from the mix yields **identical SHA-256s for frames
+  01–05**, and a frame 06 differing only inside the screen area, below the caption band.
+
+---
+
+## 11. What happens after the selection
+
+1. Replace `PRODUCT_SPEC.md` §15's "Listing copy" block with the approved copy, and record the
    choice in `DECISIONS.md` as the entry that closes D-024's checkpoint for wording.
-2. Keep `scripts/validate-store-metadata.py` reduced to the single chosen listing, so the limits
-   stay enforced rather than checked once.
-3. Recapture frame 6 (conflict 1) so the set matches the shipped app before anything is uploaded.
+2. Reduce `scripts/validate-store-metadata.py` to the single approved listing and wire it into the
+   guardrails job, so the limits stay enforced rather than checked once. Delete the losing
+   directions from this file rather than leaving them to be mistaken for live options.
+3. ~~Recapture frame 6~~ — **done, D-037.** Frames 1–5 preserved byte-for-byte.
 4. Fill the owner-supplied fields in section 6, and add the in-app privacy-policy link, before
    `RELEASE_GATED.md` B3 step 5 can be executed.

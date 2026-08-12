@@ -139,6 +139,55 @@ For sixth form, college and university.""",
 )
 
 
+# --- Direction 2R: the audit revision -----------------------------------------------------------
+#
+# Direction 2 is the owner's working selection. This is what the evidence audit proposes changing
+# and nothing else: the name and subtitle are untouched, and every edit below traces to a finding
+# in STORE_LISTING_PROPOSALS.md §9 rather than to taste. Both are kept measurable side by side
+# until the owner approves one, and the loser is deleted rather than left to rot.
+
+direction(
+    "2R — Homework and deadlines (audit revision)",
+    name="NEXT: Homework & Deadlines",
+    subtitle="Six things due? Start one.",
+    promotional=(
+        "New semester. Put the whole reading list in, and NEXT will tell you which part of it to "
+        "do first."
+    ),
+    keywords=(
+        "study,assignment,coursework,exam,essay,student,college,"
+        "todo,task,procrastination,overwhelmed,school"
+    ),
+    categories=["Productivity", "Utilities"],
+    description="""Six things due this week. NEXT gives you one of them — one task, one action, and the reason it picked that one.
+
+Put it all in: type it, paste it, one line each or all in one go. NEXT reads it into separate tasks and asks you about any date it is not sure of, rather than guessing one.
+
+WHAT IT ACTUALLY DOES
+• Takes a whole brain dump at once, typed or pasted
+• Reads the dates it recognizes, and asks instead of guessing when it does not
+• Picks one thing to do now, and tells you why it picked it
+• Breaks a task you are avoiding down to one physical first step
+• Opens a single Focus screen with that one action on it and an optional timer, then leaves you alone
+• Keeps the whole list in Everything, sorted into Overdue, Today, Upcoming and No deadline, for when you do want to see it
+
+THE ESSAY YOU CANNOT FACE
+Tap I'm stuck and say what is in the way.
+• I don't know how to start — NEXT gives you the smallest physical action, one at a time, so you never see the whole mountain
+• It's too much — it hides the mountain
+• I don't have the time — say how much you have, five minutes or fifteen or thirty, and NEXT finds the most useful thing that genuinely fits, or tells you plainly that nothing does
+• I just don't want to — no lecture. Do five minutes, then decide whether to carry on
+
+WHEN IT IS TOO LATE TO DO IT PROPERLY
+An assignment you can no longer finish in the time left gets a smaller version that is still worth doing — outline, then introduction, then first section — and a time to come back and reassess. One whose deadline has already passed says so, without a lecture, and still offers you something you can do now. Late work quietly stops shouting instead of pinning itself to your screen forever.
+
+NO STREAKS, NO GUILT, NO ACCOUNT
+NEXT never tells you that you have fallen behind, broken anything, or let yourself down. There is no sign-up, no email address, no tracking and no ads. It makes no network requests of its own, so it works with no signal at all, and nothing you write ever leaves your phone.
+
+For high school and college.""",
+)
+
+
 # --- Direction 3: for when you cannot start ---------------------------------------------------
 
 direction(

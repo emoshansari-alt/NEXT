@@ -259,18 +259,20 @@ sequence.
       frame order and the six caption strings are all final, and the set is regenerated only when
       a verified product change alters a screen it shows
 - [x] Screenshot narrative assembled — the six beats, fixed in `ScreenshotCaptureUITests`
-- [ ] Screenshots produced from the real app — **unticked in session 15: frame 6 no longer shows
-      the shipped UI.** Six frames at 1320 × 2868, captured from the running app by
-      `ScreenshotCaptureUITests` and exported by CI, and **composited into the Chroma layout** by
-      `scripts/compose-store-screenshots.py`, run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275), regenerated from run
-      [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694). D-030's fix
-      landed after that run and changed `TodayView` on exactly the state frame 6 captures: a task
-      two days late now reads `This is past its deadline.` and shows `What can I still do?`, and
-      the frame shows neither. **A recapture, not a redesign** — same script, same grounds, same
-      captions, same order — and it is the reopening condition D-031 names for itself. The caption
-      *Behind? No lecture.* is unaffected. Frame 5 was checked against the same commit and is not
-      affected. 1320 × 2868 is confirmed an accepted 6.9″ portrait size in Apple's current
-      screenshot specifications, and six frames sits inside the 1–10 range.
+- [x] Screenshots produced from the real app — six frames at 1320 × 2868, captured from the
+      running app by `ScreenshotCaptureUITests`, exported by CI, and **composited into the Chroma
+      layout** by `scripts/compose-store-screenshots.py`. **Frame 6 was recaptured on 2026-08-12
+      and frames 1–5 were preserved byte-for-byte** (**D-037**): D-030's fix landed after run
+      [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694) and changed
+      `TodayView` on exactly the state frame 6 shows, which is the one condition D-031 names for
+      reopening itself. Frame 6 now carries `This is past its deadline.` and `What can I still
+      do?`, verified by reading the captured frame rather than the diff. Frames 01–05 come from
+      the approved run and compose to **identical SHA-256s**; frames 02–05 were byte-identical in
+      the new run too, and 01 was not — iOS's QuickType bar, not NEXT — which is why the whole set
+      was not re-rolled. New frame from run
+      [31594674340](https://github.com/emoshansari-alt/NEXT/actions/runs/31594674340). 1320 × 2868
+      is confirmed an accepted 6.9″ portrait size in Apple's current screenshot specifications,
+      and six frames sits inside the 1–10 range
       The six ground colours in that script are a **reconstruction**: Chroma was selected in
       session 13 and its values were never committed, so they are the one part of the set worth a
       second opinion. The frames carry **no caption text**, because the listing wording is still
@@ -280,8 +282,13 @@ sequence.
       `PRODUCT_SPEC.md` §15 with what each claims and the two things the set deliberately does not
       say. One of them changed a **product** string on the way: `There is a clear first step.`
       became `Nothing to decide before you start.`
-- [ ] Title, subtitle, description, keywords — **three complete directions proposed and awaiting
-      selection**, in [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md) (session 15),
+- [ ] Title, subtitle, description, keywords — **direction 2 is the owner's working selection;
+      the copy itself is not yet approved.** `NEXT: Homework & Deadlines` / `Six things due? Start
+      one.` are the working name and subtitle. An evidence audit of the selected direction found
+      seven things worth changing and proposed **2R**, which keeps the name and subtitle exactly
+      and revises the description, promotional text and keyword field; both are held and measured
+      side by side until one is approved. See
+      [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md) §9 (session 15),
       which supersedes the single draft in `PRODUCT_SPEC.md` §15. **Owner decision.** The captions
       are the part of the wording the screenshot direction needed (D-024); the listing metadata is
       its own choice. Every field is validated against Apple's current limits by
@@ -343,18 +350,20 @@ compiles, the Simulator unit and UI suites pass, the accessibility audit passes 
 states, and a Release build of the app and widget now succeeds with warnings as errors — run
 [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838).
 
-It is **not** a Local Release Candidate, and must not be called one: **12 Part 1 boxes are still
+It is **not** a Local Release Candidate, and must not be called one: **11 Part 1 boxes are still
 open**, counted from this file rather than carried forward — the previous figure of 18 predated
 several closures and had stopped being a count of anything.
 
-They fall into four groups, and only one is engineering:
+They fall into three groups, and none is engineering:
 
-- **The owner's** — the listing wording (three directions await selection), the support contact,
-  the copyright holder.
+- **The owner's** — the listing copy (direction 2 selected, wording awaiting approval), the
+  support contact, the copyright holder.
 - **Gated on a URL that does not exist yet** — the in-app privacy-policy link.
-- **A recapture** — frame 6, which D-030's fix made stale.
 - **Device- or Apple-gated** — notification delivery, the widget end to end, haptics, VoiceOver
   traversal, and the two system-rendered accessibility exceptions, all in `RELEASE_GATED.md` B5.
+
+Frame 6's recapture came off this list on 2026-08-12 (**D-037**), with frames 1–5 preserved
+byte-for-byte.
 
 The NEXT+ capability boundary is no longer among them: D-034 closed it and D-035 deferred what
 remained (D-016, D-019) to the first premium capability, which 1.0 does not have.

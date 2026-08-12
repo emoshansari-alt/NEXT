@@ -93,8 +93,10 @@ Privacy questionnaire in particular is a set of legal declarations, and the hone
 the ones derivable from `PRIVACY.md` rather than the ones that seem safe under time pressure.
 
 1. **Create the app record.** Bundle identifier `com.nextapp.next` — it must match `project.yml`
-   exactly, and it cannot be changed after the first upload. Primary language English (UK),
-   category Productivity.
+   exactly, and it cannot be changed after the first upload. **Primary language English (U.S.)**
+   — corrected from English (UK) by **D-036**, which is where the reasoning lives; it is not a
+   spelling preference and it changes the keyword field. Primary category Productivity, secondary
+   Utilities.
 2. **Answer the App Privacy questionnaire from `PRIVACY.md`, not from memory.** As NEXT is built
    today the answer to every collection question is **no**: no account, no analytics SDK, no
    third-party dependency, no networking of any kind, no advertising identifier. The expected

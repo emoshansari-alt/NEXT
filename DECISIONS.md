@@ -965,6 +965,93 @@ than done.
 
 ---
 
+## D-037 — Frame 6 is recaptured; frames 1–5 are preserved byte-for-byte
+
+**Date:** 2026-08-12 · **Status:** Accepted · **Amends D-031 under its own reopening rule**
+
+**Context.** D-031 locks the six-frame set and names exactly one thing that reopens it: "a verified
+product change alters a screen it shows". D-030's fix (`ec11ddc`) is that change. It landed after
+run [31455519694](https://github.com/emoshansari-alt/NEXT/actions/runs/31455519694), the run the
+approved set was composited from, and it altered Today on precisely the state frame 6 captures.
+
+**What the frame showed and what the app now draws**, read out of both captures rather than
+inferred from the diff:
+
+| | Approved frame | Shipped app |
+|---|---|---|
+| Notice | `There is not enough time left to finish this.` | `This is past its deadline.` |
+| Affordance | absent | `What can I still do?` |
+
+**Decision.** Recapture frame 6 and nothing else. The caption `Behind? No lecture.` is
+**unchanged**: it claims the absence of a telling-off, and a card that states a fact once and
+offers a route is at least as good evidence for those words as the card they were written against.
+The geometry, the grounds, the caption typography and the frame order are untouched. This is not a
+new checkpoint under D-024 — no subjective visual decision was taken.
+
+**Why a whole-set recapture was rejected**, which is the part worth keeping. Frames 02–05 came back
+**byte-identical** across runs 31455519694 and 31594674340 — the capture is reproducible. Frame 01
+did not: iOS's QuickType bar offered three predictive suggestions (`"C" | Can | Come`) in one run
+and none in the other. That is Apple's keyboard state, not NEXT's, and adopting it would have
+changed a locked frame for a reason outside the product.
+
+**So the recapture is expressed in the compositing command rather than in a folder assembled by
+hand**, which is the difference between a reproducible operation and one that has to be trusted:
+
+```bash
+python scripts/compose-store-screenshots.py approved/screenshots new/screenshots#06-late out
+```
+
+`compose-store-screenshots.py` now takes more than one source directory, later ones winning, and
+`#name` narrows a source to the frames named after it. Nothing edits an image: every frame is
+still a capture of the running app (D-024).
+
+**Verified.** Composing from the approved run alone and composing from the mix produce frames
+01–05 that are byte-identical — same SHA-256 for all five — and a frame 06 that differs only
+inside the screen area, below the caption band, at box `(96, 839, 1224, 2185)`. The caption's
+contrast on `#0E7490` is re-asserted at 5.4:1 by the script before the file is written.
+
+**What is still deliberately not claimed.** Frame 6 says only that late work is not lectured at.
+It makes no promise about recovering the work, because Rescue re-ranks and the step it offers may
+belong to a different task — the honest limitation D-030 recorded. The new affordance being
+visible in the frame does not upgrade the caption's claim, and the caption was not upgraded.
+
+---
+
+## D-036 — The primary storefront language is English (U.S.)
+
+**Date:** 2026-08-12 · **Status:** Accepted (owner decision) · **Corrects `RELEASE_GATED.md` B3**
+
+**Context.** Two records disagreed. `RELEASE_GATED.md` B3 step 1 said "Primary language English
+(UK)", written in session 9 and never revisited. D-031 then changed an approved caption *away*
+from a British register — `Late work, without the telling-off.` became `Behind? No lecture.` — on
+the explicit grounds that the copy is otherwise US-facing. Both could not be right, and the
+listing wording cannot be finished until one of them is.
+
+**Decision.** **English (U.S.).** It binds the App Store Connect primary language, the listing
+wording, and the register of any future user-facing copy.
+
+**Why it matters more than spelling.** Three consequences, each concrete:
+
+1. **App Tags are US-storefront-only today**, so the storefront that gets tags is the one the
+   metadata should be tuned for.
+2. **`revision` is not the word.** It was in the drafted keyword field, and in British English it
+   means studying for exams while in American English it means editing a draft. On a US storefront
+   it buys the wrong intent with bytes that are not spare.
+3. **`sixth form` has no American referent at all**, and `term` reads as `semester`.
+
+**The approved captions need no change**, which was checked rather than assumed: all six are
+US-neutral. D-031 had already removed the only British phrase in the set.
+
+**How the old assumption is stopped from returning.** `RELEASE_GATED.md` B3 step 1 is corrected in
+place and points here, rather than being left as a line that reads as settled because nobody
+questioned it. That is the D-028 failure mode — a plausible-looking claim that survives review
+because no one goes looking for the thing it names.
+
+**Not decided here.** Whether NEXT is *localised* into other storefronts later. This is about which
+storefront is primary, not about which are available.
+
+---
+
 ## D-035 — Both remaining NEXT+ decisions wait for the first premium capability
 
 **Date:** 2026-08-11 · **Status:** Accepted (owner decision) · **Defers D-016 and D-019**
@@ -1229,7 +1316,10 @@ is the source of truth for anything representing the product. The set shows what
 
 **What the set deliberately does not claim.** Frame 6 says only that late work is not lectured at.
 It makes no claim about recovering it, because the Minimum Win ladder is absent once a deadline has
-passed — **D-030**, open and untouched by this approval. And no frame is dark and no caption
+passed — **D-030**, open and untouched by this approval. *(D-030 was resolved on 2026-08-11 and
+frame 6 was recaptured on 2026-08-12 under this entry's own reopening rule — see **D-037**. The
+caption is unchanged and the claim it declines to make is still declined, for the reason D-030
+recorded rather than the one written here.)* And no frame is dark and no caption
 mentions Dark mode: it ships and is measured (D-027, D-029), which is a reason it *may* be claimed
 later, not a reason this set should.
 

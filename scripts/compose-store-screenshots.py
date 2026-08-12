@@ -8,10 +8,12 @@ nothing that claims to be the app.
 
 Run it:
 
-    python scripts/compose-store-screenshots.py <exported-attachments-dir> <output-dir>
+    python scripts/compose-store-screenshots.py <exported-attachments-dir> [<more-dirs>…] <output-dir>
 
-where the input directory is the `screenshots/` folder from the CI run's `app-store-screenshots`
-artifact — the one holding `manifest.json` and six UUID-named PNGs.
+where each input directory is the `screenshots/` folder from a CI run's `app-store-screenshots`
+artifact — the one holding `manifest.json` and six UUID-named PNGs. More than one may be given,
+and later directories override earlier ones frame by frame, which is how a single changed screen
+is recaptured without re-rolling the five that did not change. See `main`.
 
 Needs Pillow, which is why this is a development-machine script and not a CI step: NEXT ships no
 third-party dependency (D-010) and adding a `pip install` to the workflow to composite marketing
@@ -95,7 +97,13 @@ EXPECTED_FRAMES = sorted(GROUNDS)
 
 # Approved wording. Every one describes what is visible in its own frame and claims nothing the
 # frame cannot show — which is why frame 6 says only that late work is not lectured at, and makes
-# no claim about recovering it (D-030 is open).
+# no claim about recovering it.
+#
+# D-030 is **resolved**, and the caption survived it unchanged: the frame it sits on now reads
+# "This is past its deadline." and carries "What can I still do?", which is still an absence of a
+# telling-off and is if anything better evidence for the words than the frame they were written
+# against. The claim it declines to make is still the right one to decline — Rescue re-ranks, so
+# what it offers may belong to a different task, and no caption should promise the late work back.
 #
 # One line each, one size for all six, in the top margin the layout already had. A shopper meets
 # these at thumbnail size in a search result, so the first two carry the whole proposition on
@@ -231,14 +239,53 @@ def compose(frame: Image.Image, ground: str, caption: str, points: int) -> Image
 
 
 def main() -> None:
-    if len(sys.argv) != 3:
-        sys.exit(__doc__.strip().splitlines()[0] + "\n\nusage: compose-store-screenshots.py <exported-attachments-dir> <output-dir>")
+    if len(sys.argv) < 3:
+        sys.exit(
+            __doc__.strip().splitlines()[0]
+            + "\n\nusage: compose-store-screenshots.py <exported-attachments-dir> "
+              "[<more-dirs>…] <output-dir>"
+        )
 
-    source = Path(sys.argv[1])
-    output = Path(sys.argv[2])
+    output = Path(sys.argv[-1])
     output.mkdir(parents=True, exist_ok=True)
 
-    frames = load_manifest(source)
+    # More than one source directory, and a source may be narrowed to named frames.
+    #
+    # This exists because a product change usually alters *one* screen, and recapturing the set
+    # from a fresh run re-rolls the frames it did not need to touch. Measured rather than assumed:
+    # across runs 31455519694 and 31594674340, frames 02–05 came back **byte-identical**, and
+    # frame 01 did not — iOS's QuickType bar offered three predictive suggestions in one run and
+    # none in the other, which is Apple's keyboard state and nothing to do with NEXT. A whole-set
+    # recapture would therefore have changed a locked frame for a reason outside the product.
+    #
+    # So "recapture only frame 6" is said in the command, where the next person can read it,
+    # rather than by assembling a folder by hand and hoping they can tell which frame came from
+    # where. Later sources win, and `#` narrows one to the frames named after it:
+    #
+    #     compose-store-screenshots.py approved/screenshots new/screenshots#06-late out
+    #
+    # takes 01–05 from the approved run byte-for-byte and 06 from the new one. Every frame is
+    # still a real capture of the real app — nothing here edits an image (D-024). `#` is safe as
+    # a separator where `:` and `=` are not: Windows paths carry a drive letter.
+    frames: dict[str, Path] = {}
+    provenance: dict[str, str] = {}
+
+    for argument in sys.argv[1:-1]:
+        directory, separator, wanted = argument.partition("#")
+        source = Path(directory)
+        available = load_manifest(source)
+
+        names = [name.strip() for name in wanted.split(",")] if separator else list(available)
+        for name in names:
+            if name not in available:
+                sys.exit(f"{source} has no frame named {name!r} — it holds {', '.join(sorted(available))}")
+            frames[name] = available[name]
+            provenance[name] = argument
+
+    print("Frames taken from:")
+    for name in sorted(provenance):
+        print(f"  {name}  <-  {provenance[name]}")
+    print()
 
     missing = [name for name in EXPECTED_FRAMES if name not in frames]
     if missing:
