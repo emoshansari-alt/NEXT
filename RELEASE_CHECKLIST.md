@@ -4,7 +4,7 @@ Two lists. The first is work that must be finished **before** NEXT can be called
 **Local Release Candidate**. The second is everything gated on Apple, which lives in
 [`RELEASE_GATED.md`](RELEASE_GATED.md) and is only summarised here.
 
-**Last updated:** 2026-08-10
+**Last updated:** 2026-08-11
 
 ---
 
@@ -118,8 +118,8 @@ see `RELEASE_GATED.md` Gate B.
 - [x] Recommendation loop test passes — run as a loop: recommend, reject what came back,
       recommend again. The rejected task is taken from the engine's own first answer rather than
       named in the fixture
-- [x] Tier 2 integration tests pass — 134 in 30 suites (2 known issues, both signing-gated), run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275)
-- [x] Tier 2 golden-path UI test passes — 40 UI tests green, run [31367830604](https://github.com/emoshansari-alt/NEXT/actions/runs/31367830604). A 41st,
+- [x] Tier 2 integration tests pass — 134 in 30 suites (2 known issues, both signing-gated), run [31544988391](https://github.com/emoshansari-alt/NEXT/actions/runs/31544988391)
+- [x] Tier 2 golden-path UI test passes — **52 UI tests green**, run [31544988391](https://github.com/emoshansari-alt/NEXT/actions/runs/31544988391). A 53rd,
       `ScreenshotCaptureUITests`, is excluded by `-skip-testing` and runs in CI's own capture
       step, so it is not counted here
 - [x] Offline behaviour proven at the tier that can prove it — see `TESTING.md`. No shipped

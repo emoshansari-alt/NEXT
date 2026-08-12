@@ -10,12 +10,24 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 **Objective.** Find the actual root cause of Dark mode rather than attempt a fifth implementation,
 then ship it only if its behaviour could be proven. Then composite the App Store set — which, seen
 at marketing scale, exposed a UX defect on the recommendation card and sent the session back into
-the product.
+the product. From there the remaining release work, ending with the last release-blocking decision
+and the product defect that fell out of the caption pass.
 
 ### Result
 
-**Tier 1: 559 tests / 100 suites. Tier 2: 134 unit / 30 suites + 47 UI tests.**
-Green — run [31447983275](https://github.com/emoshansari-alt/NEXT/actions/runs/31447983275).
+**Tier 1: 568 tests / 101 suites. Tier 2: 134 unit / 30 suites + 52 UI tests.**
+Green — run [31544988391](https://github.com/emoshansari-alt/NEXT/actions/runs/31544988391).
+
+**The last release blocker is closed.** NEXT+ has a boundary (D-034): enhancement, never core
+access, so 1.0 gates nothing and sells nothing. What remains unticked in Part 1 is either the
+owner's or gated on Apple.
+
+**Nine decisions were recorded or corrected**: D-029 (Dark mode was never broken), D-030 (a
+passed deadline), D-031 (the screenshot set, locked), D-032 (the contrast exception stands),
+D-033 (the icon guarantee), D-034 (the NEXT+ boundary), D-035 (both remaining NEXT+ decisions
+deferred), plus corrections to D-015, D-021 and D-028. Three of them say a previously recorded
+diagnosis was wrong, which is the pattern of the session: **the measurements were sound and the
+conclusions drawn from them were not.**
 
 **Dark mode ships.** `AppearanceAvailability` is deleted, the switch is in Settings, and every
 claim below is a measurement of what was drawn: light 0.808, dark on 0.119, dark off 0.808, and
@@ -437,11 +449,6 @@ surprise.
 
 ### Known limitations
 
-- **A passed deadline states a problem and offers no way out — D-030, open.** Today says "There
-  is not enough time left to finish this." while the Minimum Win ladder is absent once the
-  deadline has passed, because `MinimumWinPlanner` returns `.noTimeRemaining`. Found during the
-  caption pass, recorded rather than investigated, because a product question discovered in the
-  margins of another task gets fixed badly or forgotten entirely.
 - **The composited set is not committed.** Six PNGs at a quarter of a megabyte each do not belong
   in a source repository; the script is committed and the frames are a CI artifact, so the set is
   reproducible from either. Nothing claims the images cannot drift from the app — D-028 is what
@@ -459,19 +466,29 @@ surprise.
 
 ### Exact next action
 
-**Three things wait on the owner and nothing else does.** The Chroma ground colours are a
-reconstruction and should be confirmed or replaced — one table in
-`scripts/compose-store-screenshots.py`, and re-running it is one command. The **listing wording**
-is still unchosen (`PRODUCT_SPEC.md` §15 drafts it with alternatives); the set carries no captions
-until it is, since D-024 pairs the wording with the direction. And **frame 3** is now a third
-Today, differing by state rather than by screen — Capture Confirmation or Everything would each
-carry a beat the set does not currently show, and both change composition, which is D-024's
-checkpoint rather than mine.
+**Nothing autonomous is outstanding.** Every item on this session's list is done or explicitly
+deferred, and what remains needs either the owner or hardware.
 
-Needing nobody: the **NEXT+ capability boundary** (D-015, release-blocking, and an owner decision
-in its own right); moving the three `List`/`Form` screens into the contrast-enforced set now that
-the audit's false positives are handled; the icon script D-028 asks for; VoiceOver traversal order;
-and the typography pass.
+**Waiting on the owner**, in the order they gate things:
+
+1. **Listing metadata** — title, subtitle, description, keywords. Drafted in `PRODUCT_SPEC.md` §15
+   with alternatives; the captions are chosen and locked (D-031), so this is the last piece of
+   store copy.
+2. **Support contact** — the one placeholder in `PRIVACY.md` and `RELEASE_GATED.md` B3 that
+   nobody else can supply.
+3. **The Chroma ground colours** — reconstructed rather than recovered, one table in
+   `scripts/compose-store-screenshots.py`; confirm or replace.
+4. **Frame 3** — a third Today, differing by state rather than by screen. Capture Confirmation or
+   Everything would each carry a beat the set does not show. Composition, so D-024's checkpoint.
+5. **D-016 and D-019**, deferred by D-035 to the first premium capability. Neither blocks 1.0.
+
+**Blocked on Apple or a device:** the widget's content and its deep link end to end (App Group is
+a provisioned entitlement — B1a), notification delivery, haptics, VoiceOver traversal, real
+Dynamic Type, and the network-disabled run. All in `RELEASE_GATED.md`.
+
+**Available autonomously, none of it required:** moving Everything, Task Detail, Settings and
+Minimum Win into the contrast-enforced set — attempted and reverted in this session (D-032),
+and blocked on the audit attributing its findings rather than on anything in NEXT.
 
 ---
 

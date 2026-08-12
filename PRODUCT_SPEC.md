@@ -1,7 +1,7 @@
 # NEXT — Product Specification
 
 **Status:** Authoritative. This document, not any chat transcript, defines the product.
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-11
 
 ---
 
