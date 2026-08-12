@@ -55,3 +55,8 @@ ehthumbs.db
 .vscode/
 .idea/
 .claude/
+
+# Python bytecode. The repository has four standard-library scripts and no Python package;
+# importing one for a check writes this, and it is not a build product anybody wants.
+__pycache__/
+*.pyc
