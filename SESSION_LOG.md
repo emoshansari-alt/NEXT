@@ -7,8 +7,12 @@ plus `PRODUCT_SPEC.md`, `ARCHITECTURE.md` and `DECISIONS.md` and resume with no 
 
 ## 2026-08-12 — Session 15: App Store positioning, and a locked screenshot that stopped matching the app
 
-*Two parts. The first produced three positioning directions and stopped for a selection; the
-second audited the selected one, settled the storefront language, and recaptured frame 6.*
+*Three parts. The first produced three positioning directions and stopped for a selection; the
+second audited the selected one, settled the storefront language, and recaptured frame 6; the
+third locked the approved listing and the corrected screenshot set.*
+
+**Ends with the listing approved (D-038), the storefront language settled (D-036), and the
+six-frame set canonical (D-039). Every 1.0 item that does not need Apple is now done.**
 
 **Objective.** Reconstruct state from the repository with no chat history, then prepare App Store
 listing positioning and metadata: establish what may truthfully be claimed, verify Apple's current
@@ -229,19 +233,96 @@ is never displayed.
 - Direction 2 and 2R both sit in the validator. That is deliberate until one is approved, and the
   loser is deleted rather than left to be mistaken for a live option.
 
+### Part three — approved and locked
+
+The owner approved **2R with one amendment** and locked the screenshot set. **Two decisions
+recorded: D-038** (the approved listing, closing D-024's wording checkpoint) and **D-039** (the
+regenerated six-frame set is canonical).
+
+**The amendment, and why it generalises.** The promotional text became `Too much due at once? Put
+it all in, and NEXT will tell you what to do first.` — 77 / 170. Two narrow reasons, both about
+reach rather than taste: `New semester` makes evergreen copy seasonal in a field that *can* be
+edited at any time but in practice rarely is, and `reading list` narrows the apparent use case
+below what the name already claims. Nothing else in 2R changed; no second copy pass was made.
+
+**The approved listing**, now the copy of record in `PRODUCT_SPEC.md` §15:
+
+| Field | Value | Measured |
+|---|---|---|
+| App Name | `NEXT: Homework & Deadlines` | 26 / 30 |
+| Subtitle | `Six things due? Start one.` | 26 / 30 |
+| Promotional Text | `Too much due at once? Put it all in, and NEXT will tell you what to do first.` | 77 / 170 |
+| Keywords | `study,assignment,coursework,exam,essay,student,college,todo,task,procrastination,overwhelmed,school` | 99 / 100 **bytes** |
+| Categories | Productivity · Utilities | |
+| Description | §15 | 2058 / 4000 |
+
+#### What was made mechanical rather than written down
+
+Three things, and each one is the same lesson in a different place: a rule nothing enforces is a
+rule that survives review by looking plausible (D-028).
+
+- **The validator is wired into the guardrails job.** It holds exactly one listing now, and it
+  runs on every push. A subtitle at 31 characters is not a judgement call and should not be
+  discovered while pasting into App Store Connect.
+- **`ScreenshotCaptureUITests` asserts frame 6's two required elements before the shutter** —
+  `This is past its deadline.` and the `minimum-win-button` affordance — using the same two
+  queries `PastDeadlineUITests` already makes against the same seed. The image and the behaviour
+  can no longer drift apart silently, which is exactly what happened for a day after D-030 landed.
+- **The three provisional directions were deleted, not archived in place.** `STORE_LISTING_
+  PROPOSALS.md` keeps the reasoning, the evidence table and the audit, and carries a banner saying
+  it is not the listing; the competing field values are gone. A document holding four complete
+  listings is one from which the wrong one gets copied at 1am.
+
+`PRODUCT_SPEC.md` §15's 2026-08-09 draft was removed for the same reason, with one part of it
+recorded rather than lost: its keyword field included `adhd`, argued as "a search term rather than
+a claim". The approved field excludes it — 2.3.7 treats irrelevant keyword terms as grounds for
+rejection, and an app that makes no ADHD claim anywhere is not an ADHD app.
+
+### Verification — part three
+
+| What | Result |
+|---|---|
+| `scripts/validate-store-metadata.py` | **PASS**, all five constrained fields, one listing |
+| Compose reproducibility | Two independent runs, **identical SHA-256 for all six frames** |
+| Frames 1–5 vs the approved set | **Byte-identical** |
+| Frame 6 content | Read from the composited PNG: passed-deadline wording and affordance both present |
+| CI on the pushed commit | see below |
+
+The Tier 1 and Tier 2 suites were **not** re-run for their own sake — no shipped source changed.
+`ScreenshotCaptureUITests` did change, and it is the one file whose change requires CI, so the
+push exercises it.
+
+### Known limitations — part three
+
+- **Frame 6's assertions prove the state, not the picture.** They fire before the shutter, so a
+  frame cannot be captured from the wrong state — but nothing verifies that the *composited* PNG
+  says what the frame said. Compositing is arithmetic on pixels and the script re-asserts caption
+  contrast, so the gap is narrow; it is a gap all the same.
+- **The composited set is still not committed.** Reproducible from the script plus two named CI
+  artifacts, and the exact command is in D-039.
+- **`PRIVACY.md`'s draft policy still says "NEXT does not use the internet"**, which is the wording
+  the listing deliberately narrowed to "makes no network requests of its own". The policy is not
+  published yet and is rewritten against the code before it is, so this is noted rather than fixed
+  in passing.
+
 ### Exact next action
 
-**Stopped for final listing approval.** Direction **2** as written, or the audit's **2R**, or
-2R with named amendments. Nothing goes into `PRODUCT_SPEC.md` until the actual copy is approved.
+**Nothing autonomous is outstanding.** All store preparation that does not need Apple is finished.
 
-After approval, in order:
+**Blocked on the owner**, and each is a required App Store Connect field that must not be invented:
 
-1. Replace `PRODUCT_SPEC.md` §15's listing-copy block with the approved copy, and record a
-   decision closing D-024's checkpoint for wording.
-2. Reduce `scripts/validate-store-metadata.py` to the one approved listing and wire it into the
-   guardrails job; delete the losing directions from `STORE_LISTING_PROPOSALS.md`.
-3. Then the owner-supplied fields — support URL, privacy-policy URL, copyright holder — and the
-   in-app privacy-policy link, before `RELEASE_GATED.md` B3 step 5 can run.
+1. **Support URL** — must lead to real contact information.
+2. **Privacy Policy URL** — a public home for `PRIVACY.md`'s drafted text, re-checked against the
+   code before publication.
+3. **Copyright holder** — a person or entity name, with the year.
+
+Once (2) exists, one small piece of engineering unblocks: the **in-app privacy-policy link** App
+Review 5.1.1(i) requires in addition to the metadata field. Settings states the position in prose
+and has no link.
+
+Then `RELEASE_GATED.md` Gate B in its written order: enrolment, signing, the App Group, the app
+record, App Privacy answered from `PRIVACY.md`, upload, TestFlight — which is also the first
+chance to close B5's device checks — and submission.
 
 ---
 

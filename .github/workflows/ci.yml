@@ -42,6 +42,13 @@ jobs:
       - name: Enforce the app icon is made of the palette's values
         run: python3 scripts/lint-app-icon.py
 
+      # The listing is approved (D-038) and its fields have hard ceilings App Store Connect
+      # enforces at paste time. A subtitle at 31 characters or a keyword field at 101 bytes is
+      # not a judgement call and should not be discovered during a submission. Standard library
+      # only, so it costs this job nothing.
+      - name: Enforce the App Store listing fits Apple's limits
+        run: python3 scripts/validate-store-metadata.py
+
   tier1:
     name: Tier 1 — NextKit tests
     runs-on: macos-latest

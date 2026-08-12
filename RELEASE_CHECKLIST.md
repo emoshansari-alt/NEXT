@@ -253,6 +253,13 @@ sequence.
 
 ### Store preparation that needs no membership
 
+- [x] **The regenerated six-frame set is the canonical store asset — D-039.** Frames 1–5 are the
+      previously approved frames, byte-identical; frame 6 is approved in its D-030-corrected form
+      with its caption unchanged. The approved frame 6 **must** show `This is past its deadline.`
+      and the surviving `What can I still do?` affordance, and that is enforced rather than
+      documented: `ScreenshotCaptureUITests` asserts both before the shutter, using the same two
+      queries `PastDeadlineUITests` makes against the same seed. The pre-D-030 frame is no longer
+      canonical and must not be uploaded
 - [x] **Screenshot direction proposed, selected, and the finished set approved — D-031.** Three
       distinct directions were shown as live mockups; Chroma was chosen; the six-frame set is
       rendered, reviewed at size and locked. Geometry, grounds, caption placement and typography,
@@ -282,20 +289,17 @@ sequence.
       `PRODUCT_SPEC.md` §15 with what each claims and the two things the set deliberately does not
       say. One of them changed a **product** string on the way: `There is a clear first step.`
       became `Nothing to decide before you start.`
-- [ ] Title, subtitle, description, keywords — **direction 2 is the owner's working selection;
-      the copy itself is not yet approved.** `NEXT: Homework & Deadlines` / `Six things due? Start
-      one.` are the working name and subtitle. An evidence audit of the selected direction found
-      seven things worth changing and proposed **2R**, which keeps the name and subtitle exactly
-      and revises the description, promotional text and keyword field; both are held and measured
-      side by side until one is approved. See
-      [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md) §9 (session 15),
-      which supersedes the single draft in `PRODUCT_SPEC.md` §15. **Owner decision.** The captions
-      are the part of the wording the screenshot direction needed (D-024); the listing metadata is
-      its own choice. Every field is validated against Apple's current limits by
-      `scripts/validate-store-metadata.py` — the keyword field is 100 **bytes**, and Apple's search
-      guidance forbids repeating words already in the name, subtitle or category, which is
-      enforced too. Every claim in all three directions is one the shipped app supports today;
-      what could not truthfully be claimed is listed rather than omitted
+- [x] **Title, subtitle, promotional text, description, keywords and categories — approved and
+      locked (D-038).** `NEXT: Homework & Deadlines` / `Six things due? Start one.`, Productivity
+      and Utilities, in English (U.S.) (**D-036**). Chosen from three materially different
+      directions, audited against the shipped product — which changed four claims that had
+      outrun the code — and amended once by the owner. The copy of record is `PRODUCT_SPEC.md`
+      §15 and `scripts/validate-store-metadata.py`, and the second is now **run by the guardrails
+      job on every push**, so no field can silently exceed a limit App Store Connect enforces at
+      paste time: 26 / 30, 26 / 30, 77 / 170, 2058 / 4000, and 99 / 100 **bytes**. This closes
+      D-024's checkpoint for the wording. The reasoning, the retired directions and the audit are
+      in [`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md), kept as a historical record
+      and marked as one
 - [ ] Copyright holder — **owner decision.** A required App Store Connect field: a person or
       entity name with the year. No company identity exists in this repository and none was
       invented
@@ -350,20 +354,23 @@ compiles, the Simulator unit and UI suites pass, the accessibility audit passes 
 states, and a Release build of the app and widget now succeeds with warnings as errors — run
 [31340738838](https://github.com/emoshansari-alt/NEXT/actions/runs/31340738838).
 
-It is **not** a Local Release Candidate, and must not be called one: **11 Part 1 boxes are still
+It is **not** a Local Release Candidate, and must not be called one: **10 Part 1 boxes are still
 open**, counted from this file rather than carried forward — the previous figure of 18 predated
 several closures and had stopped being a count of anything.
 
-They fall into three groups, and none is engineering:
+**All store preparation that can be done without Apple is now finished.** The listing copy is
+approved and CI-enforced (D-038), the storefront language is settled (D-036), and the screenshot
+set is canonical with frame 6 corrected and its content enforced by a test (D-037, D-039).
 
-- **The owner's** — the listing copy (direction 2 selected, wording awaiting approval), the
-  support contact, the copyright holder.
-- **Gated on a URL that does not exist yet** — the in-app privacy-policy link.
+What is left falls into three groups, and **none of it is engineering**:
+
+- **Three values only the owner can supply** — the support contact, the privacy-policy URL, and
+  the copyright holder. Each is a required App Store Connect field.
+- **One item blocked on one of those** — the in-app privacy-policy link App Review 5.1.1(i)
+  requires, which cannot be built until there is a URL to point at.
 - **Device- or Apple-gated** — notification delivery, the widget end to end, haptics, VoiceOver
-  traversal, and the two system-rendered accessibility exceptions, all in `RELEASE_GATED.md` B5.
-
-Frame 6's recapture came off this list on 2026-08-12 (**D-037**), with frames 1–5 preserved
-byte-for-byte.
+  traversal, the two system-rendered accessibility exceptions, and notification actions (which are
+  deliberately out of 1.0 scope). All in `RELEASE_GATED.md` B5.
 
 The NEXT+ capability boundary is no longer among them: D-034 closed it and D-035 deferred what
 remained (D-016, D-019) to the first premium capability, which 1.0 does not have.

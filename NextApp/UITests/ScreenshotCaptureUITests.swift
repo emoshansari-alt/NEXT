@@ -173,6 +173,25 @@ final class ScreenshotCaptureUITests: XCTestCase {
         // dark` when it is taken.
         app = launch(["-ui-seed", "overdue"])
         XCTAssertTrue(app.buttons["start-button"].waitForExistence(timeout: 12))
+
+        // Asserted before the shutter, for the reason frame 3 is: this frame's whole subject is a
+        // state, and a capture that silently produced the *old* state would be an advertisement
+        // for copy the app no longer draws. That is not hypothetical — it is what happened. The
+        // approved frame predated D-030, said "There is not enough time left to finish this." and
+        // showed no affordance at all, and it stayed the canonical store asset for a day because
+        // nothing connected the frame to the behaviour behind it (D-037, D-039).
+        //
+        // The same two queries `PastDeadlineUITests` makes, against the same seed, so the frame
+        // and the behaviour cannot drift apart without one of them failing.
+        XCTAssertTrue(
+            app.staticTexts["This is past its deadline."].waitForExistence(timeout: 8),
+            "frame 6 must show the passed-deadline wording the listing is approved against"
+        )
+        XCTAssertTrue(
+            app.buttons["minimum-win-button"].waitForExistence(timeout: 8),
+            "frame 6 must show the surviving \"What can I still do?\" affordance (D-030)"
+        )
+
         settle()
         capture(app, "06-late")
     }

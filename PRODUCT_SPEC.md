@@ -1,7 +1,7 @@
 # NEXT — Product Specification
 
 **Status:** Authoritative. This document, not any chat transcript, defines the product.
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-12
 
 ---
 
@@ -558,14 +558,99 @@ valuable signal for improving the ranking engine.
 
 ---
 
-## 15. Store positioning (draft — not final)
+## 15. Store positioning — **approved and locked**
 
-- Line: *Know what to do next.*
-- Description concept: *Dump everything on your mind. NEXT turns the mess into one thing you
-  can actually start.*
-- Screenshot narrative and captions — **approved and locked (D-031)**. The six frames CI captures from the running
-  app (`ScreenshotCaptureUITests`), composited onto the Chroma grounds by
-  `scripts/compose-store-screenshots.py`, in listing order:
+**Approved 2026-08-12 (D-038).** This is the copy of record. The measurable fields are held as
+data in `scripts/validate-store-metadata.py`, which CI runs on every push; the two must agree, and
+changing one without the other is the drift that script exists to make expensive.
+
+**Positioning thesis.** Sell the situation, not the mechanism and not a feeling. NEXT is what a
+student opens when six things are due and none of them has been started. Chosen over two
+alternatives — a mechanism-first direction (*One thing at a time*) and a failure-state-first one
+(*When You're Stuck*) — on search discoverability and conversion, and because situational claims
+stay clear of the clinical boundary in §1 by construction. The full comparison, the evidence audit
+that revised this copy, and the claims deliberately excluded are in
+[`STORE_LISTING_PROPOSALS.md`](STORE_LISTING_PROPOSALS.md), retained as the historical record.
+
+**Primary storefront language: English (U.S.)** (**D-036**).
+
+| Field | Value | Limit |
+|---|---|---|
+| App Name | `NEXT: Homework & Deadlines` | 26 / 30 characters |
+| Subtitle | `Six things due? Start one.` | 26 / 30 characters |
+| Promotional Text | `Too much due at once? Put it all in, and NEXT will tell you what to do first.` | 77 / 170 characters |
+| Keywords | `study,assignment,coursework,exam,essay,student,college,todo,task,procrastination,overwhelmed,school` | 99 / 100 **bytes** |
+| Primary category | Productivity | |
+| Secondary category | Utilities | |
+| Description | below | 2058 / 4000 characters |
+
+**App Tags** are not authored here. Apple derives them from this metadata plus AI plus human
+curation, the developer can only deselect, and they are US-storefront-only — which is one of the
+reasons the primary storefront is the one this copy is tuned for.
+
+**Description.**
+
+> Six things due this week. NEXT gives you one of them — one task, one action, and the reason it
+> picked that one.
+>
+> Put it all in: type it, paste it, one line each or all in one go. NEXT reads it into separate
+> tasks and asks you about any date it is not sure of, rather than guessing one.
+>
+> WHAT IT ACTUALLY DOES
+> • Takes a whole brain dump at once, typed or pasted
+> • Reads the dates it recognizes, and asks instead of guessing when it does not
+> • Picks one thing to do now, and tells you why it picked it
+> • Breaks a task you are avoiding down to one physical first step
+> • Opens a single Focus screen with that one action on it and an optional timer, then leaves you
+> alone
+> • Keeps the whole list in Everything, sorted into Overdue, Today, Upcoming and No deadline, for
+> when you do want to see it
+>
+> THE ESSAY YOU CANNOT FACE
+> Tap I'm stuck and say what is in the way.
+> • I don't know how to start — NEXT gives you the smallest physical action, one at a time, so you
+> never see the whole mountain
+> • It's too much — it hides the mountain
+> • I don't have the time — say how much you have, five minutes or fifteen or thirty, and NEXT
+> finds the most useful thing that genuinely fits, or tells you plainly that nothing does
+> • I just don't want to — no lecture. Do five minutes, then decide whether to carry on
+>
+> WHEN IT IS TOO LATE TO DO IT PROPERLY
+> An assignment you can no longer finish in the time left gets a smaller version that is still
+> worth doing — outline, then introduction, then first section — and a time to come back and
+> reassess. One whose deadline has already passed says so, without a lecture, and still offers you
+> something you can do now. Late work quietly stops shouting instead of pinning itself to your
+> screen forever.
+>
+> NO STREAKS, NO GUILT, NO ACCOUNT
+> NEXT never tells you that you have fallen behind, broken anything, or let yourself down. There
+> is no sign-up, no email address, no tracking and no ads. It makes no network requests of its
+> own, so it works with no signal at all, and nothing you write ever leaves your phone.
+>
+> For high school and college.
+
+**What this copy deliberately never says**, each because the repository cannot support it: no AI
+of any kind, because the only shipped provider is deterministic and offline; nothing clinical, per
+§1; no grades, marks or study outcomes; no sync, iPad or Mac; no general natural-language
+understanding, because `DatePhraseParser` recognises a handful of phrase shapes and refuses the
+rest on purpose; nothing about NEXT+, which sells nothing in 1.0; nothing about the widget, until
+its content has been observed on a device (`RELEASE_GATED.md` B1a); and never "fully accessible",
+which `TESTING.md` names as a forbidden phrasing.
+
+Two precise wordings that were argued over and are load-bearing. **"makes no network requests of
+its own"** rather than "does not use the internet": NEXT's own code makes none and CI fails if any
+shipped source names a networking API, but the app constructs a StoreKit transaction listener at
+launch and Apple's daemon is not NEXT's to observe. And **"asks you about any date it is not sure
+of, rather than guessing one"** states the design position — a wrong deadline is worse than a
+missing one — instead of implying an understanding the parser does not have.
+
+### Screenshots — approved and locked
+
+Six frames, CI-captured from the running app (`ScreenshotCaptureUITests`), composited onto the
+Chroma grounds by `scripts/compose-store-screenshots.py`, in listing order. The set was approved by
+**D-031** and frame 6 was **recaptured and re-approved** on 2026-08-12 (**D-037**, locked by
+**D-039**) after D-030 changed the state it shows. Frames 1–5 are byte-identical to the originally
+approved set.
 
   | # | Frame | Caption |
   |---|---|---|
@@ -582,58 +667,37 @@ valuable signal for improving the ranking engine.
   different selection reasons — a deadline, and a task being startable — which is what makes the
   repetition worth its place.
 
+  **Frame 6 must show the shipped overdue state**, and that is a requirement rather than a
+  description of one capture. It carries `This is past its deadline.` and the surviving
+  `What can I still do?` affordance, both of which arrived with **D-030**. The pre-D-030 frame —
+  which read `There is not enough time left to finish this.` and showed no affordance — is **no
+  longer a canonical store asset** and must not be uploaded. `ScreenshotCaptureUITests` asserts
+  both before the shutter, so a frame missing either cannot be captured at all.
+
   Two deliberate silences. Frame 6 claims only the absence of a telling-off, and nothing about
-  recovering late work, because the Minimum Win ladder is absent once a deadline has passed
-  (**D-030**, open). And **no frame is dark and no caption mentions Dark mode**: it ships and is
-  measured (D-027, D-029), which is a reason it *may* be claimed, not a reason it should be.
+  recovering late work — not because there is no route, but because Rescue re-ranks and the step
+  it offers may belong to a different task (D-030). And **no frame is dark and no caption mentions
+  Dark mode**: it ships and is measured (D-027, D-029), which is a reason it *may* be claimed, not
+  a reason it should be.
 
 Marketing assets must truthfully represent the real app.
 
-### Listing copy — drafted 2026-08-09, wording not yet chosen
+### The 2026-08-09 draft is superseded
 
-Drafted so the screenshot proposal has words to sit beside; the final wording is chosen with the
-screenshot direction rather than separately (**D-024**), because the two have to say the same
-thing in the same voice. Every claim below is one the shipped app supports today — no cloud AI,
-no account, and the offline promise are all currently true, and all three would have to be
-re-checked if that changed.
+An earlier draft of the title, subtitle, description and keywords sat here from 2026-08-09 with
+alternatives beside it. It is **superseded by the approved copy above** (D-038) and has been
+removed rather than left below it, because a spec section holding two listings is one where the
+wrong one gets used. It survives in Git history and in `STORE_LISTING_PROPOSALS.md`.
 
-**Title (30 characters max).** `NEXT — Know what to do next` fits at 27. Two alternatives worth
-seeing side by side: `NEXT: One thing at a time` (25), and plain `NEXT` with the whole promise
-carried by the subtitle.
+Three things it got right and the approved copy keeps: no claim that NEXT is an AI app; no
+clinical claim anywhere; and the offline and no-account promises stated at a width the code
+supports.
 
-**Subtitle (30 characters max).** Candidates, all inside the limit:
-*Stop deciding. Start doing.* (27) · *One thing. The right one.* (25) · *For when it is all too
-much.* (28)
-
-**Description.** First three lines are what a student actually reads:
-
-> You have too much to do and no idea where to start. NEXT gives you one thing.
->
-> Dump everything on your mind into it — one line each or all in one go. NEXT works out what
-> actually matters right now and shows you a single card with a single action. Start it, finish
-> it, get the next one.
->
-> **When you are stuck, say so.** NEXT does not tell you to try harder. It makes the thing
-> smaller, gives you a first step you can do in five minutes, or finds you something else that
-> is genuinely more urgent.
->
-> **It never nags.** No streaks, no badge counting how far behind you are, no notification
-> telling you off. Work you are late with quietly stops shouting instead of pinning itself to
-> your screen for ever.
->
-> **Everything stays on your phone.** No account, no sign-up, no tracking, no ads. NEXT does not
-> use the internet at all, so it works on a train, in a basement, and on aeroplane mode.
->
-> Made for students who are drowning in coursework and cannot face the list.
-
-**Keywords (100 characters, comma-separated, no spaces).** Draft at 96:
-`todo,adhd,student,focus,procrastination,overwhelm,homework,tasks,deadline,study,planner,revision`
-
-Two deliberate omissions. Nothing claims NEXT is an AI app, because the shipping intelligence is
-deterministic and offline and saying otherwise would be the exact misrepresentation D-024 and
-D-014 both forbid. And nothing claims it treats or manages a condition — `adhd` appears as a
-search keyword because it is what people search, and the copy makes no clinical claim anywhere,
-which `PRODUCT_SPEC.md` §1 rules out.
+One thing it got wrong, recorded because the reasoning is worth keeping. Its keyword field
+included `adhd`, argued as "a search term rather than a claim". The approved field **excludes**
+it: App Review 2.3.7 treats irrelevant keyword terms as grounds for modification or rejection, and
+an app that makes no ADHD claim anywhere — as §1 requires — is not an ADHD app. Reinstating it
+would be a deliberate owner decision against a stated risk, not a default.
 
 ---
 

@@ -965,6 +965,118 @@ than done.
 
 ---
 
+## D-039 — The regenerated six-frame set is the canonical App Store asset
+
+**Date:** 2026-08-12 · **Status:** Accepted (owner approval) · **Locks the set D-037 produced**
+
+**Decision.** The six-frame Chroma set as regenerated on 2026-08-12 is **the** approved App Store
+screenshot set for 1.0. Frames 1–5 are the previously approved frames, byte-identical. Frame 6 is
+approved in its D-030-corrected form, with its existing caption `Behind? No lecture.` unchanged.
+
+**The pre-D-030 frame 6 is no longer a canonical store asset** and must not be uploaded. It shows
+`There is not enough time left to finish this.` and no affordance, neither of which the app draws.
+
+**What the approved frame 6 must show**, stated as a requirement rather than as a description of
+one lucky capture:
+
+- the passed-deadline wording — `This is past its deadline.`
+- the surviving affordance — `What can I still do?`
+- otherwise the seeded overdue state, in the light appearance, at 1320 × 2868 on `#0E7490`
+
+**And it is a mechanism, not a promise.** `ScreenshotCaptureUITests` now asserts both **before the
+shutter**, using the same two queries `PastDeadlineUITests` makes against the same seed. A frame
+missing either cannot be captured, so the set and the behaviour cannot drift apart again without a
+test failing. That is the shape D-028 exists to insist on: the previous frame stayed canonical for
+a day precisely because nothing connected the image to the behaviour behind it.
+
+**Regenerate with**, which is the whole reproduction and needs no folder assembled by hand:
+
+```bash
+python scripts/compose-store-screenshots.py <approved-run>/screenshots <new-run>/screenshots#06-late <out>
+```
+
+**What reopens it.** Unchanged from D-031: a verified product change to Capture, Today, Focus or
+Rescue that alters what those screens draw. That remains a recapture rather than a redesign, and
+frame 01 is now known not to be reproducible across runs — iOS's QuickType bar — so any future
+recapture must name the frames it intends to change.
+
+---
+
+## D-038 — The approved NEXT 1.0 App Store listing (closes D-024's wording checkpoint)
+
+**Date:** 2026-08-12 · **Status:** Accepted (owner approval) · **Supersedes the 2026-08-09 draft**
+
+**Decision.** The listing below is approved and is the copy of record. `PRODUCT_SPEC.md` §15 holds
+it for a human; `scripts/validate-store-metadata.py` holds the measurable fields as data and is
+**run by the guardrails job on every push**, so a field cannot silently exceed a limit App Store
+Connect enforces at paste time.
+
+| Field | Value | Measured |
+|---|---|---|
+| App Name | `NEXT: Homework & Deadlines` | 26 / 30 characters |
+| Subtitle | `Six things due? Start one.` | 26 / 30 characters |
+| Promotional Text | `Too much due at once? Put it all in, and NEXT will tell you what to do first.` | 77 / 170 characters |
+| Keywords | `study,assignment,coursework,exam,essay,student,college,todo,task,procrastination,overwhelmed,school` | 99 / 100 **bytes** |
+| Primary category | Productivity | |
+| Secondary category | Utilities | |
+| Description | `PRODUCT_SPEC.md` §15 | 2058 / 4000 characters |
+
+**How it was chosen.** Three materially different directions were proposed — mechanism-first
+(*One thing at a time*), situation-first (*Homework & Deadlines*) and failure-state-first (*When
+You're Stuck*) — all validated against Apple's current limits, all sharing Productivity as primary
+because Education requires "an interactive learning experience" and NEXT teaches nothing. Direction
+2 was selected on search discoverability and conversion: `homework`, `coursework`, `assignment` and
+`exam` are terms a brand-new app with no ratings can genuinely rank for, where `todo` and `focus`
+are not, and Apple's own guidance frames that trade-off as sharpest "if you are a newer or smaller
+app".
+
+**Then it was audited against the shipped product rather than against taste**, and seven things
+changed. Four were truthfulness, and they are the reason the audit was worth its round:
+
+- `why that one and not the others` overstated a non-comparative explanation — `ExplanationReason`
+  has seven cases and not one of them compares.
+- `separate tasks with deadlines` implied general date understanding. `DatePhraseParser` takes
+  five phrase shapes and refuses `march 14`, `in three days` and `at 6` on purpose. The replacement
+  is the honest claim *and* the better one: it asks instead of guessing.
+- `a first step you can do in five minutes` was a duration the shrinker never promises. The five
+  minutes belongs to *I just don't want to*, and moved there.
+- `still worth handing in the work for` invited the reading §4.12 forbids — that the smaller
+  version is what you submit. Minimum Win is about progress, not about submissions.
+
+The other three were reach: the fold spent on atmosphere rather than on the mechanism, one claim
+made twice while one Rescue path went unmentioned, and two keywords working against the product —
+`revision` (exam study in British English, draft-editing in American, and the storefront is
+American by **D-036**) and `planner`, which buys arrivals wanting the timetable §1 refuses to build.
+
+**One owner amendment on top of the audit**, to the promotional text: `New semester. Put the whole
+reading list in…` became `Too much due at once? Put it all in…`. The reasoning is narrow and
+recorded because it generalises — "New semester" makes evergreen copy seasonal in a field that
+*can* be edited at any time but in practice rarely is, and "reading list" narrows the apparent use
+case below what the name already claims.
+
+**What the copy never says, and why each is a rule rather than an omission.** No AI, because the
+only shipped provider is deterministic and offline (D-005, D-014, D-024). Nothing clinical, per §1.
+No grades or study outcomes — no evidence exists. No sync, iPad or Mac — none ship. Nothing about
+NEXT+, which sells nothing in 1.0 (D-034, D-035), and which App Review 2.3.1(a) would make
+removable if advertised. Nothing about the widget until its content has been observed on a device
+(B1a). And never "fully accessible", which `TESTING.md` already names as a forbidden phrasing.
+
+**Two wordings are load-bearing and must survive editing.** *"makes no network requests of its
+own"* rather than "does not use the internet": NEXT's own code makes none and CI enforces it, but
+the app constructs a StoreKit transaction listener at launch and Apple's out-of-process daemon is
+not NEXT's to observe. And *"asks you about any date it is not sure of, rather than guessing one"*,
+which states a design position instead of implying a capability.
+
+**`adhd` is excluded from the keyword field**, reversing the 2026-08-09 draft's argument that it is
+"a search term rather than a claim". Two reasons: App Review 2.3.7 treats irrelevant keyword terms
+as grounds for modification or rejection, and an app that makes no ADHD claim anywhere — as §1
+requires — is not an ADHD app. Reinstating it would be a deliberate decision against a stated risk.
+
+**Not settled by this entry, and not invented:** the Support URL, the Privacy Policy URL and the
+copyright holder. All three are required by App Store Connect and all three are the owner's.
+
+---
+
 ## D-037 — Frame 6 is recaptured; frames 1–5 are preserved byte-for-byte
 
 **Date:** 2026-08-12 · **Status:** Accepted · **Amends D-031 under its own reopening rule**

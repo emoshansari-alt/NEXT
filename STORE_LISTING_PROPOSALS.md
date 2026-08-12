@@ -1,26 +1,20 @@
-# NEXT — App Store listing: three positioning directions
+# NEXT — App Store listing: how the 1.0 positioning was chosen
 
-**Status:** **Direction 2 is the owner's working selection** (2026-08-12), with the name and
-subtitle `NEXT: Homework & Deadlines` / `Six things due? Start one.`. The copy itself is **not yet
-approved** — §9 is an evidence audit of the selection and proposes **direction 2R**, which keeps
-the name and subtitle exactly and revises the rest. Directions 1 and 3 are kept until one of 2 and
-2R is approved, then this file is reduced to the winner.
+> ## ⚠ HISTORICAL RECORD — NOT THE LISTING
+>
+> **The listing is approved and lives in [`PRODUCT_SPEC.md`](PRODUCT_SPEC.md) §15** and in
+> [`scripts/validate-store-metadata.py`](scripts/validate-store-metadata.py). Those two are the
+> copy of record; CI runs the second on every push so they cannot drift apart.
+>
+> **Nothing in this file is a live alternative.** The three competing directions were retired on
+> 2026-08-12 and their field values deleted (§4). What survives here is the reasoning: the product
+> evidence the copy had to stay inside (§1), Apple's requirements as verified that day (§2), the
+> positioning question (§3), and the evidence audit that revised the winning copy (§9).
+>
+> Decisions: **D-038** (the approved listing) · **D-036** (English (U.S.)) · **D-037** and
+> **D-039** (the screenshot set).
 
-This is the D-024 checkpoint for the listing wording, which is the last piece of store copy: the
-screenshot direction, the six frames and the six captions are approved and locked (**D-031**), and
-frame 6 has been recaptured under D-031's own reopening rule (**D-037**, §10).
-
-**Date:** 2026-08-12 · **Decision:** owner's, one of three, then `PRODUCT_SPEC.md` §15 is replaced
-with the selection.
-
-Every character- and byte-limited field below is validated by
-[`scripts/validate-store-metadata.py`](scripts/validate-store-metadata.py) against Apple's
-published limits rather than counted by eye. The script holds the copy as data; this file is the
-reasoning. Run it:
-
-```bash
-python scripts/validate-store-metadata.py
-```
+**Written:** 2026-08-12 · **Retired:** 2026-08-12, on the owner's approval of the copy.
 
 ---
 
@@ -179,169 +173,34 @@ seconds a search result gets.
 
 ---
 
-## 4. Three directions
+## 4. The three directions — **RETIRED**
 
-All three lead with **Productivity** as primary category: it is the only accurate one under
-Apple's definition — "apps that make a specific process or task more organized or efficient…
-task management" — and 2.3.5 warns that an irrelevant category is grounds for rejection.
-Manufacturing category variety for the sake of three distinct-looking proposals would be exactly
-that. The differentiation lives in the name, subtitle, keyword field and description, which is
-where Apple's search algorithm actually looks.
+**None of these is a live option.** Direction 2 was selected, audited (§9), amended by the owner
+and approved as the 1.0 listing (**D-038**). The approved copy lives in `PRODUCT_SPEC.md` §15 and
+in `scripts/validate-store-metadata.py`, and nowhere else.
 
-**Education is deliberately not proposed as a secondary**, including for direction 2, where it is
-tempting. Apple defines Education as "an interactive learning experience on a specific skill or
-subject". NEXT teaches nothing, and `PRODUCT_SPEC.md` §1 explicitly says it is not a tutoring
-system. Utilities — "enable the user to solve a problem or complete a specific task" — is
-defensible for all three.
+The full field values for all three directions were **deleted from this file on 2026-08-12**, on
+purpose. A document holding four complete listings is a document from which the wrong one gets
+copied into App Store Connect at 1am. What each direction *was*, and why it lost, is worth keeping
+and is kept:
 
----
+| Direction | Thesis | Name / subtitle | Why not |
+|---|---|---|---|
+| 1 — mechanism | Sell the refusal to be a list: one card and a reason | *One thing at a time* / *Stop deciding. Start doing.* | Spends its whole keyword budget competing for `todo` and `focus`, which a brand-new app loses, on a phrase nobody searches. Safest-sounding and weakest. Also reads at a glance like a mindfulness app |
+| **2 — situation** | **Sell the moment: six things due, none started** | **`NEXT: Homework & Deadlines` / `Six things due? Start one.`** | **Selected.** Best on discoverability and conversion; safest on truthfulness, because situational claims stay clear of §1's clinical boundary by construction |
+| 3 — failure state | Sell what nothing else has: Rescue and Minimum Win | *When You're Stuck* / *Too much to do? Do one thing.* | Best differentiated and the strong second choice. Rejected on standing risk: leading on "stuck" and "overwhelmed" sits next to clinical language §1 forbids, and holding that line is an editorial cost on every future update. Its name also describes a feeling, not a function |
 
-### Direction 1 — *One thing at a time*
+All three shared **Productivity** as primary category. That was a finding, not a shortage of
+imagination: Education requires "an interactive learning experience", NEXT teaches nothing, and
+App Review 2.3.5 makes an irrelevant category grounds for rejection.
 
-**Positioning thesis.** NEXT is defined by what it refuses to be. Every competitor's answer to
-"too much to do" is a better list; NEXT's answer is one card and a reason. Sell the mechanism,
-because the mechanism is the differentiator and it is instantly legible.
+The reasoning that produced them — the product evidence in §1, Apple's verified requirements in
+§2, and the positioning question in §3 — is what this file is now for.
 
-**Intended user and search intent.** Someone who already owns a to-do app, already knows what
-they owe, and still is not starting. They search `todo`, `task list`, `focus`, `what to do next`,
-`priority`. Broadest of the three; also the most contested.
+## 5. The recommendation, as made on 2026-08-12 — **superseded by the owner's approval**
 
-| Field | Value | Length |
-|---|---|---|
-| App Name | `NEXT: One Thing at a Time` | 25 / 30 |
-| Subtitle | `Stop deciding. Start doing.` | 27 / 30 |
-| Promotional Text | `No account, no sign-up, and no internet needed. Everything you write stays on your phone, and everything NEXT does is free.` | 123 / 170 |
-| Keywords | `todo,task list,homework,assignment,deadline,study,revision,student,procrastination,overwhelmed,focus` | 100 / 100 bytes |
-| Primary category | Productivity | |
-| Secondary category | Utilities | |
-| Description | 2143 / 4000 characters — in `scripts/validate-store-metadata.py` | |
-
-**Description** (full text lives in the validator so it cannot drift from what was measured):
-opens *"You have too much to do and no idea where to start. NEXT gives you one thing."*, then six
-headed blocks — one card not a list · it tells you why · when you are stuck say so · when the
-whole thing no longer fits · then it gets out of the way · nothing leaves your phone.
-
-**How the six approved frames support it.** Almost perfectly, because the set was built to this
-story. Frame 1 is the mess going in; frame 2 is the one card coming out *with its reason* — and
-Apple shows the first one to three images in search results, so those two carry the thesis at
-thumbnail size on their own. Frame 3 proves the choice is a *first move*, not a project. Frame 4
-is "gets out of the way". Frames 5 and 6 are the two states a list cannot handle.
-
-**Strengths.** The name explains the product without an adjective. The subtitle is a mechanism,
-not a promise, so nothing in it is unverifiable under 2.3.7. It survives the app growing beyond
-students. It matches the locked captions in voice almost exactly.
-
-**Weaknesses.** `one thing at a time` is not a phrase anybody searches, so the name does almost no
-discovery work and the entire keyword budget has to carry it. Competing for `todo` and `focus`
-against enormous incumbents is the losing half of Apple's own stated trade-off between popular
-and less common terms. And "one thing at a time" reads, at a glance, like a mindfulness app.
-
-**Deliberately excluded.** AI · ADHD and every clinical adjacency · study outcomes · the widget
-(B1a) · sync · anything about NEXT+.
-
----
-
-### Direction 2 — *Homework and deadlines*
-
-**Positioning thesis.** Stop selling a mechanism to everyone and sell a situation to one person:
-six things due, a reading list not opened, an essay not started. NEXT is what you open on a
-Sunday night. The audience `PRODUCT_SPEC.md` names is the audience the listing names.
-
-**Intended user and search intent.** A student searching for the thing, not for a solution:
-`homework`, `assignment`, `coursework`, `revision`, `study planner`, `exam`, `deadline`. Lower
-volume than direction 1 and dramatically less contested, and the intent is much closer to the
-moment NEXT is actually useful.
-
-| Field | Value | Length |
-|---|---|---|
-| App Name | `NEXT: Homework & Deadlines` | 26 / 30 |
-| Subtitle | `Six things due? Start one.` | 26 / 30 |
-| Promotional Text | `Term has started. Put the whole reading list in, and NEXT will tell you which part of it to do first.` | 101 / 170 |
-| Keywords | `study,revision,assignment,coursework,exam,essay,student,college,todo,task,procrastination,planner` | 97 / 100 bytes |
-| Primary category | Productivity | |
-| Secondary category | Utilities | |
-| Description | 1907 / 4000 characters | |
-
-**Description.** Opens on the situation rather than the product — *"Six things due this week. A
-reading list you have not opened. An essay you have been not-starting for four days."* — then a
-plain bulleted "what it actually does", the stuck paths written as coursework, the
-too-late-to-do-it-properly section, and "no streaks, no guilt, no account".
-
-**How the six approved frames support it.** Better than direction 1 in one specific place: frame
-1's brain dump *is* a coursework dump, and this description has already told the reader that
-before they look at it. Frames 5 and 6 stop being abstract product states and become the essay
-and the missed deadline. The risk is frames 2–4, whose seeded content is a history essay — good,
-but the listing now promises a homework app and three of six frames must carry it.
-
-**Strengths.** The name contains two terms real people type, so the name does discovery work the
-keyword field then does not have to repeat. `homework` and `coursework` are winnable in a way
-`todo` is not. The subtitle is a scene, and scenes convert. Strongest match to the documented
-audience, which means the listing and the product will not drift apart.
-
-**Weaknesses.** It narrows a product that is not actually narrow — a graduate, a career-changer or
-anyone with a job bounces off "Homework". It puts NEXT into the crowded student-planner shelf,
-where every competitor promises scheduling and timetables and NEXT does none of it, so some
-arrivals will be disappointed by the *absence* of a calendar. And it makes the app harder to
-reposition later without changing the name, which is a searchable asset.
-
-**Deliberately excluded.** Timetable, calendar and class-schedule language (NEXT does none of it,
-and 2.3.1(a) makes promoting it removable) · grades and results · Education as a category · AI ·
-ADHD · the widget.
-
----
-
-### Direction 3 — *For when you cannot start*
-
-**Positioning thesis.** Lead with the failure state. Knowing what to do is not the problem;
-starting is. Rescue and Minimum Win — the two things nothing else on the shelf has — become the
-headline instead of the third feature, and the ranking engine becomes support for them.
-
-**Intended user and search intent.** Someone searching for their symptom rather than a tool:
-`procrastination`, `overwhelmed`, `can't start`, `motivation`. Lower volume again, highest intent
-of the three, and by far the strongest emotional hook — which is also its risk.
-
-| Field | Value | Length |
-|---|---|---|
-| App Name | `NEXT: When You're Stuck` | 23 / 30 |
-| Subtitle | `Too much to do? Do one thing.` | 29 / 30 |
-| Promotional Text | `Free, offline, and no account. If you have opened five apps today and still not started anything, this is the one to try.` | 121 / 170 |
-| Keywords | `procrastination,overwhelmed,homework,assignment,deadline,study,student,focus,todo,task list,planner` | 99 / 100 bytes |
-| Primary category | Productivity | |
-| Secondary category | Utilities | |
-| Description | 2011 / 4000 characters | |
-
-**Description.** Opens *"Knowing what you have to do is not the problem. Starting is."*, then
-"I'm stuck is the main feature" with all four paths written out as the user would say them,
-then the reason-on-the-card, then "it never tells you off", then "private by construction".
-
-**How the six approved frames support it.** This is the only direction where **frame 5 is the
-hero**, and it is the frame no competitor has. The set reads: here is your mess (1), here is the
-one thing (2), here is the *first move* not the project (3) — which is the product's actual answer
-to "I can't start" — the app leaves (4), and then the two frames that are the whole thesis:
-stuck (5) and late (6). Frame 3's caption *Not the project. The first move.* is already written in
-this direction's voice.
-
-**Strengths.** It is the only one of the three that names the moment the app is genuinely unique
-in. `procrastination` is a real search term with real volume that no incumbent to-do app owns.
-The copy has somewhere to go that the others do not: it can describe Rescue in detail, which is
-the most convincing thing NEXT has and the hardest to convey in a screenshot.
-
-**Weaknesses — and one is serious.** Leading on "stuck", "overwhelmed" and "can't start" walks
-straight up to the line `PRODUCT_SPEC.md` §1 draws around clinical territory, and the audience it
-attracts will arrive with expectations the app cannot and must not meet. Holding that line is a
-permanent editorial cost on every future update. Second, `NEXT: When You're Stuck` describes a
-*feeling*, not a category, so a shopper who is not currently stuck has no reason to tap. Third,
-the apostrophe in the name is a small ongoing nuisance in a searchable field.
-
-**Deliberately excluded.** ADHD, executive dysfunction, focus disorder, anxiety, burnout, "brain
-fog", and every other clinical or quasi-clinical term — the whole reason this direction is the
-riskiest is that they would fit its voice perfectly and every one of them is forbidden · "beat
-procrastination" and similar outcome promises, which are unverifiable claims under 2.3.7 ·
-motivation-app framing, which contradicts P5 (no productivity morality) · the widget.
-
----
-
-## 5. Recommendation
+*Kept because the criteria are reusable and the cost of the choice was stated in advance.
+The owner selected direction 2, and the audit in §9 then revised its copy.*
 
 **Direction 2 — *Homework and deadlines*.**
 
@@ -592,13 +451,16 @@ Done, verified, and frames 1–5 are byte-for-byte what they were. The full reas
 
 ---
 
-## 11. What happens after the selection
+## 11. What happened after the selection — all done except the owner's
 
-1. Replace `PRODUCT_SPEC.md` §15's "Listing copy" block with the approved copy, and record the
-   choice in `DECISIONS.md` as the entry that closes D-024's checkpoint for wording.
-2. Reduce `scripts/validate-store-metadata.py` to the single approved listing and wire it into the
-   guardrails job, so the limits stay enforced rather than checked once. Delete the losing
-   directions from this file rather than leaving them to be mistaken for live options.
-3. ~~Recapture frame 6~~ — **done, D-037.** Frames 1–5 preserved byte-for-byte.
-4. Fill the owner-supplied fields in section 6, and add the in-app privacy-policy link, before
-   `RELEASE_GATED.md` B3 step 5 can be executed.
+1. ~~Replace `PRODUCT_SPEC.md` §15~~ — **done.** It holds the approved copy, and the 2026-08-09
+   draft that sat there is superseded and removed (**D-038**).
+2. ~~Reduce the validator and wire it into CI~~ — **done.** It holds exactly one listing and the
+   guardrails job runs it on every push.
+3. ~~Recapture frame 6~~ — **done (D-037), approved and locked (D-039).** Frames 1–5 preserved
+   byte-for-byte, and `ScreenshotCaptureUITests` now asserts frame 6's two required elements
+   before the shutter, so image and behaviour cannot drift apart again.
+4. ~~Retire the losing directions~~ — **done (§4).**
+5. **Outstanding, and the owner's:** the Support URL, the Privacy Policy URL and the copyright
+   holder (§6), plus the in-app privacy-policy link App Review 5.1.1(i) requires, which is blocked
+   on the URL. Until those exist, `RELEASE_GATED.md` B3 step 5 cannot run.
